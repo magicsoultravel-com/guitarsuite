@@ -6,7 +6,7 @@ import { renderMusicalNotes } from './sections/musicalNotes.js';
 import { renderFretboard } from './sections/fretboard.js';
 import { renderChordsTheory } from './sections/chordsTheory.js';
 import { renderScalesTheory } from './sections/scalesTheory.js';
-import { renderMetronome } from './sections/metronome.js';
+import { renderTools } from './sections/tools.js';
 import { renderUsefulLinks } from './sections/usefulLinks.js';
 import { renderBlogger } from './sections/blogger.js';
 import { renderAbout } from './sections/about.js';
@@ -77,7 +77,7 @@ try {
 
   hub.setRoot(initialRoot);
 
-  app.appendChild(renderMetronome());
+  app.appendChild(renderTools());
   app.appendChild(renderUsefulLinks(usefulLinks));
   app.appendChild(renderBlogger(bloggerPosts));
   app.appendChild(renderAbout(about));

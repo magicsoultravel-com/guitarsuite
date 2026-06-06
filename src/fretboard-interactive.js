@@ -12,10 +12,8 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
   const notesData = notesJson;
   const chordsData = chordsJson;
 
-  function cellPitch(cell, stringNameCell, cellIndex) {
-    if (cellIndex === 0) return normalizePitch(stringNameCell.textContent.trim());
-    const strong = cell.querySelector('strong');
-    return normalizePitch((strong ?? cell).textContent.trim());
+  function cellPitch(cell) {
+    return normalizePitch(cell.dataset.pitch || cell.textContent.trim());
   }
 
   function updateFretboardDisplay() {
@@ -28,21 +26,19 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
 
     const stringFretsMap = Object.fromEntries(STRING_ORDER.map((s) => [s, []]));
 
-    fretboardTable.querySelectorAll('tbody tr').forEach((row) => {
-      const stringNameCell = row.querySelector('td:first-child strong');
-      if (!stringNameCell) return;
-      const stringName = stringNameCell.textContent.trim();
+    fretboardTable.querySelectorAll('td.fb-cell').forEach((cell) => {
+      const pitch = cellPitch(cell);
+      if (!pitch) return;
+      const stringName = cell.dataset.string;
+      const fret = parseInt(cell.dataset.fret, 10);
 
-      row.querySelectorAll('td').forEach((cell, cellIndex) => {
-        const pitch = cellPitch(cell, stringNameCell, cellIndex);
-        if (!pitch) return;
-
-        if (active.has(pitch)) {
-          cell.classList.add('selected');
-          if (pitch === root) cell.classList.add('fb-root');
-          stringFretsMap[stringName].push(cellIndex === 0 ? 0 : cellIndex);
+      if (active.has(pitch)) {
+        cell.classList.add('selected');
+        if (pitch === root) cell.classList.add('fb-root');
+        if (stringName && !Number.isNaN(fret)) {
+          stringFretsMap[stringName].push(fret);
         }
-      });
+      }
     });
 
     if (fretNotationDisplay) {
@@ -51,7 +47,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
         .map((s) => `${s} - ${stringFretsMap[s].sort((a, b) => a - b).join(', ')}`);
       fretNotationDisplay.textContent = lines.length
         ? `Selected frets:\n${lines.join('\n')}`
-        : 'Click notes, chords, scales, or theory rows to highlight the fretboard.';
+        : '';
     }
 
     updateRelatedChords(active);
@@ -63,7 +59,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
 
     const selected = [...active];
     if (!selected.length) {
-      relatedChordsDisplay.textContent = 'Select notes to find related chords.';
+      relatedChordsDisplay.textContent = '';
       return;
     }
 
@@ -74,33 +70,26 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
     }
 
     relatedChordsDisplay.textContent = matched.length
-      ? `Related chords:\n${matched.sort().join(', ')}`
-      : 'No chords found containing all selected notes.';
+      ? `Related: ${matched.sort().join(', ')}`
+      : '';
   }
 
   function updateActiveMarkers() {
     document.querySelectorAll('.fb-selectable.fb-active').forEach((el) => el.classList.remove('fb-active'));
     const label = hub.getSourceLabel();
     if (!label || label === 'root' || label === 'manual') return;
-    document.querySelectorAll(`[data-label="${CSS.escape(label)}"]`).forEach((el) => {
-      el.classList.add('fb-active');
+    document.querySelectorAll('[data-label]').forEach((el) => {
+      if (el.dataset.label === label) el.classList.add('fb-active');
     });
   }
 
   hub.subscribe(updateFretboardDisplay);
 
   fretboardTable.addEventListener('click', (event) => {
-    const cell = event.target.closest('td');
-    if (!cell || !fretboardTable.contains(cell)) return;
-
-    const row = cell.closest('tr');
-    const stringNameCell = row?.querySelector('td:first-child strong');
-    if (!stringNameCell) return;
-
-    const cellIndex = [...row.children].indexOf(cell);
-    const pitch = cellPitch(cell, stringNameCell, cellIndex);
+    const cell = event.target.closest('td.fb-cell');
+    if (!cell) return;
+    const pitch = cellPitch(cell);
     if (!pitch) return;
-
     hub.toggleNote(pitch);
   });
 
@@ -114,8 +103,7 @@ export function wireChordNoteTables(hub, chordsJson, notesJson) {
       const chordName = th.dataset.chord;
       const variant = chordsJson[chordName]?.variant1;
       if (!variant) return;
-      const notes = getChordNotes(variant, notesJson);
-      hub.selectNotes(notes, chordName);
+      hub.selectNotes(getChordNotes(variant, notesJson), chordName);
     });
   });
 }

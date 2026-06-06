@@ -15,11 +15,15 @@
       <aside id="fretboard-sidebar" class="fretboard-sidebar" aria-label="Interactive fretboard">
         <div class="sidebar-header">
           <h2>fretboard</h2>
-          <button type="button" id="sidebar-hide" class="sidebar-toggle" title="Hide fretboard">◀</button>
+          <button type="button" id="sidebar-hide" class="icon-btn hamburger" title="Hide fretboard" aria-label="Hide fretboard">
+            <span></span><span></span><span></span>
+          </button>
         </div>
         <div id="sidebar-inner" class="sidebar-inner"></div>
       </aside>
-      <button type="button" id="sidebar-show" class="sidebar-show-btn" title="Show fretboard" hidden>▶</button>
+      <button type="button" id="sidebar-show" class="sidebar-show-btn hamburger" title="Show fretboard" aria-label="Show fretboard" hidden>
+        <span></span><span></span><span></span>
+      </button>
       <div class="main-column">
         <div id="app" class="sections-wrapper"></div>
       </div>
@@ -32,7 +36,7 @@
       setTimeout(function () {
         var app = document.getElementById('app');
         if (app && !app.children.length && !app.textContent.trim()) {
-          app.innerHTML = '<div class="section"><h2>Could not load app</h2><p>JavaScript failed to load. Try a hard refresh (Ctrl+Shift+R). If the problem persists, check the browser console for errors.</p></div>';
+          app.innerHTML = '<div class="section"><h2>Could not load app</h2><p>JavaScript failed to load. Try a hard refresh (Ctrl+Shift+R).</p></div>';
         }
       }, 800);
     });

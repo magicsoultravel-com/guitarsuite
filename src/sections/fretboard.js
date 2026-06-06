@@ -3,42 +3,47 @@ import { escapeHtml } from '../utils.js';
 const STRING_ORDER = ['E', 'A', 'D', 'G', 'B', 'e'];
 const NUM_DISPLAY_FRETS = 16;
 
-function fretHeader(fret) {
-  if ([5, 7, 9].includes(fret)) return '⬤';
-  if (fret === 12) return '⬤⬤';
+function fretLabel(fret) {
+  if (fret === 0) return 'nut';
+  if (fret === 12) return '12 ⬤⬤';
+  if ([3, 5, 7, 9].includes(fret)) return `${fret} ⬤`;
   return String(fret);
+}
+
+function noteAtFret(stringData, fret) {
+  const key = String(fret);
+  return stringData[key] ?? '';
 }
 
 export function renderFretboard(fretboardData) {
   const panel = document.createElement('div');
   panel.className = 'sidebar-panel fretboard-panel';
+
+  const headerCells = STRING_ORDER.map(
+    (s) => `<th class="string-head">${escapeHtml(s)}</th>`
+  ).join('');
+
+  const rows = [];
+  for (let fret = 0; fret <= NUM_DISPLAY_FRETS; fret++) {
+    const cells = STRING_ORDER.map((string) => {
+      const stringData = fretboardData[string];
+      if (!stringData) {
+        return `<td class="fb-cell" data-string="${string}" data-fret="${fret}" data-pitch="">—</td>`;
+      }
+      const note = noteAtFret(stringData, fret);
+      const pitch = note || string;
+      return `<td class="fb-cell" data-string="${escapeHtml(string)}" data-fret="${fret}" data-pitch="${escapeHtml(pitch)}">${escapeHtml(note || (fret === 0 ? string : ''))}</td>`;
+    }).join('');
+    rows.push(`<tr data-fret="${fret}"><th class="fret-head">${fretLabel(fret)}</th>${cells}</tr>`);
+  }
+
   panel.innerHTML = `
-    <p class="fb-hint">Click frets to toggle. Columns/rows elsewhere update this board.</p>
-    <div class="fretboard-table-wrap">
-      <table id="fretboard-table">
+    <div class="fretboard-table-wrap fretboard-vertical-wrap">
+      <table id="fretboard-table" class="fretboard-vertical">
         <thead>
-          <tr>
-            <th>str</th>
-            ${Array.from({ length: NUM_DISPLAY_FRETS }, (_, i) => i + 1)
-              .map((f) => `<th>${fretHeader(f)}</th>`)
-              .join('')}
-          </tr>
+          <tr><th class="fret-head"></th>${headerCells}</tr>
         </thead>
-        <tbody>
-          ${STRING_ORDER.map((string) => {
-            const stringData = fretboardData[string];
-            if (!stringData) {
-              return `<tr><td colspan="${1 + NUM_DISPLAY_FRETS}">N/A</td></tr>`;
-            }
-            const cells = Array.from({ length: NUM_DISPLAY_FRETS }, (_, i) => {
-              const fret = i + 1;
-              const noteIndex = ((fret - 1) % 12) + 1;
-              const note = escapeHtml(stringData[noteIndex] ?? '');
-              return `<td>${note}</td>`;
-            }).join('');
-            return `<tr><td><strong>${escapeHtml(string)}</strong></td>${cells}</tr>`;
-          }).join('')}
-        </tbody>
+        <tbody>${rows.join('')}</tbody>
       </table>
     </div>
     <div id="fret-notation-display"></div>

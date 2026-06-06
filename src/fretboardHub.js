@@ -90,10 +90,9 @@ export function renderRootToolbar(hub) {
   ).join('');
 
   bar.innerHTML = `
-    <div class="fretboard-toolbar">
-      <label for="global-root-select">Root</label>
-      <select id="global-root-select">${options}</select>
-      <button type="button" id="fretboard-reset">Reset</button>
+    <div class="root-row">
+      <select id="global-root-select" class="root-select" title="Root note">${options}</select>
+      <button type="button" id="fretboard-reset" class="icon-btn reset-btn" title="Reset fretboard" aria-label="Reset fretboard">↺</button>
     </div>
     <span id="fretboard-source" class="fretboard-source"></span>
   `;
@@ -113,7 +112,7 @@ export function renderRootToolbar(hub) {
     const src = bar.querySelector('#fretboard-source');
     const label = hub.getSourceLabel();
     const notes = [...hub.getActiveNotes()].join(', ');
-    src.textContent = label && label !== 'root' ? `${label}: ${notes}` : `Root ${hub.getRoot()} — ${notes}`;
+    src.textContent = label && label !== 'root' ? `${label}: ${notes}` : notes;
   });
 
   return bar;

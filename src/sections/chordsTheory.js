@@ -6,7 +6,7 @@ export function renderChordsTheory() {
   section.id = 'chords-theory-section';
   section.innerHTML = `
     <h2>chords theory</h2>
-    <p class="fb-hint">Uses the global root note. Click a row to highlight on fretboard (up to 3 layers).</p>
+    <p class="fb-hint">Uses the global root. Click a row for theory on the fretboard, or the chord chip for a voicing.</p>
     <table id="chords-theory-table">
       <thead>
         <tr>

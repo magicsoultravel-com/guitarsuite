@@ -46,3 +46,13 @@ export function appendChordChips(container, names, hub, ctx, options = {}) {
     container.appendChild(createChordChip(hub, ctx, name, options));
   }
 }
+
+/** Replace table header cells (or any container) with standard chord chips. */
+export function mountChordHeaderChips(container, hub, ctx, selector = '[data-chord]') {
+  container.querySelectorAll(selector).forEach((el) => {
+    const name = el.dataset.chord;
+    if (!name) return;
+    el.replaceChildren(createChordChip(hub, ctx, name, { extraClass: 'is-compact' }));
+  });
+}
+

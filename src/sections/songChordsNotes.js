@@ -18,15 +18,13 @@ export function renderChordsAndNotes(currentSong, chordsJson, notesJson) {
   const chordsTable = buildChordTable(uniqueChords, chordsJson, (_chord, variant) => {
     const values = Array.isArray(variant) ? variant : Object.values(variant);
     return values.map((v) => String(v));
-  }, { tableClass: 'chords-table' });
+  }, { tableClass: 'chords-table', chordHeaders: true });
 
   const notesTable = buildChordTable(uniqueChords, chordsJson, (_chord, variant) => {
     return sortNotesByMusicalOrder(getChordNotes(variant, notesJson));
-  }, { tableClass: 'notes-table' });
+  }, { tableClass: 'notes-table', chordHeaders: true });
 
   return createSection('chords & notes', `
-    <p class="fb-hint">Click a chord chip to highlight on fretboard — synced with the Chord module.</p>
-    <div class="dock-chip-grid song-chords-grid" data-chords="${uniqueChords.join(',')}"></div>
     <div class="chords-notes-split">
       <div class="chords-notes-col">
         <h3 class="split-label">Chords</h3>

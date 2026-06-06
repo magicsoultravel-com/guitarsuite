@@ -1,21 +1,15 @@
-import { THEORY_SUFFIX } from '../chordVoicings.js';
 import { getDisplayRoot, formatRootsDisplay } from '../displayRoot.js';
 import {
-  CHROMATIC,
   getChordNotes,
   getTheoryNotes,
   sortNotesByMusicalOrder,
 } from '../music.js';
 import { appendChordChips, getChordContext } from '../chordChip.js';
+import { listPickerChordsAtRoot } from '../chordPickerList.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
 const STRING_KEYS = ['E1', 'A', 'D', 'G', 'B', 'E2'];
-
-function theoryChordsAtRoot(root, chordsJson) {
-  const names = Object.values(THEORY_SUFFIX).map((suffix) => root + suffix);
-  return names.filter((name) => chordsJson[name]);
-}
 
 function formatFret(value) {
   const v = String(value ?? 'x');
@@ -30,7 +24,7 @@ function renderShapePreview(variant, notesJson) {
   return { frets, notes };
 }
 
-function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot) {
+function resolveDisplayChord(hub, chordsJson, chordsTheory, atRoot) {
   const last = hub.getLastChordLabel();
   if (last && (chordsJson[last] || chordsTheory?.[last])) return last;
 
@@ -38,8 +32,6 @@ function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot) {
   const chordLayer = [...layers].reverse().find((l) => l.chordRef || chordsJson[l.label] || chordsTheory?.[l.label] || l.via);
   if (chordLayer) return chordLayer.chordRef || chordLayer.label;
 
-  const preview = getDisplayRoot(hub);
-  const atRoot = byRoot[preview] || [];
   return atRoot[0] || null;
 }
 
@@ -70,8 +62,8 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
   return '—';
 }
 
-export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {}) {
-  const byRoot = Object.fromEntries(CHROMATIC.map((r) => [r, theoryChordsAtRoot(r, chordsJson)]));
+export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {}, curatedKeys = null) {
+  const curated = curatedKeys ?? new Set(Object.keys(chordsJson));
   const ctx = getChordContext(hub, chordsJson, notesJson, chordsTheory);
 
   const el = document.createElement('div');
@@ -87,6 +79,10 @@ export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {})
       <div class="dock-section">
         <span class="dock-section-label chord-picker-root-label">At root</span>
         <div class="dock-chip-grid chord-picker-root-grid"></div>
+      </div>
+      <div class="dock-section chord-picker-extra-section" hidden>
+        <span class="dock-section-label">Also in database</span>
+        <div class="dock-chip-grid chord-picker-extra-grid"></div>
       </div>
       <div class="dock-detail chord-picker-diagram">
         <div class="dock-detail-head">
@@ -107,6 +103,8 @@ export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {})
   const summaryEl = el.querySelector('.chord-picker-summary');
   const rootLabel = el.querySelector('.chord-picker-root-label');
   const rootGrid = el.querySelector('.chord-picker-root-grid');
+  const extraSection = el.querySelector('.chord-picker-extra-section');
+  const extraGrid = el.querySelector('.chord-picker-extra-grid');
   const diagramName = el.querySelector('.chord-picker-diagram-name');
   const diagramType = el.querySelector('.chord-picker-diagram-type');
   const diagramFrets = el.querySelector('.chord-picker-frets');
@@ -156,14 +154,18 @@ export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {})
 
   function refreshUI() {
     const root = getDisplayRoot(hub);
-    const names = byRoot[root] || [];
+    const { theory, extras } = listPickerChordsAtRoot(root, chordsJson, curated);
+    const atRoot = [...theory, ...extras];
+
     rootLabel.textContent = hub.getRoots().length > 1
       ? `At ${formatRootsDisplay(hub)} (primary ${hub.getRoot()})`
       : `At ${root}`;
-    appendChordChips(rootGrid, names, hub, ctx);
+    appendChordChips(rootGrid, theory, hub, ctx);
+    extraSection.hidden = !extras.length;
+    appendChordChips(extraGrid, extras, hub, ctx);
     syncChipLayers(hub, el);
 
-    const displayName = resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot);
+    const displayName = resolveDisplayChord(hub, chordsJson, chordsTheory, atRoot);
     summaryEl.textContent = formatCollapsedSummary(displayName, chordsJson, chordsTheory, notesJson, hub);
     updateDiagram(displayName);
   }

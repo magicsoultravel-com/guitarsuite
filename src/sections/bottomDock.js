@@ -31,6 +31,7 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
     chords,
     notes,
     theoryContext.chordsTheory,
+    theoryContext.curatedKeys,
   );
   dock.appendChild(chordPicker.el);
   dock.appendChild(renderFretboardDrawer(hub, notes));

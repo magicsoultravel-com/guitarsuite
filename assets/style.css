@@ -1050,6 +1050,17 @@ th {
     gap: 4px;
 }
 
+.chord-table-header,
+.chords-theory-short-cell {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.chord-table-header .dock-chip,
+.chords-theory-short-cell .dock-chip {
+    margin: 0;
+}
+
 .song-chords-grid {
     margin-bottom: var(--space-md);
 }

@@ -77,6 +77,7 @@ try {
   const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex, {
     scales,
     chordsTheory,
+    curatedKeys: new Set(Object.keys(rawChords)),
     onSongChange: (index) => {
       songIndex = index;
       mountChordsAndNotes(songs[index] ?? null);

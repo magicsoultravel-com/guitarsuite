@@ -194,7 +194,7 @@ export function numeralsToPattern(numerals) {
 }
 
 export function buildChordTable(uniqueChords, chordsJson, getCellValue, options = {}) {
-  const { tableClass = '', interactive = false } = options;
+  const { tableClass = '', interactive = false, chordHeaders = false } = options;
   const allData = {};
   let maxRows = 0;
 
@@ -215,6 +215,10 @@ export function buildChordTable(uniqueChords, chordsJson, getCellValue, options 
   html += '<thead><tr>';
   for (const name of chordNames) {
     const safe = name.replace(/"/g, '&quot;');
+    if (chordHeaders) {
+      html += `<th class="chord-table-header" data-chord="${safe}"></th>`;
+      continue;
+    }
     const notesAttr = interactive
       ? ` class="fb-selectable fb-chord-col" data-chord="${safe}" data-label="${safe}"`
       : '';

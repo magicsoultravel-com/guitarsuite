@@ -1,7 +1,7 @@
 import { formatRootsDisplay, getDisplayRoot } from './displayRoot.js';
 import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes, getDiatonicTriads, resolveProgressionChords, numeralsToPattern } from './music.js';
 import { getShapeFrets, pickChord } from './chordResolve.js';
-import { appendChordChips, createChordChip, getChordContext, makePlayFns } from './chordChip.js';
+import { createChordChip, getChordContext, makePlayFns, mountChordHeaderChips } from './chordChip.js';
 import { syncChipLayers } from './dockModule.js';
 import {
   playFretNote,
@@ -150,15 +150,14 @@ export function updateActiveMarkers(hub) {
 
 export function wireChordNoteTables(hub, chordsJson, notesJson, chordsTheory = {}) {
   const ctx = chordCtxFromHub(hub, chordsJson, notesJson, chordsTheory);
+  const section = document.getElementById('chords-notes-section');
 
-  function fillSongChords() {
-    const grid = document.querySelector('#chords-notes-section .song-chords-grid');
-    if (!grid) return;
-    const names = (grid.dataset.chords || '').split(',').filter(Boolean);
-    appendChordChips(grid, names, hub, ctx);
+  function mountHeaders() {
+    if (!section) return;
+    mountChordHeaderChips(section, hub, ctx, '.chord-table-header[data-chord]');
   }
 
-  fillSongChords();
+  mountHeaders();
 
   document.querySelectorAll('.notes-table td').forEach((td) => {
     const pitch = normalizePitch(td.textContent.trim());
@@ -170,7 +169,7 @@ export function wireChordNoteTables(hub, chordsJson, notesJson, chordsTheory = {
 
   hub.subscribe(() => {
     updateActiveMarkers(hub);
-    fillSongChords();
+    mountHeaders();
   });
 }
 
@@ -182,31 +181,51 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
 
   function renderRows() {
     const root = getDisplayRoot(hub);
+    const c = hub.getChordContext();
     tbody.innerHTML = '';
 
     for (const [type, data] of Object.entries(chordsTheory)) {
       const intervalList = data.intervals.split(' ').map(Number);
-      const verbal = intervalList.map((i) => intervals[i]?.names?.[0] ?? i);
+      const verbal = intervalList.slice(1).map((i) => intervals[i]?.names?.[0] ?? i);
       const notes = getTheoryNotes(root, data.intervals);
       const short = root + data.short.slice(1);
-      const intervalsStr = data.intervals;
 
       const tr = document.createElement('tr');
       tr.className = 'fb-selectable fb-theory-row';
       tr.dataset.theoryType = type;
       tr.dataset.label = type;
-      tr.title = 'Click to highlight on fretboard (up to 3 layers)';
-      tr.innerHTML = `
-        <td>${type}</td>
-        <td>${short}</td>
-        <td>${verbal.join(', ')}</td>
-        <td>${intervalList.slice(1).join(' ')}</td>
-        <td>${notes.join(', ')}</td>
-      `;
-      tr.addEventListener('click', () => {
-        const c = hub.getChordContext();
-        if (!c) return;
-        pickChord(hub, c, makePlayFns(c.notesJson), { theoryType: type });
+      tr.title = 'Click row for theory on fretboard; chip picks voicing';
+
+      const typeTd = document.createElement('td');
+      typeTd.textContent = type;
+      tr.appendChild(typeTd);
+
+      const shortTd = document.createElement('td');
+      shortTd.className = 'chords-theory-short-cell';
+      if (c) {
+        shortTd.appendChild(createChordChip(hub, c, short, { extraClass: 'is-compact' }));
+      } else {
+        shortTd.textContent = short;
+      }
+      tr.appendChild(shortTd);
+
+      const verbalTd = document.createElement('td');
+      verbalTd.textContent = verbal.join(', ');
+      tr.appendChild(verbalTd);
+
+      const semiTd = document.createElement('td');
+      semiTd.textContent = intervalList.slice(1).join(' ');
+      tr.appendChild(semiTd);
+
+      const notesTd = document.createElement('td');
+      notesTd.textContent = notes.join(', ');
+      tr.appendChild(notesTd);
+
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('.dock-chip')) return;
+        const ctx = hub.getChordContext();
+        if (!ctx) return;
+        pickChord(hub, ctx, makePlayFns(ctx.notesJson), { theoryType: type });
       });
       tbody.appendChild(tr);
     }

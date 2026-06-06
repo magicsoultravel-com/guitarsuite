@@ -40,12 +40,32 @@ export function theoryNotesForSymbol(name, chordsTheory) {
   return getTheoryNotes(parsed.root, chordsTheory[parsed.theoryType].intervals);
 }
 
+/** Common misspellings / alternate spellings in song sheets. */
+const SPELLING_ALIASES = {
+  AE: 'A/E',
+  AM: 'Am',
+  Bd: 'Bb',
+  'D/f#': 'D/F#',
+  Asus: 'Asus2',
+  Dsus: 'Dsus4',
+};
+
+export function normalizeChordName(name) {
+  if (!name) return name;
+  return SPELLING_ALIASES[name] || name;
+}
+
 export function findChordAliases(name) {
-  const parsed = parseChordSymbol(name);
-  if (!parsed) return [name];
-  const { root, suffix } = parsed;
-  const aliases = new Set([name, root + suffix]);
-  if (suffix === 'maj7') aliases.add(`${root}Maj7`);
+  const aliases = new Set([name]);
+  const normalized = normalizeChordName(name);
+  if (normalized !== name) aliases.add(normalized);
+
+  const parsed = parseChordSymbol(normalized);
+  if (parsed) {
+    const { root, suffix } = parsed;
+    aliases.add(root + suffix);
+    if (suffix === 'maj7') aliases.add(`${root}Maj7`);
+  }
   return [...aliases];
 }
 

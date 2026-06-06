@@ -1314,13 +1314,19 @@ th {
 
 .chords-notes-split {
     display: flex;
-    gap: var(--space-md);
-    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-lg);
+    align-items: stretch;
 }
 
 .chords-notes-col {
-    flex: 1;
+    width: 100%;
     min-width: 0;
+}
+
+.chords-notes-col .table-scroll,
+.chords-notes-col table {
+    max-width: 100%;
 }
 
 .split-label {

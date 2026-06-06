@@ -99,7 +99,7 @@
         "id": 14,
         "title": "All For Love",
         "artist": "Bryan Adams",
-        "chords": "D D D\/F# G D\/A A D D D\/F# G D\/A A D Dsus\/E D\/F# G Em7 D\/A A D\/F# G Bm A D\/f# G Em7 D\/F# G D\/A G D\/F# Em7 A D Bm G Em7 D\/F# D\/F# G A Bm D\/F# G A G G Em7 Em7 Dsus D Dsus D G G Em7 Em7 Asus Asus A"
+        "chords": "D D D/F# G D/A A D D D/F# G D/A A D Dsus/E D/F# G Em7 D/A A D/F# G Bm A D/F# G Em7 D/F# G D/A G D/F# Em7 A D Bm G Em7 D/F# D/F# G A Bm D/F# G A G G Em7 Em7 Dsus D Dsus D G G Em7 Em7 Asus2 Asus2 A"
     },
     {
         "id": 15,
@@ -111,19 +111,19 @@
         "id": 16,
         "title": "Rosanna",
         "artist": "Toto",
-        "chords": "G Gsus2 G Gsus4 G Gsus2 G Gsus4 G Gsus2 G Gsus4 G Gsus2 G Gsus4 G G F9 Em7 G C F F Eb Dm7 Gm Gm F\/A Bd Eb Bd F Gm F\/A Bb F Cm7 Eb Bb F Cm7 Eb Bb F Cm7 Eb Bb F Cm7 Eb Bb F"
+        "chords": "G Gsus2 G Gsus4 G Gsus2 G Gsus4 G Gsus2 G Gsus4 G Gsus2 G Gsus4 G G F9 Em7 G C F F Eb Dm7 Gm Gm F/A Bb Eb Bb F Gm F/A Bb F Cm7 Eb Bb F Cm7 Eb Bb F Cm7 Eb Bb F Cm7 Eb Bb F"
     },
     {
         "id": 17,
         "title": "Ob-La-Di Ob-La__da",
         "artist": "The Beatles",
-        "chords": "A E E7 A A7 D A E A A A E F#m7 A E A AE E7 A A7 D A E A A E F#m7 A E A D A Asus2 A A7 D A\/E E"
+        "chords": "A E E7 A A7 D A E A A A E F#m7 A E A A/E E7 A A7 D A E A A E F#m7 A E A D A Asus2 A A7 D A/E E"
     },
     {
         "id": 18,
         "title": "M\u00f3j Przyjacielu",
         "artist": "Krzysztof Krawczyk",
-        "chords": "Am E Am C G C F C F C E Am Am E Am C G C F C F C E Am AM G G7 C G G7 C G F C E Am G G7 C G G7 C G F C E Am Am"
+        "chords": "Am E Am C G C F C F C E Am Am E Am C G C F C F C E Am Am G G7 C G G7 C G F C E Am G G7 C G G7 C G F C E Am Am"
     },
     {
         "id": 19,

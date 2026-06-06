@@ -28,11 +28,11 @@ export function renderChordsAndNotes(currentSong, chordsJson, notesJson) {
     <div class="chords-notes-split">
       <div class="chords-notes-col">
         <h3 class="split-label">Chords</h3>
-        ${chordsTable}
+        <div class="table-scroll">${chordsTable}</div>
       </div>
       <div class="chords-notes-col">
         <h3 class="split-label">Notes</h3>
-        ${notesTable}
+        <div class="table-scroll">${notesTable}</div>
       </div>
     </div>
   `, 'chords-notes-section');

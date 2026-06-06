@@ -24,7 +24,7 @@
       setTimeout(function () {
         var app = document.getElementById('app');
         if (app && !app.children.length && !app.textContent.trim()) {
-          app.innerHTML = '<div class="section"><h2>Could not load app</h2><p>This site must be served over HTTP — not opened as a local file.</p><p>From the project folder run: <code>npm install</code> then <code>npm run dev</code>, and open the URL shown in the terminal (usually http://localhost:5173).</p><p>For production, run <code>npm run build</code> and deploy the <code>dist/</code> folder.</p></div>';
+          app.innerHTML = '<div class="section"><h2>Could not load app</h2><p>JavaScript failed to load. Try a hard refresh (Ctrl+Shift+R). If the problem persists, check the browser console for errors.</p></div>';
         }
       }, 800);
     });

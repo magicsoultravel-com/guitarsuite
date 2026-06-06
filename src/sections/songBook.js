@@ -1,4 +1,4 @@
-import { escapeHtml } from './utils.js';
+import { escapeHtml } from '../utils.js';
 
 export function renderSongBook(songs, chords, songIndex) {
   const section = document.createElement('div');

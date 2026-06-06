@@ -2,7 +2,7 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './',
+  base: process.env.GITHUB_PAGES ? '/guitarsuite/' : './',
   build: {
     rollupOptions: {
       input: {

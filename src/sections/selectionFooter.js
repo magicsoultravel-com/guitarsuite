@@ -1,5 +1,6 @@
 import { escapeHtml } from '../utils.js';
 import { formatRootsDisplay } from '../displayRoot.js';
+import { collapseAllModules } from '../dockModule.js';
 import {
   initPlayback,
   isFocusModules,
@@ -26,6 +27,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
     <div class="footer-selection-actions">
       <button type="button" class="dock-nav-btn footer-sound" title="Sound on" aria-label="Toggle sound" aria-pressed="true">🔊</button>
       <button type="button" class="dock-nav-btn footer-focus" title="Focus modules" aria-label="Focus modules" aria-pressed="false">◧</button>
+      <button type="button" class="dock-nav-btn footer-collapse" title="Collapse all modules" aria-label="Collapse all modules">⊟</button>
       <button type="button" class="dock-nav-btn footer-reset" title="Clear selections" aria-label="Clear selections">↺</button>
     </div>
   `;
@@ -58,6 +60,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
   syncSoundBtn();
   syncFocusBtn();
 
+  bar.querySelector('.footer-collapse')?.addEventListener('click', () => collapseAllModules());
   bar.querySelector('.footer-reset')?.addEventListener('click', () => hub.reset());
   rootEl.addEventListener('click', () => {
     const root = hub.getRoot();

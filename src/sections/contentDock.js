@@ -16,7 +16,6 @@ export function renderContentDock(modules = {}) {
   const dock = document.createElement('div');
   dock.id = 'content-dock';
   dock.className = 'content-dock';
-  dock.dataset.defaultOrder = CONTENT_DOCK_ORDER.join(',');
 
   const wrapped = {};
 
@@ -26,7 +25,6 @@ export function renderContentDock(modules = {}) {
     const mod = wrapAsDockModule(section, {
       id,
       label: moduleLabel(id),
-      startExpanded: id === 'chords-notes',
     });
     if (id === 'chords-notes') mod.id = 'chords-notes-section';
     wrapped[id] = mod;

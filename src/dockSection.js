@@ -3,7 +3,7 @@ import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from './dockModul
 /**
  * Wrap a section element (with optional h2) as a collapsible dock module.
  */
-export function wrapAsDockModule(sectionEl, { id, label, startExpanded = false }) {
+export function wrapAsDockModule(sectionEl, { id, label } = {}) {
   const mod = document.createElement('div');
   mod.className = 'dock-module dock-module--content';
   mod.dataset.dockId = id;
@@ -35,8 +35,7 @@ export function wrapAsDockModule(sectionEl, { id, label, startExpanded = false }
     bodyClass: `content-${id}-expanded`,
     moduleId: id,
   });
-  wireDockBarToggle(mod, setExpanded, '.dock-chip, a, button, input, select, .fb-selectable, .carousel-nav, .dot, .dock-reorder-btn');
-  if (startExpanded) setExpanded(true);
+  wireDockBarToggle(mod, setExpanded, '.dock-chip, a, button, input, select, .fb-selectable, .carousel-nav, .dot');
 
   return mod;
 }

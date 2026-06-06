@@ -13,6 +13,8 @@ import { renderGallery } from './sections/gallery.js';
 import { renderContentDock } from './sections/contentDock.js';
 import { renderSelectionFooter } from './sections/selectionFooter.js';
 import { createFretboardHub } from './fretboardHub.js';
+import { applyModulesState, collectModulesState } from './dockModule.js';
+import { initSessionPersistence, restoreSession } from './sessionState.js';
 import {
   initFretboardInteractive,
   wireChordNoteTables,
@@ -112,6 +114,9 @@ try {
   wireScalesTheory(hub, scales, document.getElementById('scales-theory-section'));
   wireScaleProgressions(hub, scales, document.getElementById('scale-progressions-section'));
   wireGenreTheory(hub, scales, genres, document.getElementById('genre-theory-section'));
+
+  restoreSession(applyModulesState);
+  initSessionPersistence(collectModulesState);
 } catch (err) {
   document.getElementById('app').innerHTML = `<div class="section"><h2>Error</h2><p>${err.message}</p></div>`;
   console.error(err);

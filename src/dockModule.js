@@ -1,52 +1,41 @@
-const EXPANDED_KEY = 'guitarsuite-dock-expanded';
-const ORDER_KEY = 'guitarsuite-dock-order';
+import { isRestoring, touchSession } from './sessionState.js';
+
 const GRID = 8;
 const DOCK_GAP = 8;
 
 export const DEFAULT_ORDER = ['root', 'chords', 'fretboard', 'now-playing', 'tools'];
 
-function loadExpanded(id) {
-  try {
-    const all = JSON.parse(localStorage.getItem(EXPANDED_KEY) || '{}');
-    return all[id] === '1';
-  } catch (_) {
-    return false;
-  }
-}
+const expandHandlers = new Map();
 
-function saveExpanded(id, open) {
-  try {
-    const all = JSON.parse(localStorage.getItem(EXPANDED_KEY) || '{}');
-    all[id] = open ? '1' : '0';
-    localStorage.setItem(EXPANDED_KEY, JSON.stringify(all));
-  } catch (_) { /* ignore */ }
-}
-
-export function wireDockExpand(el, { bodyClass, moduleId = null, storageKey = null } = {}) {
+export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
   const panel = el.querySelector('.dock-module-panel');
   const chevron = el.querySelector('.dock-module-chevron');
   if (!panel || !chevron) return { setExpanded: () => {} };
 
   const id = moduleId || el.dataset.dockId;
-  const persist = Boolean(storageKey || id);
 
-  function setExpanded(open) {
+  function setExpanded(open, { silent = false } = {}) {
     panel.hidden = !open;
     el.classList.toggle('is-expanded', open);
     if (bodyClass) document.body.classList.toggle(bodyClass, open);
     chevron.textContent = open ? '▼' : '▲';
     chevron.setAttribute('aria-expanded', String(open));
-    if (persist && id) saveExpanded(id, open);
+    if (!silent) notifySessionChange();
     if (el.classList.contains('is-floating')) {
-      requestAnimationFrame(resolveFloatingLayout);
+      requestAnimationFrame(() => resolveFloatingLayout(findOriginDock(el)));
     }
   }
 
-  if (persist && id) {
-    setExpanded(loadExpanded(id));
-  }
+  setExpanded(false, { silent: true });
+
+  if (id) expandHandlers.set(id, setExpanded);
 
   return { setExpanded, panel };
+}
+
+function notifySessionChange() {
+  if (isRestoring()) return;
+  touchSession(collectModulesState());
 }
 
 export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
@@ -54,7 +43,7 @@ export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
   if (!bar) return;
 
   bar.addEventListener('click', (e) => {
-    if (e.target.closest('.dock-drag-handle, .dock-module-dock, .dock-module-chevron, .dock-reorder, .dock-reorder-btn')) return;
+    if (e.target.closest('.dock-drag-handle, .dock-module-dock, .dock-module-chevron')) return;
     if (ignoreSelector && e.target.closest(ignoreSelector)) return;
     const panel = el.querySelector('.dock-module-panel');
     if (panel) setExpanded(panel.hidden);
@@ -75,78 +64,18 @@ function snap(value) {
   return Math.round(value / GRID) * GRID;
 }
 
-function defaultOrderFor(dockEl) {
-  if (dockEl.dataset.defaultOrder) {
-    return dockEl.dataset.defaultOrder.split(',').filter(Boolean);
-  }
-  if (dockEl.id === 'tool-dock') return [...DEFAULT_ORDER];
-  return [...dockEl.querySelectorAll('.dock-module')]
-    .map((m) => m.dataset.dockId)
-    .filter(Boolean);
-}
-
-function dockedModuleIds(dockEl) {
-  return [...dockEl.querySelectorAll('.dock-module:not(.is-floating)')]
-    .map((m) => m.dataset.dockId)
-    .filter(Boolean);
-}
-
-function mergeOrder(preferred, current) {
-  const order = preferred.filter((id) => current.includes(id));
-  for (const id of current) {
-    if (!order.includes(id)) order.push(id);
-  }
-  return order;
-}
-
-function loadDockOrder(dockEl) {
-  const defaults = defaultOrderFor(dockEl);
-  const docked = dockedModuleIds(dockEl);
-  try {
-    const raw = localStorage.getItem(`${ORDER_KEY}:${dockEl.id}`);
-    if (!raw) return mergeOrder(defaults, docked);
-    const saved = JSON.parse(raw);
-    if (!Array.isArray(saved)) return mergeOrder(defaults, docked);
-    return mergeOrder(saved, docked);
-  } catch (_) {
-    return mergeOrder(defaults, docked);
-  }
-}
-
-function saveDockOrder(dockEl, order) {
-  try {
-    localStorage.setItem(`${ORDER_KEY}:${dockEl.id}`, JSON.stringify(order));
-  } catch (_) { /* ignore */ }
-}
-
-function applyDockOrder(dockEl, order) {
-  for (const id of order) {
-    const mod = dockEl.querySelector(`[data-dock-id="${id}"]:not(.is-floating)`);
-    if (mod) dockEl.appendChild(mod);
-  }
-}
-
 function orderModules(dockEl) {
-  applyDockOrder(dockEl, loadDockOrder(dockEl));
+  if (dockEl.id !== 'tool-dock') return;
+  for (const id of DEFAULT_ORDER) {
+    const mod = dockEl.querySelector(`[data-dock-id="${id}"]`);
+    if (mod && !mod.classList.contains('is-floating')) dockEl.appendChild(mod);
+  }
 }
 
-function moveModuleInDock(mod, dockEl, direction) {
-  if (mod.classList.contains('is-floating')) return;
-  const order = loadDockOrder(dockEl);
-  const id = mod.dataset.dockId;
-  const idx = order.indexOf(id);
-  if (idx < 0) return;
-  const target = idx + direction;
-  if (target < 0 || target >= order.length) return;
-  order.splice(idx, 1);
-  order.splice(target, 0, id);
-  saveDockOrder(dockEl, order);
-  applyDockOrder(dockEl, order);
-}
-
-function syncReorderVisibility(mod) {
-  const reorder = mod.querySelector('.dock-reorder');
-  if (reorder) reorder.hidden = mod.classList.contains('is-floating');
+function findOriginDock(mod) {
+  const dockId = mod.dataset.originDock;
+  if (dockId) return document.getElementById(dockId);
+  return document.getElementById('tool-dock') || document.getElementById('content-dock');
 }
 
 function redock(mod, dockEl) {
@@ -155,22 +84,23 @@ function redock(mod, dockEl) {
   mod.style.top = '';
   mod.style.width = '';
   mod.style.zIndex = '';
+  delete mod.dataset.originDock;
   mod.querySelector('.dock-module-dock')?.setAttribute('hidden', '');
   dockEl.appendChild(mod);
   orderModules(dockEl);
-  syncReorderVisibility(mod);
+  notifySessionChange();
 }
 
 function floatModule(mod) {
   if (mod.classList.contains('is-floating')) return;
   const rect = mod.getBoundingClientRect();
+  mod.dataset.originDock = mod.parentElement?.id || 'tool-dock';
   mod.classList.add('is-floating');
   mod.style.width = `${rect.width}px`;
   mod.style.left = `${snap(rect.left)}px`;
   mod.style.top = `${snap(rect.top)}px`;
   document.body.appendChild(mod);
   mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
-  syncReorderVisibility(mod);
 }
 
 function moduleBox(mod) {
@@ -308,6 +238,7 @@ function wireDrag(mod, dockEl) {
     if (!dragging) return;
     dragging = false;
     resolveFloatingLayout(dockEl);
+    notifySessionChange();
   };
 
   handle.addEventListener('pointerup', endDrag);
@@ -319,39 +250,77 @@ function wireDrag(mod, dockEl) {
   });
 }
 
-function wireReorder(mod, dockEl) {
-  const bar = mod.querySelector('.dock-module-bar');
-  if (!bar || bar.querySelector('.dock-reorder')) return;
-
-  const reorder = document.createElement('span');
-  reorder.className = 'dock-reorder';
-  reorder.innerHTML = `
-    <button type="button" class="dock-reorder-btn" data-dir="-1" title="Move up in dock" aria-label="Move up">▴</button>
-    <button type="button" class="dock-reorder-btn" data-dir="1" title="Move down in dock" aria-label="Move down">▾</button>
-  `;
-
-  const chevron = bar.querySelector('.dock-module-chevron');
-  if (chevron) chevron.before(reorder);
-  else bar.appendChild(reorder);
-
-  reorder.querySelectorAll('.dock-reorder-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      moveModuleInDock(mod, dockEl, parseInt(btn.dataset.dir, 10));
-    });
-  });
-
-  syncReorderVisibility(mod);
-}
-
 export function initDockModules(dockEl) {
   dockEl.querySelectorAll('.dock-module').forEach((mod) => {
     wireDrag(mod, dockEl);
-    wireReorder(mod, dockEl);
   });
   orderModules(dockEl);
 
   window.addEventListener('resize', () => resolveFloatingLayout(dockEl));
+}
+
+export function collectModulesState() {
+  const modules = {};
+  document.querySelectorAll('.dock-module').forEach((mod) => {
+    const id = mod.dataset.dockId;
+    if (!id) return;
+    const panel = mod.querySelector('.dock-module-panel');
+    const floating = mod.classList.contains('is-floating');
+    modules[id] = {
+      expanded: Boolean(panel && !panel.hidden),
+      floating,
+      dockId: floating ? (mod.dataset.originDock || 'tool-dock') : (mod.parentElement?.id || 'tool-dock'),
+      left: floating ? parseInt(mod.style.left, 10) || 0 : null,
+      top: floating ? parseInt(mod.style.top, 10) || 0 : null,
+      width: floating ? mod.offsetWidth : null,
+      zIndex: floating ? (parseInt(mod.style.zIndex, 10) || null) : null,
+    };
+  });
+  return modules;
+}
+
+export function applyModulesState(modules = {}) {
+  for (const [id, state] of Object.entries(modules)) {
+    const mod = document.querySelector(`[data-dock-id="${id}"]`);
+    if (!mod) continue;
+
+    const setExpanded = expandHandlers.get(id);
+    if (setExpanded) setExpanded(Boolean(state.expanded), { silent: true });
+
+    if (state.floating) {
+      const dockEl = document.getElementById(state.dockId) || findOriginDock(mod);
+      if (!mod.classList.contains('is-floating')) {
+        mod.dataset.originDock = state.dockId || dockEl?.id || 'tool-dock';
+        mod.classList.add('is-floating');
+        mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
+        document.body.appendChild(mod);
+      }
+      if (state.width) mod.style.width = `${state.width}px`;
+      if (state.left != null) mod.style.left = `${state.left}px`;
+      if (state.top != null) mod.style.top = `${state.top}px`;
+      if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
+    } else {
+      if (mod.classList.contains('is-floating')) {
+        const dockEl = document.getElementById(state.dockId) || findOriginDock(mod);
+        if (dockEl) redock(mod, dockEl);
+      } else {
+        const dockEl = document.getElementById(state.dockId);
+        if (dockEl && mod.parentElement !== dockEl) {
+          dockEl.appendChild(mod);
+          orderModules(dockEl);
+        }
+      }
+    }
+  }
+
+  for (const dockEl of document.querySelectorAll('.tool-dock, .content-dock')) {
+    resolveFloatingLayout(dockEl);
+  }
+}
+
+export function collapseAllModules() {
+  expandHandlers.forEach((setExpanded) => setExpanded(false, { silent: true }));
+  touchSession(collectModulesState());
 }
 
 export function ensureDockChrome(el, id, label, { expandable = true } = {}) {

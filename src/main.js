@@ -103,7 +103,8 @@ try {
 
   const tagline = document.getElementById('site-tagline');
   if (tagline) {
-    tagline.textContent = `${APP_VERSION} · © ${new Date().getFullYear()} minimal website design inc.`;
+    const chordCount = Object.keys(chords).length;
+    tagline.textContent = `${APP_VERSION} · ${chordCount.toLocaleString()} chords · © ${new Date().getFullYear()} minimal website design inc.`;
   }
 
   initWorkspace();

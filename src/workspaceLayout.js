@@ -4,6 +4,7 @@ const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.05;
 export const ZOOM_TRANSITION_MS = 220;
+const OVERFLOW_TOLERANCE = 8;
 
 export const MODULE_ORDER = [
   'root',
@@ -109,7 +110,6 @@ export function initWorkspace() {
   ensureViewportRoot();
   ensureModuleCanvas();
   window.addEventListener('resize', () => {
-    relayoutAllTiles();
     updateWorkspaceZoom();
   });
 }
@@ -130,13 +130,10 @@ export function expandedFloatingModules() {
 export function pointerToCanvasLocal(canvas, clientX, clientY) {
   const scale = effectiveZoom || 1;
   const canvasEl = canvas || ensureModuleCanvas();
-  const scroll = document.getElementById('workspace-scroll');
   const canvasRect = canvasEl.getBoundingClientRect();
-  const scrollLeft = scroll?.scrollLeft || 0;
-  const scrollTop = scroll?.scrollTop || 0;
   return {
-    x: (clientX - canvasRect.left) / scale + scrollLeft,
-    y: (clientY - canvasRect.top) / scale + scrollTop,
+    x: (clientX - canvasRect.left) / scale,
+    y: (clientY - canvasRect.top) / scale,
   };
 }
 
@@ -213,6 +210,10 @@ function moduleBox(mod) {
   };
 }
 
+function boxAt(left, top, w, h) {
+  return { left, top, right: left + w, bottom: top + h };
+}
+
 function boxesOverlap(a, b, gap = DOCK_GAP) {
   return !(
     a.right + gap <= b.left
@@ -241,49 +242,65 @@ export function resizeCanvasToContent() {
   canvas.style.minHeight = `${Math.max(viewH, maxBottom)}px`;
 }
 
-function layoutOrder(modules) {
-  return [...modules].sort((a, b) => {
-    const ta = parseInt(a.style.top, 10) || 0;
-    const tb = parseInt(b.style.top, 10) || 0;
-    if (Math.abs(ta - tb) > GRID / 2) return ta - tb;
-    return (parseInt(a.style.left, 10) || 0) - (parseInt(b.style.left, 10) || 0);
-  });
-}
-
-/** Pack tiles from top-left; wrap rows; no overlap. */
-export function relayoutAllTiles() {
+/** First free slot from top-left for a newly opened module. */
+export function findInitialPosition(mod) {
   const scroll = ensureWorkspaceScroll();
   const viewW = scroll.clientWidth;
-  const modules = layoutOrder(expandedFloatingModules());
+  const others = expandedFloatingModules().filter((m) => m !== mod);
+  const w = mod.offsetWidth;
+  const h = mod.offsetHeight;
+  const step = snap(GRID * 4);
 
-  let x = 0;
-  let y = 0;
-  let rowH = 0;
-
-  for (const mod of modules) {
-    const w = mod.offsetWidth;
-    const h = mod.offsetHeight;
-    if (x > 0 && x + w > viewW) {
-      x = 0;
-      y = snap(y + rowH + DOCK_GAP);
-      rowH = 0;
+  for (let y = 0; y < 4096; y += step) {
+    for (let x = 0; x + w <= viewW + step; x += step) {
+      const candidate = boxAt(x, y, w, h);
+      if (!others.some((o) => boxesOverlap(candidate, moduleBox(o)))) {
+        mod.style.left = `${snap(x)}px`;
+        mod.style.top = `${snap(y)}px`;
+        return;
+      }
     }
-    mod.style.left = `${snap(x)}px`;
-    mod.style.top = `${snap(y)}px`;
-    x = snap(x + w + DOCK_GAP);
-    rowH = Math.max(rowH, h);
   }
 
+  mod.style.left = '0px';
+  mod.style.top = '0px';
+}
+
+/** Nudge only this module if it overlaps — never move other tiles. */
+export function resolveOverlapForModule(mod) {
+  const others = expandedFloatingModules().filter((m) => m !== mod);
+  if (!others.length) return;
+
+  let left = parseInt(mod.style.left, 10) || 0;
+  let top = parseInt(mod.style.top, 10) || 0;
+  const w = mod.offsetWidth;
+  const h = mod.offsetHeight;
+
+  for (let attempt = 0; attempt < 64; attempt++) {
+    const box = boxAt(left, top, w, h);
+    const hit = others.map(moduleBox).find((b) => boxesOverlap(box, b));
+    if (!hit) break;
+
+    const tryLeft = snap(hit.right + DOCK_GAP);
+    const rightBox = boxAt(tryLeft, top, w, h);
+    if (!others.some((o) => boxesOverlap(rightBox, moduleBox(o)))) {
+      left = tryLeft;
+      continue;
+    }
+
+    top = snap(hit.bottom + DOCK_GAP);
+  }
+
+  mod.style.left = `${snap(Math.max(0, left))}px`;
+  mod.style.top = `${snap(Math.max(0, top))}px`;
+}
+
+/** Snap position and refresh canvas + zoom — never repositions other tiles. */
+export function commitModulePosition(mod) {
+  mod.style.left = `${snap(Math.max(0, parseInt(mod.style.left, 10) || 0))}px`;
+  mod.style.top = `${snap(Math.max(0, parseInt(mod.style.top, 10) || 0))}px`;
   resizeCanvasToContent();
-}
-
-/** @deprecated use relayoutAllTiles */
-export function layoutModuleWithPush(mod, preferredTop = 0) {
-  relayoutAllTiles();
-}
-
-export function positionModuleAtBar(mod, barClientRect) {
-  relayoutAllTiles();
+  updateWorkspaceZoom();
 }
 
 function measureViewportOverflow() {
@@ -310,16 +327,19 @@ function measureViewportOverflow() {
   };
 }
 
-function computeFitCap() {
+/** Auto shrink only — never zoom in above 100%. */
+function computeAutoFitZoom() {
   const { maxRight, maxBottom, viewW, viewH } = measureViewportOverflow();
-  if (maxRight <= viewW + 1 && maxBottom <= viewH + 1) return 1;
-  return Math.min(1, (viewW / maxRight) * 0.98, (viewH / maxBottom) * 0.98);
+  const overflowW = maxRight - viewW;
+  const overflowH = maxBottom - viewH;
+  if (overflowW <= OVERFLOW_TOLERANCE && overflowH <= OVERFLOW_TOLERANCE) return 1;
+  return Math.min(1, (viewW / maxRight) * 0.99, (viewH / maxBottom) * 0.99);
 }
 
 export function updateWorkspaceZoom() {
-  relayoutAllTiles();
-  const fitCap = computeFitCap();
-  applyPageZoom(Math.min(userZoom, fitCap));
+  resizeCanvasToContent();
+  const autoFit = computeAutoFitZoom();
+  applyPageZoom(Math.min(userZoom, autoFit));
 }
 
 export function getDefaultDockOrder() {

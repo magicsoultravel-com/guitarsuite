@@ -3,14 +3,15 @@ import {
   MODULE_ORDER,
   applyModuleSize,
   applyModuleSizeUser,
+  commitModulePosition,
   ensureModuleCanvas,
   expandedFloatingModules,
+  findInitialPosition,
   getDefaultDockOrder,
   getEffectiveZoom,
   getUserZoom,
   measureModuleFullSize,
   pointerToCanvasLocal,
-  relayoutAllTiles,
   resetUserZoom,
   resizeCanvasToContent,
   setUserZoom,
@@ -121,7 +122,7 @@ function floatModule(mod, dockEl) {
   canvas.appendChild(mod);
 }
 
-function expandFloatingModule(mod) {
+function expandFloatingModule(mod, { keepPosition = false } = {}) {
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
   setExpanded?.(true, { silent: true });
   mod.classList.remove('is-float-preview');
@@ -130,8 +131,14 @@ function expandFloatingModule(mod) {
   applyModuleSize(mod, width, height);
   ensureResizeHandle(mod);
   mod.style.zIndex = String(1000 + expandedFloatingModules().length);
-  relayoutAllTiles();
-  updateWorkspaceZoom();
+
+  const hasPosition = mod.style.left !== '' && mod.style.top !== '';
+  if (keepPosition && hasPosition) {
+    commitModulePosition(mod);
+  } else {
+    findInitialPosition(mod);
+    commitModulePosition(mod);
+  }
   notifySessionChange();
 }
 
@@ -252,13 +259,150 @@ function wireResize(mod, grip) {
     active = false;
     mod.classList.remove('is-resizing');
     try { grip.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-    relayoutAllTiles();
-    updateWorkspaceZoom();
+    commitModulePosition(mod);
     notifySessionChange();
   };
 
   grip.addEventListener('pointerup', end);
   grip.addEventListener('pointercancel', end);
+}
+
+function wireModuleDrag(mod, dockEl) {
+  const bar = mod.querySelector('.dock-module-bar');
+  const handle = mod.querySelector('.dock-drag-handle');
+  if (!bar) return;
+
+  const DRAG_THRESHOLD = 6;
+  let active = false;
+  let mode = null;
+  let startX = 0;
+  let startY = 0;
+  let offsetX = 0;
+  let offsetY = 0;
+  let captureEl = null;
+
+  function isBlockedTarget(target) {
+    return !!target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle, .dock-chip, .root-chip, input, select, textarea, a');
+  }
+
+  function onPointerDown(e, sourceEl) {
+    if (e.button !== 0) return;
+    if (isBlockedTarget(e.target)) return;
+    if (!mod.classList.contains('is-floating')) {
+      if (!mod.classList.contains('dock-module--expandable')) return;
+      if (sourceEl !== handle) return;
+    } else if (e.target.closest('button') && sourceEl !== handle && !e.target.closest('.dock-drag-handle')) {
+      return;
+    }
+
+    active = true;
+    mode = null;
+    startX = e.clientX;
+    startY = e.clientY;
+    captureEl = sourceEl;
+    bar.dataset.dragMoved = '0';
+    sourceEl.setPointerCapture(e.pointerId);
+    bar.classList.add('is-dragging');
+    handle?.classList.add('is-dragging');
+    e.preventDefault();
+  }
+
+  function onPointerMove(e) {
+    if (!active) return;
+    const canvas = ensureModuleCanvas();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    if (!mode) {
+      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+      bar.dataset.dragMoved = '1';
+
+      const dockRect = dockEl.getBoundingClientRect();
+      const inDockColumn = e.clientX < dockRect.right + 4;
+      const verticalReorder = !mod.classList.contains('is-floating')
+        && inDockColumn
+        && Math.abs(dy) > Math.abs(dx) * 1.15;
+
+      if (verticalReorder) {
+        mode = 'reorder';
+        reorderInDock(mod, dockEl, e.clientY);
+        return;
+      }
+
+      mode = 'float';
+      if (!mod.classList.contains('is-floating')) {
+        beginCollapsedFloat(mod, dockEl);
+      }
+
+      const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
+      const grabX = Math.min(mod.offsetWidth * 0.35, 48);
+      const grabY = 16;
+      if (!mod.style.left) {
+        mod.style.left = `${snap(Math.max(0, local.x - grabX))}px`;
+        mod.style.top = `${snap(Math.max(0, local.y - grabY))}px`;
+      }
+      offsetX = local.x - (parseInt(mod.style.left, 10) || 0);
+      offsetY = local.y - (parseInt(mod.style.top, 10) || 0);
+      mod.style.zIndex = String(1000 + expandedFloatingModules().length + 1);
+    }
+
+    if (mode === 'reorder') {
+      reorderInDock(mod, dockEl, e.clientY);
+      return;
+    }
+
+    if (mode === 'float') {
+      const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
+      mod.style.left = `${snap(Math.max(0, local.x - offsetX))}px`;
+      mod.style.top = `${snap(Math.max(0, local.y - offsetY))}px`;
+    }
+  }
+
+  function onPointerUp(e) {
+    if (!active) return;
+    const wasFloat = mode === 'float';
+    active = false;
+    bar.classList.remove('is-dragging');
+    handle?.classList.remove('is-dragging');
+    try { captureEl?.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+    captureEl = null;
+
+    if (wasFloat) {
+      if (mod.classList.contains('is-float-preview')) {
+        const dockRect = dockEl.getBoundingClientRect();
+        if (e.clientX > dockRect.right + 8) {
+          expandFloatingModule(mod, { keepPosition: true });
+        } else {
+          redock(mod, dockEl);
+        }
+      } else {
+        commitModulePosition(mod);
+        notifySessionChange();
+      }
+    }
+    mode = null;
+    setTimeout(() => { bar.dataset.dragMoved = '0'; }, 0);
+  }
+
+  if (handle) {
+    handle.addEventListener('pointerdown', (e) => onPointerDown(e, handle));
+    handle.addEventListener('pointermove', onPointerMove);
+    handle.addEventListener('pointerup', onPointerUp);
+    handle.addEventListener('pointercancel', onPointerUp);
+  }
+
+  bar.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.dock-drag-handle')) return;
+    onPointerDown(e, bar);
+  });
+  bar.addEventListener('pointermove', onPointerMove);
+  bar.addEventListener('pointerup', onPointerUp);
+  bar.addEventListener('pointercancel', onPointerUp);
+
+  mod.querySelector('.dock-module-dock')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeFloatingModule(mod);
+  });
 }
 
 function reorderInDock(mod, dockEl, clientY) {
@@ -275,135 +419,10 @@ function reorderInDock(mod, dockEl, clientY) {
   notifySessionChange();
 }
 
-function wireBarDrag(mod, dockEl) {
-  const bar = mod.querySelector('.dock-module-bar');
-  if (!bar) return;
-
-  const DRAG_THRESHOLD = 8;
-  let armed = false;
-  let mode = null;
-  let startX = 0;
-  let startY = 0;
-  let offsetX = 0;
-  let offsetY = 0;
-  let startedCollapsed = false;
-
-  bar.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle')) return;
-    if (e.target.closest('.dock-chip, .root-chip, .dock-nav-btn:not(.dock-drag-handle), input, select, textarea, a')) return;
-    if (e.target.closest('button') && !e.target.closest('.dock-drag-handle')) return;
-    if (!mod.classList.contains('is-floating') && !mod.classList.contains('dock-module--expandable')) return;
-    armed = true;
-    mode = null;
-    startedCollapsed = !mod.classList.contains('is-floating');
-    startX = e.clientX;
-    startY = e.clientY;
-    bar.dataset.dragMoved = '0';
-    bar.setPointerCapture(e.pointerId);
-    bar.classList.add('is-dragging');
-  });
-
-  bar.addEventListener('pointermove', (e) => {
-    if (!armed && !mode) return;
-    const canvas = ensureModuleCanvas();
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-
-    if (!mode) {
-      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
-      bar.dataset.dragMoved = '1';
-
-      const dockRect = dockEl.getBoundingClientRect();
-      const inDockColumn = e.clientX < dockRect.right + 4;
-      const verticalReorder = inDockColumn && Math.abs(dy) > Math.abs(dx) * 1.15;
-
-      if (!mod.classList.contains('is-floating') && verticalReorder) {
-        mode = 'reorder';
-        reorderInDock(mod, dockEl, e.clientY);
-        return;
-      }
-
-      mode = 'float';
-      if (startedCollapsed) {
-        beginCollapsedFloat(mod, dockEl);
-      } else if (!mod.classList.contains('is-floating')) {
-        beginCollapsedFloat(mod, dockEl);
-      }
-      const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
-      offsetX = local.x - (parseInt(mod.style.left, 10) || 0);
-      offsetY = local.y - (parseInt(mod.style.top, 10) || 0);
-      mod.style.zIndex = String(1000 + expandedFloatingModules().length + 1);
-    }
-
-    if (mode === 'reorder') {
-      reorderInDock(mod, dockEl, e.clientY);
-      return;
-    }
-
-    if (mode === 'float') {
-      const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
-      mod.style.left = `${snap(Math.max(0, local.x - offsetX))}px`;
-      mod.style.top = `${snap(Math.max(0, local.y - offsetY))}px`;
-    }
-  });
-
-  const endDrag = (e) => {
-    const wasFloat = mode === 'float';
-    armed = false;
-    bar.classList.remove('is-dragging');
-    try { bar.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-
-    if (wasFloat) {
-      if (mod.classList.contains('is-float-preview')) {
-        const dockRect = dockEl.getBoundingClientRect();
-        if (e.clientX > dockRect.right + 8) {
-          expandFloatingModule(mod);
-        } else {
-          redock(mod, dockEl);
-        }
-      } else {
-        relayoutAllTiles();
-        updateWorkspaceZoom();
-        notifySessionChange();
-      }
-    }
-    mode = null;
-    setTimeout(() => { bar.dataset.dragMoved = '0'; }, 0);
-  };
-
-  bar.addEventListener('pointerup', endDrag);
-  bar.addEventListener('pointercancel', endDrag);
-
-  mod.querySelector('.dock-module-dock')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeFloatingModule(mod);
-  });
-}
-
-function wireHandleDrag(mod, dockEl) {
-  const handle = mod.querySelector('.dock-drag-handle');
-  const bar = mod.querySelector('.dock-module-bar');
-  if (!handle || !bar) return;
-  handle.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    bar.dispatchEvent(new PointerEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      clientX: e.clientX,
-      clientY: e.clientY,
-      pointerId: e.pointerId,
-      pointerType: e.pointerType,
-      isPrimary: e.isPrimary,
-    }));
-  });
-}
-
 export function initDockModules(dockEl) {
   dockEl.querySelectorAll('.dock-module').forEach((mod) => {
     registerModuleHome(mod, dockEl);
-    wireBarDrag(mod, dockEl);
-    wireHandleDrag(mod, dockEl);
+    wireModuleDrag(mod, dockEl);
   });
   orderModules(dockEl);
 }
@@ -447,6 +466,8 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
         const full = measureModuleFullSize(mod);
         applyModuleSize(mod, full.width, full.height);
       }
+      if (state.left != null) mod.style.left = `${state.left}px`;
+      if (state.top != null) mod.style.top = `${state.top}px`;
       if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
       mod.classList.remove('is-float-preview');
       ensureResizeHandle(mod);

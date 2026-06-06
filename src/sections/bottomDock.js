@@ -45,7 +45,11 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
     theoryContext.chordsTheory,
   );
   dock.appendChild(nowPlaying.drawer);
-  dock.appendChild(renderToolsDock());
+  dock.appendChild(renderToolsDock({
+    chordsJson: chords,
+    notesJson: notes,
+    curatedKeys: theoryContext.curatedKeys,
+  }));
 
   document.body.appendChild(dock);
   document.body.classList.add('has-tool-dock');

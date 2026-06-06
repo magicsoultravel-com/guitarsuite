@@ -49,7 +49,11 @@ export function renderModuleDock(hub, songs, chords, notes, songIndex, contentMo
     theoryContext.chordsTheory,
   );
   dock.appendChild(nowPlaying.drawer);
-  dock.appendChild(renderToolsDock());
+  dock.appendChild(renderToolsDock({
+    chordsJson: chords,
+    notesJson: notes,
+    curatedKeys: theoryContext.curatedKeys,
+  }));
 
   for (const id of MODULE_ORDER) {
     if (TOOL_IDS.has(id)) continue;

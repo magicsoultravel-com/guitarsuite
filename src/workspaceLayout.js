@@ -31,28 +31,30 @@ export function getEffectiveZoom() {
   return effectiveZoom;
 }
 
-function ensureViewportRoot() {
-  let root = document.getElementById('viewport-root');
-  if (root) return root;
-  root = document.createElement('div');
-  root.id = 'viewport-root';
-  root.className = 'viewport-root';
-  const keepOnBody = new Set(['module-dock']);
-  for (const node of [...document.body.childNodes]) {
-    if (node.nodeType === Node.ELEMENT_NODE && keepOnBody.has(node.id)) continue;
-    root.appendChild(node);
+/** Remove legacy viewport-root wrapper that broke position:fixed. */
+function unwrapLegacyViewport() {
+  const root = document.getElementById('viewport-root');
+  if (!root) return;
+
+  const keepOnBody = ['module-dock', 'workspace-scroll'];
+  for (const id of keepOnBody) {
+    const el = document.getElementById(id);
+    if (el && root.contains(el)) document.body.appendChild(el);
   }
-  document.body.appendChild(root);
-  return root;
+
+  while (root.firstChild) {
+    document.body.insertBefore(root.firstChild, root);
+  }
+  root.remove();
 }
 
 function ensureWorkspaceScroll() {
-  ensureViewportRoot();
+  unwrapLegacyViewport();
   let scroll = document.getElementById('workspace-scroll');
   if (!scroll) {
     scroll = document.createElement('div');
     scroll.id = 'workspace-scroll';
-    document.getElementById('viewport-root').appendChild(scroll);
+    document.body.appendChild(scroll);
   }
   return scroll;
 }
@@ -70,12 +72,13 @@ export function ensureModuleCanvas() {
   return canvas;
 }
 
-function applyPageZoom(zoom) {
+function applyCanvasZoom(zoom) {
   effectiveZoom = zoom;
-  const root = ensureViewportRoot();
-  root.style.transform = `scale(${zoom})`;
-  root.dataset.effectiveZoom = String(zoom);
-  document.documentElement.style.setProperty('--page-zoom', String(zoom));
+  const canvas = ensureModuleCanvas();
+  canvas.style.transformOrigin = 'top left';
+  canvas.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+  canvas.dataset.effectiveZoom = String(zoom);
+  document.documentElement.style.setProperty('--canvas-zoom', String(zoom));
 }
 
 export function setUserZoom(value) {
@@ -98,6 +101,7 @@ export function resetUserZoom() {
 }
 
 export function initWorkspace() {
+  unwrapLegacyViewport();
   ensureModuleCanvas();
   window.addEventListener('resize', () => {
     resizeCanvasToContent();
@@ -263,24 +267,26 @@ function computeFitCap() {
   const modules = expandedFloatingModules();
   if (!scroll || !modules.length) return 1;
 
+  const scrollRect = scroll.getBoundingClientRect();
   let maxRight = 0;
   let maxBottom = 0;
   for (const mod of modules) {
-    const box = moduleBox(mod);
-    maxRight = Math.max(maxRight, box.right);
-    maxBottom = Math.max(maxBottom, box.bottom);
+    const r = mod.getBoundingClientRect();
+    maxRight = Math.max(maxRight, r.right - scrollRect.left + scroll.scrollLeft);
+    maxBottom = Math.max(maxBottom, r.bottom - scrollRect.top + scroll.scrollTop);
   }
 
   const viewW = scroll.clientWidth;
   const viewH = scroll.clientHeight;
-  if (maxRight <= viewW && maxBottom <= viewH) return 1;
+  if (maxRight <= viewW + 2 && maxBottom <= viewH + 2) return 1;
   return Math.min(1, (viewW / maxRight) * 0.97, (viewH / maxBottom) * 0.97);
 }
 
 export function updateWorkspaceZoom() {
   resizeCanvasToContent();
   const fitCap = computeFitCap();
-  applyPageZoom(Math.min(userZoom, fitCap));
+  applyCanvasZoom(Math.min(userZoom, fitCap));
+  resizeCanvasToContent();
 }
 
 export function getDefaultDockOrder() {

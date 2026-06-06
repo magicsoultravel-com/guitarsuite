@@ -114,7 +114,7 @@ export function wireChordNoteTables(hub, chordsJson, notesJson) {
       const chordName = th.dataset.chord;
       const variant = chordsJson[chordName]?.variant1;
       if (!variant) return;
-      hub.toggleSelection({ label: chordName, notes: getChordNotes(variant, notesJson) });
+      hub.toggleSelection({ label: chordName, notes: getChordNotes(variant, notesJson), family: 'chord' });
       playChordByName(chordName, chordsJson, notesJson);
     });
   });
@@ -159,7 +159,7 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
         <td>${notes.join(', ')}</td>
       `;
       tr.addEventListener('click', () => {
-        hub.toggleSelection({ label: type, resolve: (r) => getTheoryNotes(r, intervalsStr) });
+        hub.toggleSelection({ label: type, resolve: (r) => getTheoryNotes(r, intervalsStr), family: 'chord' });
         playTheoryType(type, hub.getRoot(), chordsTheory);
       });
       tbody.appendChild(tr);
@@ -186,7 +186,7 @@ export function wireScalesTheory(hub, scales, sectionEl) {
     row.addEventListener('click', () => {
       const name = row.dataset.scale;
       const steps = JSON.parse(row.dataset.steps || '[]');
-      hub.toggleSelection({ label: name, resolve: (r) => getScaleNotes(r, steps) });
+      hub.toggleSelection({ label: name, resolve: (r) => getScaleNotes(r, steps), family: 'scale' });
       playScaleByName(name, hub.getRoot(), scales);
     });
   });

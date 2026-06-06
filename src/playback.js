@@ -1,9 +1,10 @@
 import { playPitch } from './audio.js';
 import {
   getChordNotes,
-  getScaleNotes,
+  getScaleNotesWithOctaves,
   getTheoryNotes,
   normalizePitch,
+  pitchToIndex,
   sortNotesByMusicalOrder,
 } from './music.js';
 
@@ -97,14 +98,31 @@ async function runSequence(pitches, gapMs, octave = 4) {
   }
 }
 
+async function runPitchOctaveSequence(entries, gapMs) {
+  if (!soundEnabled || !entries.length) return;
+  const id = ++sequenceId;
+  for (const { pitch, octave } of entries) {
+    if (id !== sequenceId) return;
+    const p = normalizePitch(pitch);
+    if (!p) continue;
+    playPitch(p, octave);
+    await sleep(gapMs);
+  }
+}
+
+function startOctaveForRoot(root) {
+  const idx = pitchToIndex(root);
+  return idx >= 0 && idx <= 4 ? 2 : 3;
+}
+
 export function playChord(notes) {
   const unique = sortNotesByMusicalOrder([...new Set(notes.map(normalizePitch).filter(Boolean))]);
   runSequence(unique, 150);
 }
 
-export function playScale(notes) {
-  const ordered = notes.map(normalizePitch).filter(Boolean);
-  runSequence(ordered, 130);
+export function playScale(root, steps) {
+  const entries = getScaleNotesWithOctaves(root, steps, startOctaveForRoot(root));
+  runPitchOctaveSequence(entries, 130);
 }
 
 export function playLayerSelection(layer, hub, { chordsJson, scalesJson, chordsTheory } = {}) {
@@ -121,7 +139,7 @@ export function playLayerSelection(layer, hub, { chordsJson, scalesJson, chordsT
     return;
   }
   if (scalesJson?.[label]) {
-    playScale(getScaleNotes(root, scalesJson[label].steps));
+    playScale(root, scalesJson[label].steps);
     return;
   }
   if (chordsTheory?.[label]) {
@@ -144,7 +162,7 @@ export function playChordByName(name, chordsJson, notesJson) {
 export function playScaleByName(name, root, scalesJson) {
   const steps = scalesJson[name]?.steps;
   if (!steps) return;
-  playScale(getScaleNotes(root, steps));
+  playScale(root, steps);
 }
 
 export function playTheoryType(type, root, chordsTheory) {

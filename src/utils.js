@@ -12,9 +12,10 @@ export async function fetchJson(path) {
   return response.json();
 }
 
-export function createSection(title, innerHtml) {
+export function createSection(title, innerHtml, sectionId = null) {
   const section = document.createElement('div');
   section.className = 'section';
+  if (sectionId) section.id = sectionId;
   section.innerHTML = `<h2>${escapeHtml(title)}</h2>${innerHtml}`;
   return section;
 }

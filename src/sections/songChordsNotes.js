@@ -6,11 +6,11 @@ export function renderChordsAndNotes(currentSong, chordsJson, notesJson) {
     const msg = currentSong
       ? 'Current song has no chords defined.'
       : 'No song selected.';
-    return createSection('chords & notes', `<p>${msg}</p>`);
+    return createSection('chords & notes', `<p>${msg}</p>`, 'chords-notes-section');
   }
 
   if (!chordsJson || !notesJson) {
-    return createSection('chords & notes', '<p>Cannot display chords and notes — data files missing.</p>');
+    return createSection('chords & notes', '<p>Cannot display chords and notes — data files missing.</p>', 'chords-notes-section');
   }
 
   const uniqueChords = [...new Set(currentSong.chords.split(' '))];
@@ -36,5 +36,5 @@ export function renderChordsAndNotes(currentSong, chordsJson, notesJson) {
         ${notesTable}
       </div>
     </div>
-  `);
+  `, 'chords-notes-section');
 }

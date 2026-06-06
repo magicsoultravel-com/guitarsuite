@@ -11,11 +11,41 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
   dock.id = 'tool-dock';
   dock.className = 'tool-dock';
 
-  const currentSong = songs[songIndex] ?? null;
+  let currentIndex = songIndex;
+  const currentSong = songs[currentIndex] ?? null;
+
+  function setSongIndex(index, onContentUpdate) {
+    currentIndex = index;
+    const song = songs[currentIndex] ?? null;
+    const url = new URL(location.href);
+    url.searchParams.set('songIndex', index);
+    history.replaceState(null, '', url);
+    nowPlaying.updateSong(index);
+    chordPicker.updateSong(song);
+    onContentUpdate?.(song);
+    return song;
+  }
+
   dock.appendChild(renderRootModule(hub));
-  dock.appendChild(renderChordPicker(hub, chords, notes, currentSong));
+  const chordPicker = renderChordPicker(
+    hub,
+    chords,
+    notes,
+    currentSong,
+    theoryContext.chordsTheory,
+  );
+  dock.appendChild(chordPicker.el);
   dock.appendChild(renderFretboardDrawer(hub, notes));
-  dock.appendChild(createNowPlayingDrawer(hub, songs, chords, notes, songIndex));
+
+  const nowPlaying = createNowPlayingDrawer(
+    hub,
+    songs,
+    chords,
+    notes,
+    currentIndex,
+    (index) => setSongIndex(index, theoryContext.onSongChange),
+  );
+  dock.appendChild(nowPlaying.drawer);
   dock.appendChild(renderToolsDock());
 
   document.body.appendChild(dock);
@@ -27,5 +57,9 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
     chordsTheory: theoryContext.chordsTheory,
   });
 
-  return { dock, currentSong };
+  return {
+    dock,
+    currentSong,
+    setSongIndex: (index) => setSongIndex(index, theoryContext.onSongChange),
+  };
 }

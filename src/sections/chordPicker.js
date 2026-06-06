@@ -2,6 +2,7 @@ import {
   CHROMATIC,
   getChordNotes,
   getRoot,
+  getTheoryNotes,
   musicalSort,
   normalizePitch,
   sortNotesByMusicalOrder,
@@ -46,13 +47,16 @@ function renderShapePreview(variant, notesJson) {
 function pickChord(hub, chordsJson, notesJson, name) {
   const variant = chordsJson[name]?.variant1;
   if (!variant) return;
-  hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson) });
+  hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson), family: 'chord' });
   playChordByName(name, chordsJson, notesJson);
 }
 
-function resolveDisplayChord(hub, chordsJson, byRoot, songChords) {
+function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot, songChords) {
+  const last = hub.getLastChordLabel();
+  if (last && (chordsJson[last] || chordsTheory?.[last])) return last;
+
   const layers = hub.getLayers().filter((l) => l.label !== 'manual');
-  const chordLayer = [...layers].reverse().find((l) => chordsJson[l.label]);
+  const chordLayer = [...layers].reverse().find((l) => chordsJson[l.label] || chordsTheory?.[l.label]);
   if (chordLayer) return chordLayer.label;
 
   const root = hub.getRoot();
@@ -63,18 +67,28 @@ function resolveDisplayChord(hub, chordsJson, byRoot, songChords) {
   return atRoot[0] || null;
 }
 
-function formatCollapsedSummary(name, chordsJson, notesJson) {
-  if (!name || !chordsJson[name]) return '—';
-  const data = chordsJson[name];
-  const { frets, notes } = renderShapePreview(data.variant1, notesJson);
-  const type = data.type ? `${data.type} · ` : '';
-  return `${name} · ${type}${notes || frets.join(' ')}`;
+function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) {
+  if (!name) return '—';
+  if (chordsJson[name]) {
+    const data = chordsJson[name];
+    const { frets, notes } = renderShapePreview(data.variant1, notesJson);
+    const type = data.type ? `${data.type} · ` : '';
+    return `${name} · ${type}${notes || frets.join(' ')}`;
+  }
+  if (chordsTheory?.[name]) {
+    const root = hub.getRoot();
+    const data = chordsTheory[name];
+    const short = data.short ? root + data.short.slice(1) : name;
+    const notes = getTheoryNotes(root, data.intervals).join(' · ');
+    return `${short} · ${name} · ${notes}`;
+  }
+  return '—';
 }
 
-export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
+export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chordsTheory = {}) {
   const byRoot = groupChordsByRoot(chordsJson);
-  const songChords = [...new Set((currentSong?.chords || '').split(/\s+/).filter(Boolean))].sort(musicalSort);
-  const songSet = new Set(songChords);
+  let songChords = [...new Set((currentSong?.chords || '').split(/\s+/).filter(Boolean))].sort(musicalSort);
+  let songSet = new Set(songChords);
 
   const el = document.createElement('div');
   el.id = 'chord-picker';
@@ -143,19 +157,36 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
   }
 
   function updateDiagram(name) {
-    if (!name || !chordsJson[name]) {
+    if (!name) {
       diagramName.textContent = '—';
       diagramType.textContent = '';
       diagramFrets.textContent = '—';
       diagramNotes.textContent = '';
       return;
     }
-    const data = chordsJson[name];
-    const { frets, notes } = renderShapePreview(data.variant1, notesJson);
-    diagramName.textContent = name;
-    diagramType.textContent = data.type ? data.type : '';
-    diagramFrets.textContent = frets.join(' ');
-    diagramNotes.textContent = notes;
+    if (chordsJson[name]) {
+      const data = chordsJson[name];
+      const { frets, notes } = renderShapePreview(data.variant1, notesJson);
+      diagramName.textContent = name;
+      diagramType.textContent = data.type ? data.type : '';
+      diagramFrets.textContent = frets.join(' ');
+      diagramNotes.textContent = notes;
+      return;
+    }
+    if (chordsTheory[name]) {
+      const root = hub.getRoot();
+      const data = chordsTheory[name];
+      const notes = getTheoryNotes(root, data.intervals).join(' · ');
+      diagramName.textContent = data.short ? root + data.short.slice(1) : name;
+      diagramType.textContent = name;
+      diagramFrets.textContent = data.intervals;
+      diagramNotes.textContent = notes;
+      return;
+    }
+    diagramName.textContent = '—';
+    diagramType.textContent = '';
+    diagramFrets.textContent = '—';
+    diagramNotes.textContent = '';
   }
 
   function refreshUI() {
@@ -166,9 +197,16 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
     renderChips(songGrid, songChords);
     syncChipLayers(hub, el);
 
-    const displayName = resolveDisplayChord(hub, chordsJson, byRoot, songChords);
-    summaryEl.textContent = formatCollapsedSummary(displayName, chordsJson, notesJson);
+    const displayName = resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot, songChords);
+    summaryEl.textContent = formatCollapsedSummary(displayName, chordsJson, chordsTheory, notesJson, hub);
     updateDiagram(displayName);
+  }
+
+  function updateSong(song) {
+    songChords = [...new Set((song?.chords || '').split(/\s+/).filter(Boolean))].sort(musicalSort);
+    songSet = new Set(songChords);
+    el.querySelector('.chord-picker-song')?.toggleAttribute('hidden', !songChords.length);
+    refreshUI();
   }
 
   const { setExpanded } = wireDockExpand(el, { bodyClass: 'chord-picker-expanded', moduleId: 'chords' });
@@ -177,5 +215,5 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
   hub.subscribe(refreshUI);
   refreshUI();
 
-  return el;
+  return { el, updateSong };
 }

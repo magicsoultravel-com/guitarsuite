@@ -20,7 +20,7 @@ const app = document.getElementById('app');
 renderFooter(document.getElementById('site-footer'));
 
 const params = new URLSearchParams(location.search);
-const songIndex = parseInt(params.get('songIndex') || '0', 10);
+let songIndex = parseInt(params.get('songIndex') || '0', 10);
 const initialRoot = params.get('root') || 'C';
 
 try {
@@ -50,14 +50,29 @@ try {
 
   const hub = createFretboardHub(initialRoot);
 
+  function mountChordsAndNotes(song) {
+    const existing = document.getElementById('chords-notes-section');
+    const section = renderChordsAndNotes(song, chords, notes);
+    if (existing) {
+      existing.replaceWith(section);
+    } else {
+      app.prepend(section);
+    }
+    wireChordNoteTables(hub, chords, notes);
+  }
+
   const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex, {
     scales,
     chordsTheory,
+    onSongChange: (index) => {
+      songIndex = index;
+      mountChordsAndNotes(songs[index] ?? null);
+    },
   });
-  app.appendChild(renderChordsAndNotes(currentSong, chords, notes));
+
+  mountChordsAndNotes(currentSong);
 
   initFretboardInteractive(hub, notes, chords);
-  wireChordNoteTables(hub, chords, notes);
 
   const theorySection = renderChordsTheory();
   app.appendChild(theorySection);

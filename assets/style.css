@@ -766,20 +766,21 @@ th {
 .dock-root-strip {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 3px;
-    overflow-x: auto;
-    scrollbar-width: thin;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 2px;
+    align-content: center;
     height: 100%;
+    overflow: hidden;
 }
 
 .dock-module--root .root-chip {
-    flex: 0 0 auto;
-    min-width: 2.1em;
+    min-width: 0;
     text-align: center;
-    padding: 2px 5px;
+    padding: 1px 2px;
+    font-size: 0.68em;
+    line-height: 1.2;
 }
 
 .dock-module-bar--root {

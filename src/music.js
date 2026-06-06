@@ -73,16 +73,35 @@ export function getTheoryNotes(root, intervalsStr) {
   return intervalsStr.split(/\s+/).map(Number).map((i) => CHROMATIC[(rootIdx + i) % 12]);
 }
 
-export function getScaleNotes(root, steps) {
-  const rootIdx = pitchToIndex(root);
-  if (rootIdx < 0 || !steps?.length) return [];
+export function getScaleSemitones(steps) {
+  if (!steps?.length) return [0];
   let cumulative = 0;
   const semitones = [0];
   for (const step of steps) {
     cumulative += step;
     semitones.push(cumulative);
   }
-  return semitones.map((s) => CHROMATIC[(rootIdx + s) % 12]);
+  return semitones;
+}
+
+export function getScaleNotes(root, steps) {
+  const rootIdx = pitchToIndex(root);
+  if (rootIdx < 0 || !steps?.length) return [];
+  return getScaleSemitones(steps).map((s) => CHROMATIC[(rootIdx + s) % 12]);
+}
+
+/** Ascending scale degrees with octaves that rise when the pitch wraps. */
+export function getScaleNotesWithOctaves(root, steps, startOctave = 3) {
+  const pitches = getScaleNotes(root, steps);
+  if (!pitches.length) return [];
+  let octave = startOctave;
+  let lastIdx = pitchToIndex(pitches[0]);
+  return pitches.map((pitch, i) => {
+    const idx = pitchToIndex(pitch);
+    if (i > 0 && idx <= lastIdx) octave += 1;
+    lastIdx = idx;
+    return { pitch, octave };
+  });
 }
 
 export function buildChordTable(uniqueChords, chordsJson, getCellValue, options = {}) {

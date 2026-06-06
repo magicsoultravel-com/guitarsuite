@@ -8,9 +8,19 @@ function normalizedSet(notes) {
 
 export function createFretboardHub(initialRoot = 'C') {
   let root = normalizePitch(initialRoot) || 'C';
-  /** @type {Array<{ label: string, kind: 'fixed'|'derived'|'manual', notes?: string[], resolve?: (root: string) => string[] }|null>} */
+  /** @type {Array<{ label: string, kind: 'fixed'|'derived'|'manual', family?: string, notes?: string[], resolve?: (root: string) => string[] }|null>} */
   let layers = [null, null, null];
+  /** @type {string|null} */
+  let lastChordLabel = null;
   const listeners = new Set();
+
+  function findLastActiveChordLabel() {
+    for (let i = layers.length - 1; i >= 0; i -= 1) {
+      const layer = layers[i];
+      if (layer?.family === 'chord') return layer.label;
+    }
+    return null;
+  }
 
   function notify() {
     listeners.forEach((fn) => fn());
@@ -84,23 +94,30 @@ export function createFretboardHub(initialRoot = 'C') {
       notify();
     },
 
-    toggleSelection({ label, notes, resolve }) {
+    getLastChordLabel() {
+      return lastChordLabel;
+    },
+
+    toggleSelection({ label, notes, resolve, family }) {
       const existingIdx = layers.findIndex((l) => l?.label === label);
       if (existingIdx >= 0) {
         layers[existingIdx] = null;
+        if (lastChordLabel === label) lastChordLabel = findLastActiveChordLabel();
       } else {
-      let idx = layers.findIndex((l) => !l);
-      if (idx < 0) {
-        layers.shift();
-        layers.push(null);
-        idx = 2;
-      }
+        let idx = layers.findIndex((l) => !l);
+        if (idx < 0) {
+          layers.shift();
+          layers.push(null);
+          idx = 2;
+        }
         layers[idx] = {
           label,
           kind: resolve ? 'derived' : 'fixed',
+          family,
           notes: notes || [],
           resolve,
         };
+        if (family === 'chord') lastChordLabel = label;
       }
       notify();
     },

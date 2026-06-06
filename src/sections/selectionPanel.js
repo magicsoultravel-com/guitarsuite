@@ -1,5 +1,5 @@
 import { escapeHtml } from '../utils.js';
-import { formatRootsDisplay } from './displayRoot.js';
+import { formatRootsDisplay } from '../displayRoot.js';
 import {
   initPlayback,
   isFocusModules,

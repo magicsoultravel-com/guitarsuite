@@ -21,7 +21,6 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
     url.searchParams.set('songIndex', index);
     history.replaceState(null, '', url);
     nowPlaying.updateSong(index);
-    chordPicker.updateSong(song);
     onContentUpdate?.(song);
     return song;
   }
@@ -31,7 +30,6 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
     hub,
     chords,
     notes,
-    currentSong,
     theoryContext.chordsTheory,
   );
   dock.appendChild(chordPicker.el);

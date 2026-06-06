@@ -3,9 +3,7 @@ import { getDisplayRoot, formatRootsDisplay } from '../displayRoot.js';
 import {
   CHROMATIC,
   getChordNotes,
-  getRoot,
   getTheoryNotes,
-  musicalSort,
   normalizePitch,
   sortNotesByMusicalOrder,
 } from '../music.js';
@@ -20,12 +18,6 @@ const playFns = (notesJson) => ({
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
 const STRING_KEYS = ['E1', 'A', 'D', 'G', 'B', 'E2'];
-
-function resolveChordRoot(name, data) {
-  const fromData = normalizePitch(data?.root);
-  if (fromData && CHROMATIC.includes(fromData)) return fromData;
-  return normalizePitch(getRoot(name));
-}
 
 function theoryChordsAtRoot(root, chordsJson) {
   const names = Object.values(THEORY_SUFFIX).map((suffix) => root + suffix);
@@ -50,7 +42,7 @@ function pickChord(hub, chordsJson, notesJson, chordsTheory, name) {
   applyChordPick(hub, ctx, playFns(notesJson), { chordName: name });
 }
 
-function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot, songChords) {
+function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot) {
   const last = hub.getLastChordLabel();
   if (last && (chordsJson[last] || chordsTheory?.[last])) return last;
 
@@ -59,9 +51,6 @@ function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot, songChords) 
   if (chordLayer) return chordLayer.chordRef || chordLayer.label;
 
   const preview = getDisplayRoot(hub);
-  const songAtRoot = songChords.find((c) => resolveChordRoot(c, chordsJson[c]) === preview);
-  if (songAtRoot) return songAtRoot;
-
   const atRoot = byRoot[preview] || [];
   return atRoot[0] || null;
 }
@@ -93,10 +82,8 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
   return '—';
 }
 
-export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chordsTheory = {}) {
+export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {}) {
   const byRoot = Object.fromEntries(CHROMATIC.map((r) => [r, theoryChordsAtRoot(r, chordsJson)]));
-  let songChords = [...new Set((currentSong?.chords || '').split(/\s+/).filter(Boolean))].sort(musicalSort);
-  let songSet = new Set(songChords);
 
   const el = document.createElement('div');
   el.id = 'chord-picker';
@@ -108,10 +95,6 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
     <div class="dock-module-panel" hidden>
-      <div class="dock-section chord-picker-song" ${songChords.length ? '' : 'hidden'}>
-        <span class="dock-section-label">In song</span>
-        <div class="dock-chip-grid chord-picker-song-grid"></div>
-      </div>
       <div class="dock-section">
         <span class="dock-section-label chord-picker-root-label">At root</span>
         <div class="dock-chip-grid chord-picker-root-grid"></div>
@@ -134,7 +117,6 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
 
   const summaryEl = el.querySelector('.chord-picker-summary');
   const rootLabel = el.querySelector('.chord-picker-root-label');
-  const songGrid = el.querySelector('.chord-picker-song-grid');
   const rootGrid = el.querySelector('.chord-picker-root-grid');
   const diagramName = el.querySelector('.chord-picker-diagram-name');
   const diagramType = el.querySelector('.chord-picker-diagram-type');
@@ -142,13 +124,12 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
   const diagramNotes = el.querySelector('.chord-picker-notes');
 
   function makeChip(name) {
-    const inSong = songSet.has(name);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = ['dock-chip', 'fb-selectable', inSong ? 'is-song' : ''].filter(Boolean).join(' ');
+    btn.className = 'dock-chip fb-selectable';
     btn.dataset.chord = name;
     btn.dataset.label = name;
-    btn.title = inSong ? `${name} (in current song)` : `Show ${name} on fretboard`;
+    btn.title = `Show ${name} on fretboard`;
     btn.textContent = name;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -213,19 +194,11 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
       ? `At ${formatRootsDisplay(hub)} (primary ${hub.getRoot()})`
       : `At ${root}`;
     renderChips(rootGrid, names);
-    renderChips(songGrid, songChords);
     syncChipLayers(hub, el);
 
-    const displayName = resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot, songChords);
+    const displayName = resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot);
     summaryEl.textContent = formatCollapsedSummary(displayName, chordsJson, chordsTheory, notesJson, hub);
     updateDiagram(displayName);
-  }
-
-  function updateSong(song) {
-    songChords = [...new Set((song?.chords || '').split(/\s+/).filter(Boolean))].sort(musicalSort);
-    songSet = new Set(songChords);
-    el.querySelector('.chord-picker-song')?.toggleAttribute('hidden', !songChords.length);
-    refreshUI();
   }
 
   const { setExpanded } = wireDockExpand(el, { bodyClass: 'chord-picker-expanded', moduleId: 'chords' });
@@ -234,5 +207,5 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
   hub.subscribe(refreshUI);
   refreshUI();
 
-  return { el, updateSong };
+  return { el };
 }

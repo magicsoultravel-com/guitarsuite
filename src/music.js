@@ -1,3 +1,5 @@
+import { escapeHtml } from './utils.js';
+
 export const MUSICAL_ORDER = [
   'C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb',
   'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B',
@@ -108,7 +110,7 @@ export function buildChordTable(uniqueChords, chordsJson, getCellValue, options 
     const notesAttr = interactive
       ? ` class="fb-selectable fb-chord-col" data-chord="${safe}" data-label="${safe}"`
       : '';
-    html += `<th${notesAttr}>${name}</th>`;
+    html += `<th${notesAttr}>${escapeHtml(name)}</th>`;
   }
   html += '</tr></thead><tbody>';
 

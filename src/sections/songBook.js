@@ -6,7 +6,7 @@ function songUrl(index) {
   return `${url.pathname}${url.search}`;
 }
 
-export function renderNowPlaying(songs, chords, songIndex) {
+export function createNowPlayingDrawer(songs, chords, songIndex) {
   const drawer = document.createElement('div');
   drawer.id = 'now-playing-drawer';
   drawer.className = 'now-playing-drawer';
@@ -14,9 +14,7 @@ export function renderNowPlaying(songs, chords, songIndex) {
   const currentSong = songs[songIndex];
   if (!currentSong) {
     drawer.innerHTML = `<div class="now-playing-bar"><span class="now-playing-empty">No song selected</span></div>`;
-    document.body.appendChild(drawer);
-    document.body.classList.add('has-now-playing');
-    return { drawer, currentSong: null };
+    return drawer;
   }
 
   const prevIndex = (songIndex - 1 + songs.length) % songs.length;
@@ -62,8 +60,13 @@ export function renderNowPlaying(songs, chords, songIndex) {
     setExpanded(panel.hidden);
   });
 
+  return drawer;
+}
+
+/** @deprecated use createNowPlayingDrawer via renderBottomDock */
+export function renderNowPlaying(songs, chords, songIndex) {
+  const drawer = createNowPlayingDrawer(songs, chords, songIndex);
   document.body.appendChild(drawer);
   document.body.classList.add('has-now-playing');
-
-  return { drawer, currentSong };
+  return { drawer, currentSong: songs[songIndex] ?? null };
 }

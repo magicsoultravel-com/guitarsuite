@@ -1,8 +1,7 @@
 import { fetchJson, renderFooter } from './utils.js';
 import { asset } from './paths.js';
-import { renderNowPlaying } from './sections/songBook.js';
-import { renderChordsSheet } from './sections/chordsSheet.js';
-import { renderMusicalNotes } from './sections/musicalNotes.js';
+import { renderBottomDock } from './sections/bottomDock.js';
+import { renderChordsAndNotes } from './sections/songChordsNotes.js';
 import { renderFretboard } from './sections/fretboard.js';
 import { renderChordsTheory } from './sections/chordsTheory.js';
 import { renderScalesTheory } from './sections/scalesTheory.js';
@@ -59,9 +58,8 @@ try {
 
   initFretboardSidebar();
 
-  const { currentSong } = renderNowPlaying(songs, chords, songIndex);
-  app.appendChild(renderChordsSheet(currentSong, chords));
-  app.appendChild(renderMusicalNotes(currentSong, chords, notes));
+  const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex);
+  app.appendChild(renderChordsAndNotes(currentSong, chords, notes));
 
   initFretboardInteractive(hub, notes, chords);
   wireChordNoteTables(hub, chords, notes);

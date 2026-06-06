@@ -106,6 +106,19 @@ body {
     line-height: 1;
 }
 
+body.has-bottom-dock {
+    padding-bottom: calc(var(--now-playing-bar-h) + var(--space-sm) * 2);
+}
+
+body.has-bottom-dock.now-playing-expanded,
+body.has-bottom-dock.chord-picker-expanded {
+    padding-bottom: calc(var(--now-playing-bar-h) + 140px);
+}
+
+body.has-bottom-dock.now-playing-expanded.chord-picker-expanded {
+    padding-bottom: calc(var(--now-playing-bar-h) + 220px);
+}
+
 body.has-now-playing {
     padding-bottom: calc(var(--now-playing-bar-h) + var(--space-sm) * 2);
 }
@@ -462,7 +475,6 @@ th {
     font-weight: 600;
     color: #000;
     font-size: var(--font-xs);
-    text-transform: lowercase;
 }
 
 #fretboard-table {
@@ -542,19 +554,216 @@ th {
     outline: 1px solid var(--color-accent);
 }
 
-/* --- Now playing bottom drawer --- */
-.now-playing-drawer {
+/* --- Bottom dock: chord picker + now playing --- */
+.bottom-dock {
     position: fixed;
     left: var(--space-sm);
-    right: var(--space-sm);
     bottom: var(--space-sm);
     z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-sm);
+    max-width: calc(100vw - var(--space-sm) * 2);
+}
+
+.chord-picker {
+    width: min(320px, 42vw);
+    max-width: 320px;
+    flex-shrink: 1;
+    min-width: 0;
     background: var(--color-bg-panel);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.45);
-    max-width: var(--max-width);
-    margin: 0 auto;
+}
+
+.chord-picker-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: var(--now-playing-bar-h);
+    padding: 0 var(--space-sm);
+    cursor: pointer;
+}
+
+.chord-picker-label {
+    flex-shrink: 0;
+    font-size: var(--font-xs);
+    font-weight: 600;
+    color: var(--color-accent-strong);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.chord-picker-root {
+    flex-shrink: 0;
+    width: 3.2em;
+    padding: 2px 4px;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    background: #111;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.chord-picker-strip {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: 3px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding: 2px 0;
+}
+
+.chord-picker-strip::-webkit-scrollbar {
+    height: 3px;
+}
+
+.chord-picker-preview {
+    flex-shrink: 0;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 0.65em;
+    color: var(--color-muted);
+    letter-spacing: 0.05em;
+    max-width: 4.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chord-picker-chevron {
+    flex-shrink: 0;
+    font-size: 0.55em;
+    color: var(--color-muted);
+    padding: 4px;
+}
+
+.chord-picker-panel {
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-sm);
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.chord-picker-section {
+    margin-bottom: var(--space-sm);
+}
+
+.chord-picker-section-label {
+    display: block;
+    font-size: 0.65em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+    margin-bottom: 4px;
+}
+
+.chord-picker-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.chord-picker-chip {
+    padding: 2px 7px;
+    font-size: var(--font-xs);
+    font-weight: 600;
+    font-family: inherit;
+    line-height: 1.4;
+    background: #1a1a1a;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: #ddd;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.chord-picker-chip.is-compact {
+    padding: 2px 6px;
+}
+
+.chord-picker-chip.is-song {
+    border-color: var(--color-accent-dim);
+    box-shadow: inset 0 0 0 1px rgba(196, 165, 116, 0.15);
+}
+
+.chord-picker-chip:hover {
+    background: var(--color-highlight-bg);
+    border-color: var(--color-accent-dim);
+}
+
+.chord-picker-chip.fb-active {
+    background: var(--color-highlight-bg);
+    border-color: var(--color-accent);
+    color: var(--color-accent-strong);
+    outline: 1px solid var(--color-accent);
+}
+
+.chord-picker-diagram {
+    margin-top: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background: #111;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+}
+
+.chord-picker-diagram-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.chord-picker-diagram-name {
+    font-size: var(--font-sm);
+    font-weight: 700;
+    color: var(--color-accent-strong);
+}
+
+.chord-picker-diagram-type {
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+}
+
+.chord-picker-fretboard {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: var(--font-xs);
+    line-height: 1.5;
+}
+
+.chord-picker-strings {
+    display: block;
+    color: var(--color-muted);
+    letter-spacing: 0.12em;
+}
+
+.chord-picker-frets {
+    display: block;
+    color: var(--color-accent-strong);
+    letter-spacing: 0.12em;
+}
+
+.chord-picker-notes {
+    margin-top: 2px;
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+}
+
+/* --- Now playing bottom drawer --- */
+.now-playing-drawer {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: min(240px, 25vw);
+    max-width: 240px;
+    flex-shrink: 0;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.45);
 }
 
 .now-playing-bar {
@@ -629,9 +838,35 @@ th {
 
 .now-playing-panel {
     border-top: 1px solid var(--color-border);
-    padding: var(--space-sm) var(--space-md);
-    max-height: 140px;
+    padding: var(--space-sm);
+    max-height: 120px;
     overflow-y: auto;
+}
+
+.chords-notes-split {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-start;
+}
+
+.chords-notes-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.split-label {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    font-weight: 500;
+    border-bottom: none;
+}
+
+.scale-use {
+    text-align: left;
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    max-width: 16em;
 }
 
 .now-playing-chords {
@@ -650,6 +885,24 @@ th {
 
 .now-playing-meta .meta-sep {
     margin: 0 6px;
+}
+
+@media (max-width: 640px) {
+    .bottom-dock {
+        flex-direction: column;
+        align-items: stretch;
+        right: var(--space-sm);
+    }
+
+    .chord-picker,
+    .now-playing-drawer {
+        width: 100%;
+        max-width: none;
+    }
+
+    .chord-picker-preview {
+        display: none;
+    }
 }
 
 .now-playing-empty {

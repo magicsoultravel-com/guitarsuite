@@ -1286,47 +1286,6 @@ th {
     color: var(--color-accent);
 }
 
-.scales-area-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-sm);
-}
-
-.scales-area-head h2 {
-    margin: 0;
-    border-bottom: none;
-}
-
-.scale-tabs {
-    display: flex;
-    gap: var(--space-xs);
-}
-
-.scale-tab {
-    padding: 4px 10px;
-    font-size: var(--font-sm);
-    font-family: inherit;
-    background: transparent;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    color: var(--color-muted);
-    cursor: pointer;
-}
-
-.scale-tab:hover {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-}
-
-.scale-tab.is-active {
-    color: #000;
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-}
-
 .scale-progressions-grid {
     display: flex;
     flex-direction: column;

@@ -1,10 +1,11 @@
 import { CHROMATIC, musicalSort } from '../music.js';
 import { playTick, playPitch, playStandardString, STANDARD_TUNING } from '../audio.js';
-import { playNote, playChordByName } from '../playback.js';
+import { playNote, playChordByName, GUITAR_OCTAVE } from '../playback.js';
 import { createBeatScheduler } from '../beatScheduler.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
 
 const MAX_TRACKS = 4;
+const LOOPER_NOTE_OCTAVE = GUITAR_OCTAVE - 1;
 
 export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys = null } = {}) {
   const el = document.createElement('div');
@@ -63,16 +64,17 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
           <div class="tools-controls-col">
             <div class="tools-inline looper-toolbar">
               <span class="looper-toolbar-label">Tracks</span>
-              <select id="looper-tracks" class="dock-select" title="Number of tracks">
-                <option value="1">1</option>
+              <select id="looper-tracks" class="dock-select looper-tracks-select" title="Number of tracks">
+                <option value="1" selected>1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
-                <option value="4" selected>4</option>
+                <option value="4">4</option>
               </select>
               <button type="button" class="dock-nav-btn" id="start-looper" title="Start looper">▶</button>
               <button type="button" class="dock-nav-btn" id="stop-looper" title="Stop looper" disabled>■</button>
             </div>
             <div id="looper-grid" class="looper-grid"></div>
+            <div id="looper-machine" class="looper-machine" aria-label="Beat pattern"></div>
           </div>
         </div>
         <div class="dock-section tools-block">
@@ -108,8 +110,10 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   const looperStop = el.querySelector('#stop-looper');
   const looperTracksSelect = el.querySelector('#looper-tracks');
   const looperGrid = el.querySelector('#looper-grid');
+  const looperMachine = el.querySelector('#looper-machine');
 
   let beatsPerMeasure = 4;
+  let activeBeat = 0;
 
   function clampBpm(val) {
     return Math.min(250, Math.max(30, val));
@@ -150,6 +154,12 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
     },
   });
 
+  function slotLabel(slot) {
+    if (!slot) return '—';
+    if (slot.type === 'chord') return slot.chord || '—';
+    return slot.note || '—';
+  }
+
   function readSlotState() {
     const state = [];
     for (let t = 0; t < MAX_TRACKS; t += 1) {
@@ -157,14 +167,12 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
       for (let b = 0; b < beatsPerMeasure; b += 1) {
         const cell = looperGrid.querySelector(`[data-track="${t}"][data-beat="${b}"]`);
         if (!cell) {
-          track.push({ type: 'chord', chord: '', note: 'C', octave: '4' });
+          track.push({ type: 'chord', value: '' });
           continue;
         }
         track.push({
           type: cell.querySelector('.looper-type')?.value || 'chord',
-          chord: cell.querySelector('.looper-chord')?.value || '',
-          note: cell.querySelector('.looper-note')?.value || 'C',
-          octave: cell.querySelector('.looper-octave')?.value || '4',
+          value: cell.querySelector('.looper-value')?.value || '',
         });
       }
       state.push(track);
@@ -173,18 +181,55 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   }
 
   function playSlot(slot) {
-    if (!slot) return;
-    if (slot.type === 'chord') {
-      if (slot.chord) playChordByName(slot.chord, chordsJson, notesJson);
-      return;
+    if (!slot?.value) return;
+    if (slot.type === 'note') playNote(slot.value, LOOPER_NOTE_OCTAVE);
+    else playChordByName(slot.value, chordsJson, notesJson);
+  }
+
+  function highlightBeat(beat) {
+    activeBeat = beat;
+    looperMachine.querySelectorAll('.looper-pad').forEach((pad) => {
+      const padBeat = parseInt(pad.dataset.beat, 10);
+      const isActive = padBeat === beat;
+      pad.classList.toggle('is-active', isActive);
+    });
+  }
+
+  function clearBeatHighlight() {
+    activeBeat = 0;
+    looperMachine.querySelectorAll('.looper-pad.is-active').forEach((p) => {
+      p.classList.remove('is-active');
+    });
+  }
+
+  function syncMachineDisplay() {
+    const trackCount = parseInt(looperTracksSelect.value, 10);
+    const saved = readSlotState();
+    looperMachine.style.setProperty('--looper-beats', beatsPerMeasure);
+
+    const beatPads = Array.from({ length: beatsPerMeasure }, (_, i) =>
+      `<span class="looper-pad looper-pad-beat" data-beat="${i + 1}">${i + 1}</span>`
+    ).join('');
+
+    let rows = `<div class="looper-machine-row looper-machine-row-beats"><span class="looper-machine-corner"></span>${beatPads}</div>`;
+
+    for (let t = 0; t < trackCount; t += 1) {
+      const slots = Array.from({ length: beatsPerMeasure }, (_, b) => {
+        const label = slotLabel(saved[t]?.[b]);
+        const active = activeBeat === b + 1 ? ' is-active' : '';
+        return `<span class="looper-pad looper-pad-slot${active}" data-beat="${b + 1}" data-track="${t}" title="${label}">${label}</span>`;
+      }).join('');
+      rows += `<div class="looper-machine-row" data-machine-track="${t}"><span class="looper-machine-corner">T${t + 1}</span>${slots}</div>`;
     }
-    if (slot.note) playNote(slot.note, parseInt(slot.octave, 10));
+
+    looperMachine.innerHTML = rows;
   }
 
   const looperScheduler = createBeatScheduler({
     getIntervalMs,
     getBeatsPerMeasure,
     onBeat(beat) {
+      highlightBeat(beat);
       const trackCount = parseInt(looperTracksSelect.value, 10);
       const saved = readSlotState();
       for (let t = 0; t < trackCount; t += 1) {
@@ -196,6 +241,8 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   function stopAll() {
     metronomeScheduler.stop();
     looperScheduler.stop();
+    clearBeatHighlight();
+    syncMachineDisplay();
     setPlayerUi(null);
   }
 
@@ -211,24 +258,44 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
     if (looperScheduler.start()) setPlayerUi('looper');
   }
 
+  function populateValueSelect(select, type, value) {
+    select.innerHTML = type === 'note'
+      ? noteSelectOptions(value || 'C')
+      : chordSelectOptions(value || '');
+    if (value && ![...select.options].some((o) => o.value === value)) {
+      select.value = type === 'note' ? 'C' : '';
+    }
+  }
+
+  function wireSlotCell(cell) {
+    const typeSel = cell.querySelector('.looper-type');
+    const valueSel = cell.querySelector('.looper-value');
+
+    typeSel.addEventListener('change', (e) => {
+      e.stopPropagation();
+      populateValueSelect(valueSel, typeSel.value, '');
+      syncMachineDisplay();
+    });
+    typeSel.addEventListener('click', (e) => e.stopPropagation());
+
+    valueSel.addEventListener('change', (e) => {
+      e.stopPropagation();
+      syncMachineDisplay();
+    });
+    valueSel.addEventListener('click', (e) => e.stopPropagation());
+  }
+
   function renderSlotCell(track, beat, saved) {
-    const slot = saved?.[track]?.[beat] || { type: 'chord', chord: '', note: 'C', octave: '4' };
+    const slot = saved?.[track]?.[beat] || { type: 'chord', value: '' };
     const isNote = slot.type === 'note';
+    const typeOpts = `
+      <option value="chord"${isNote ? '' : ' selected'}>C</option>
+      <option value="note"${isNote ? ' selected' : ''}>N</option>
+    `;
     return `
       <div class="looper-cell" data-track="${track}" data-beat="${beat}">
-        <select class="dock-select looper-type" title="Note or chord">
-          <option value="chord"${isNote ? '' : ' selected'}>Chord</option>
-          <option value="note"${isNote ? ' selected' : ''}>Note</option>
-        </select>
-        <select class="dock-select looper-chord"${isNote ? ' hidden' : ''}>${chordSelectOptions(slot.chord)}</select>
-        <span class="looper-note-wrap${isNote ? '' : ' hidden'}">
-          <select class="dock-select looper-note">${noteSelectOptions(slot.note)}</select>
-          <select class="dock-select looper-octave">
-            <option value="3"${slot.octave === '3' ? ' selected' : ''}>3</option>
-            <option value="4"${slot.octave === '4' ? ' selected' : ''}>4</option>
-            <option value="5"${slot.octave === '5' ? ' selected' : ''}>5</option>
-          </select>
-        </span>
+        <select class="dock-select looper-type" title="C = chord, N = note">${typeOpts}</select>
+        <select class="dock-select looper-value"></select>
       </div>
     `;
   }
@@ -236,31 +303,23 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   function rebuildLooperGrid() {
     const saved = readSlotState();
     const trackCount = parseInt(looperTracksSelect.value, 10);
-    const beatHeaders = Array.from({ length: beatsPerMeasure }, (_, i) =>
-      `<span class="looper-beat-head">B${i + 1}</span>`
-    ).join('');
+    looperGrid.style.setProperty('--looper-beats', beatsPerMeasure);
 
-    let rows = `<div class="looper-row looper-row-head"><span class="looper-track-head"></span>${beatHeaders}</div>`;
+    let rows = '';
     for (let t = 0; t < trackCount; t += 1) {
       const cells = Array.from({ length: beatsPerMeasure }, (_, b) => renderSlotCell(t, b, saved)).join('');
       rows += `<div class="looper-row" data-looper-track="${t}"><span class="looper-track-head">T${t + 1}</span>${cells}</div>`;
     }
 
     looperGrid.innerHTML = rows;
-
-    looperGrid.querySelectorAll('.looper-type').forEach((sel) => {
-      sel.addEventListener('change', (e) => {
-        e.stopPropagation();
-        const cell = sel.closest('.looper-cell');
-        const isNote = sel.value === 'note';
-        cell.querySelector('.looper-chord').hidden = isNote;
-        cell.querySelector('.looper-note-wrap').hidden = !isNote;
-      });
-      sel.addEventListener('click', (e) => e.stopPropagation());
+    looperGrid.querySelectorAll('.looper-cell').forEach((cell) => {
+      const track = parseInt(cell.dataset.track, 10);
+      const beat = parseInt(cell.dataset.beat, 10);
+      const slot = saved?.[track]?.[beat] || { type: 'chord', value: '' };
+      wireSlotCell(cell);
+      populateValueSelect(cell.querySelector('.looper-value'), slot.type, slot.value);
     });
-    looperGrid.querySelectorAll('.looper-cell select').forEach((sel) => {
-      sel.addEventListener('click', (e) => e.stopPropagation());
-    });
+    syncMachineDisplay();
   }
 
   el.querySelectorAll('.bpm-step').forEach((btn) => {
@@ -317,7 +376,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   wireDockBarToggle(
     el,
     setExpanded,
-    '.tools-stack, .dock-nav-btn, .dock-select, .input-bpm, .bpm-step, .looper-grid, .looper-cell'
+    '.tools-stack, .dock-nav-btn, .dock-select, .input-bpm, .bpm-step, .looper-grid, .looper-cell, .looper-machine'
   );
 
   updateTimeSignature();

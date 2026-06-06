@@ -1,6 +1,5 @@
 import { isRestoring, touchSession } from './sessionState.js';
 import {
-  DOCK_GAP,
   MODULE_ORDER,
   applyModuleSize,
   ensureModuleCanvas,
@@ -26,34 +25,9 @@ const expandHandlers = new Map();
 const moduleHomes = new Map();
 const savedDockOrders = {};
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function isPinned(mod) {
-  return mod.dataset.pinned === '1';
-}
-
-function savePinPosition(mod) {
-  if (!isPinned(mod)) return;
-  mod.dataset.pinLeft = String(parseInt(mod.style.left, 10) || 0);
-  mod.dataset.pinTop = String(parseInt(mod.style.top, 10) || 0);
-  mod.dataset.pinWidth = String(mod.offsetWidth);
-  mod.dataset.pinHeight = String(mod.offsetHeight);
-}
-
-function applyPinPosition(mod) {
-  if (!isPinned(mod)) return false;
-  const left = parseInt(mod.dataset.pinLeft, 10);
-  const top = parseInt(mod.dataset.pinTop, 10);
-  const w = parseInt(mod.dataset.pinWidth, 10);
-  const h = parseInt(mod.dataset.pinHeight, 10);
-  if (Number.isNaN(left) || Number.isNaN(top)) return false;
-  if (w && h) applyModuleSize(mod, w, h);
-  mod.style.left = `${left}px`;
-  mod.style.top = `${top}px`;
-  resizeCanvasToContent();
-  return true;
+function notifySessionChange() {
+  if (isRestoring()) return;
+  touchSession(collectModulesState(), getUserZoom(), collectDockOrders());
 }
 
 export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
@@ -69,7 +43,6 @@ export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
     if (bodyClass) document.body.classList.toggle(bodyClass, open);
     chevron.textContent = open ? '▼' : '▲';
     chevron.setAttribute('aria-expanded', String(open));
-    syncPinButton(el);
 
     if (!el.classList.contains('is-floating') && !open) {
       panel.hidden = true;
@@ -84,22 +57,6 @@ export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
   setExpanded(false, { silent: true });
   if (id) expandHandlers.set(id, setExpanded);
   return { setExpanded, panel };
-}
-
-function syncPinButton(mod) {
-  const btn = mod.querySelector('.dock-module-pin');
-  if (!btn) return;
-  const pinned = isPinned(mod);
-  const open = mod.classList.contains('is-floating') && mod.classList.contains('is-expanded');
-  btn.hidden = !open;
-  btn.classList.toggle('is-active', pinned);
-  btn.setAttribute('aria-pressed', String(pinned));
-  btn.title = pinned ? 'Unpin position' : 'Pin position';
-}
-
-function notifySessionChange() {
-  if (isRestoring()) return;
-  touchSession(collectModulesState(), getUserZoom(), collectDockOrders());
 }
 
 export function registerModuleHome(mod, dockEl) {
@@ -162,8 +119,6 @@ function floatModule(mod, dockEl) {
   mod.dataset.originDock = dockEl?.id || DOCK_ID;
   mod.classList.add('is-floating');
   canvas.appendChild(mod);
-  mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
-  ensurePinButton(mod);
   ensureResizeHandle(mod);
 }
 
@@ -178,18 +133,14 @@ function clearFloatStyles(mod) {
   delete mod.dataset.maxWidth;
   delete mod.dataset.maxHeight;
   mod.querySelector('.dock-resize-handle')?.remove();
-  const pinBtn = mod.querySelector('.dock-module-pin');
-  if (pinBtn) pinBtn.hidden = true;
 }
 
 function redock(mod, dockEl) {
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
   setExpanded?.(false, { silent: true });
-  savePinPosition(mod);
   clearFloatStyles(mod);
   const panel = mod.querySelector('.dock-module-panel');
   if (panel) panel.hidden = true;
-  mod.querySelector('.dock-module-dock')?.setAttribute('hidden', '');
   dockEl.appendChild(mod);
   orderModules(dockEl);
 }
@@ -206,19 +157,14 @@ export function openFloatingModule(mod, barClientRect) {
 
   const { width, height } = measureModuleFullSize(mod);
   applyModuleSize(mod, width, height);
-
-  if (!applyPinPosition(mod)) {
-    positionModuleAtBar(mod, barRect);
-  }
+  positionModuleAtBar(mod, barRect);
 
   mod.style.zIndex = String(1000 + expandedFloatingModules().length);
-  syncPinButton(mod);
   updateWorkspaceZoom();
   notifySessionChange();
 }
 
 export function closeFloatingModule(mod) {
-  savePinPosition(mod);
   const dockEl = findOriginDock(mod);
   if (mod.classList.contains('is-floating') && dockEl) {
     redock(mod, dockEl);
@@ -227,36 +173,6 @@ export function closeFloatingModule(mod) {
   }
   updateWorkspaceZoom();
   notifySessionChange();
-}
-
-function togglePin(mod) {
-  if (isPinned(mod)) {
-    delete mod.dataset.pinned;
-    mod.classList.remove('is-pinned');
-  } else {
-    mod.dataset.pinned = '1';
-    mod.classList.add('is-pinned');
-    savePinPosition(mod);
-  }
-  syncPinButton(mod);
-  notifySessionChange();
-}
-
-function ensurePinButton(mod) {
-  const bar = mod.querySelector('.dock-module-bar');
-  if (!bar || bar.querySelector('.dock-module-pin')) return;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'dock-module-pin dock-nav-btn';
-  btn.textContent = '📌';
-  btn.hidden = true;
-  btn.setAttribute('aria-label', 'Pin position');
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    togglePin(mod);
-  });
-  bar.querySelector('.dock-module-chevron')?.before(btn);
-  syncPinButton(mod);
 }
 
 export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
@@ -270,9 +186,10 @@ export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
   };
 
   bar.addEventListener('click', (e) => {
-    if (e.target.closest('.dock-module-pin, .dock-module-dock, .dock-module-chevron, .dock-resize-handle')) return;
+    if (e.target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle')) return;
     if (ignoreSelector && e.target.closest(ignoreSelector)) return;
     if (bar.dataset.dragMoved === '1') return;
+    if (!el.classList.contains('dock-module--expandable')) return;
     toggle();
   });
 
@@ -321,7 +238,6 @@ function wireResize(mod, grip) {
     if (!active) return;
     active = false;
     try { grip.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-    savePinPosition(mod);
     notifySessionChange();
   };
 
@@ -356,9 +272,10 @@ function wireBarDrag(mod, dockEl) {
   let offsetY = 0;
 
   bar.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.dock-module-pin, .dock-module-dock, .dock-module-chevron, .dock-resize-handle')) return;
+    if (e.target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle')) return;
     if (e.target.closest('.dock-chip, .root-chip, .dock-nav-btn:not(.dock-drag-handle), input, select, textarea, a')) return;
     if (e.target.closest('button') && !e.target.closest('.dock-drag-handle')) return;
+    if (!mod.classList.contains('is-floating') && !mod.classList.contains('dock-module--expandable')) return;
     armed = true;
     mode = null;
     startX = e.clientX;
@@ -412,7 +329,6 @@ function wireBarDrag(mod, dockEl) {
     bar.classList.remove('is-dragging');
     try { bar.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
     if (mode === 'float') {
-      savePinPosition(mod);
       updateWorkspaceZoom();
       notifySessionChange();
     }
@@ -435,6 +351,7 @@ function wireHandleDrag(mod, dockEl) {
   if (!handle || !bar) return;
   handle.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
+    e.preventDefault();
     bar.dispatchEvent(new PointerEvent('pointerdown', {
       bubbles: true,
       cancelable: true,
@@ -466,11 +383,6 @@ export function collectModulesState() {
     modules[id] = {
       expanded: floating && expanded,
       floating: floating && expanded,
-      pinned: isPinned(mod),
-      pinLeft: parseInt(mod.dataset.pinLeft, 10) || null,
-      pinTop: parseInt(mod.dataset.pinTop, 10) || null,
-      pinWidth: parseInt(mod.dataset.pinWidth, 10) || null,
-      pinHeight: parseInt(mod.dataset.pinHeight, 10) || null,
       left: floating ? parseInt(mod.style.left, 10) || 0 : null,
       top: floating ? parseInt(mod.style.top, 10) || 0 : null,
       width: floating ? mod.offsetWidth : null,
@@ -489,15 +401,6 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
     const mod = document.querySelector(`[data-dock-id="${id}"]`);
     if (!mod) continue;
 
-    if (state.pinned) {
-      mod.dataset.pinned = '1';
-      mod.classList.add('is-pinned');
-      if (state.pinLeft != null) mod.dataset.pinLeft = String(state.pinLeft);
-      if (state.pinTop != null) mod.dataset.pinTop = String(state.pinTop);
-      if (state.pinWidth != null) mod.dataset.pinWidth = String(state.pinWidth);
-      if (state.pinHeight != null) mod.dataset.pinHeight = String(state.pinHeight);
-    }
-
     if (state.floating && state.expanded) {
       const dockEl = findOriginDock(mod);
       if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
@@ -509,12 +412,9 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
         const full = measureModuleFullSize(mod);
         applyModuleSize(mod, full.width, full.height);
       }
-      if (!applyPinPosition(mod)) {
-        if (state.left != null) mod.style.left = `${state.left}px`;
-        if (state.top != null) mod.style.top = `${state.top}px`;
-      }
+      if (state.left != null) mod.style.left = `${state.left}px`;
+      if (state.top != null) mod.style.top = `${state.top}px`;
       if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
-      syncPinButton(mod);
     } else {
       const dockEl = findOriginDock(mod);
       if (mod.classList.contains('is-floating') && dockEl) redock(mod, dockEl);
@@ -530,14 +430,6 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
 }
 
 export function resetBlockPositions() {
-  document.querySelectorAll('.dock-module').forEach((mod) => {
-    delete mod.dataset.pinned;
-    delete mod.dataset.pinLeft;
-    delete mod.dataset.pinTop;
-    delete mod.dataset.pinWidth;
-    delete mod.dataset.pinHeight;
-    mod.classList.remove('is-pinned');
-  });
   [...document.querySelectorAll('.dock-module.is-floating')].forEach((mod) => {
     const dockEl = findOriginDock(mod);
     if (dockEl) redock(mod, dockEl);
@@ -549,26 +441,28 @@ export function resetBlockPositions() {
 
 export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
   el.classList.add('dock-module', `dock-module--${id}`);
+  el.classList.toggle('dock-module--expandable', expandable);
   el.dataset.dockId = id;
   const bar = el.querySelector('.dock-module-bar');
   if (!bar) return;
 
-  if (!bar.querySelector('.dock-drag-handle')) {
+  if (expandable && !bar.querySelector('.dock-drag-handle')) {
     const handle = document.createElement('button');
     handle.type = 'button';
     handle.className = 'dock-drag-handle';
     handle.title = 'Drag';
+    handle.setAttribute('aria-label', 'Drag module');
     handle.textContent = '⠿';
     bar.prepend(handle);
   }
 
-  if (!bar.querySelector('.dock-module-dock')) {
+  if (expandable && !bar.querySelector('.dock-module-dock')) {
     const dockBtn = document.createElement('button');
     dockBtn.type = 'button';
     dockBtn.className = 'dock-module-dock';
     dockBtn.title = 'Close';
+    dockBtn.setAttribute('aria-label', 'Close module');
     dockBtn.textContent = '⌂';
-    dockBtn.hidden = true;
     bar.append(dockBtn);
   }
 
@@ -579,7 +473,11 @@ export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
     bar.querySelector('.dock-drag-handle')?.after(labelEl);
   }
   labelEl.textContent = label;
-  if (!expandable) bar.querySelector('.dock-module-chevron')?.remove();
+  if (!expandable) {
+    bar.querySelector('.dock-module-chevron')?.remove();
+    bar.querySelector('.dock-drag-handle')?.remove();
+    bar.querySelector('.dock-module-dock')?.remove();
+  }
 }
 
 export function persistModuleSession() {

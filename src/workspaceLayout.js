@@ -31,30 +31,27 @@ export function getEffectiveZoom() {
   return effectiveZoom;
 }
 
-/** Remove legacy viewport-root wrapper that broke position:fixed. */
-function unwrapLegacyViewport() {
-  const root = document.getElementById('viewport-root');
-  if (!root) return;
-
-  const keepOnBody = ['module-dock', 'workspace-scroll'];
-  for (const id of keepOnBody) {
-    const el = document.getElementById(id);
-    if (el && root.contains(el)) document.body.appendChild(el);
+/** Single shell for the whole UI — page zoom scales everything together. */
+export function ensureViewportRoot() {
+  let root = document.getElementById('viewport-root');
+  if (root) return root;
+  root = document.createElement('div');
+  root.id = 'viewport-root';
+  root.className = 'viewport-root';
+  while (document.body.firstChild) {
+    root.appendChild(document.body.firstChild);
   }
-
-  while (root.firstChild) {
-    document.body.insertBefore(root.firstChild, root);
-  }
-  root.remove();
+  document.body.appendChild(root);
+  return root;
 }
 
 function ensureWorkspaceScroll() {
-  unwrapLegacyViewport();
+  ensureViewportRoot();
   let scroll = document.getElementById('workspace-scroll');
   if (!scroll) {
     scroll = document.createElement('div');
     scroll.id = 'workspace-scroll';
-    document.body.appendChild(scroll);
+    ensureViewportRoot().appendChild(scroll);
   }
   return scroll;
 }
@@ -72,13 +69,14 @@ export function ensureModuleCanvas() {
   return canvas;
 }
 
-function applyCanvasZoom(zoom) {
+function applyPageZoom(zoom) {
   effectiveZoom = zoom;
-  const canvas = ensureModuleCanvas();
-  canvas.style.transformOrigin = 'top left';
-  canvas.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
-  canvas.dataset.effectiveZoom = String(zoom);
-  document.documentElement.style.setProperty('--canvas-zoom', String(zoom));
+  const root = ensureViewportRoot();
+  root.style.transformOrigin = 'top left';
+  root.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+  root.dataset.effectiveZoom = String(zoom);
+  document.documentElement.style.setProperty('--page-zoom', String(zoom));
+  document.body.style.minHeight = zoom === 1 ? '' : `${root.offsetHeight * zoom}px`;
 }
 
 export function setUserZoom(value) {
@@ -101,7 +99,7 @@ export function resetUserZoom() {
 }
 
 export function initWorkspace() {
-  unwrapLegacyViewport();
+  ensureViewportRoot();
   ensureModuleCanvas();
   window.addEventListener('resize', () => {
     resizeCanvasToContent();
@@ -267,25 +265,23 @@ function computeFitCap() {
   const modules = expandedFloatingModules();
   if (!scroll || !modules.length) return 1;
 
-  const scrollRect = scroll.getBoundingClientRect();
+  const viewW = scroll.clientWidth;
+  const viewH = scroll.clientHeight;
   let maxRight = 0;
   let maxBottom = 0;
   for (const mod of modules) {
-    const r = mod.getBoundingClientRect();
-    maxRight = Math.max(maxRight, r.right - scrollRect.left + scroll.scrollLeft);
-    maxBottom = Math.max(maxBottom, r.bottom - scrollRect.top + scroll.scrollTop);
+    const box = moduleBox(mod);
+    maxRight = Math.max(maxRight, box.right);
+    maxBottom = Math.max(maxBottom, box.bottom);
   }
-
-  const viewW = scroll.clientWidth;
-  const viewH = scroll.clientHeight;
-  if (maxRight <= viewW + 2 && maxBottom <= viewH + 2) return 1;
+  if (maxRight <= viewW && maxBottom <= viewH) return 1;
   return Math.min(1, (viewW / maxRight) * 0.97, (viewH / maxBottom) * 0.97);
 }
 
 export function updateWorkspaceZoom() {
   resizeCanvasToContent();
   const fitCap = computeFitCap();
-  applyCanvasZoom(Math.min(userZoom, fitCap));
+  applyPageZoom(Math.min(userZoom, fitCap));
   resizeCanvasToContent();
 }
 

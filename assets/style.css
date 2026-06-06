@@ -1050,6 +1050,10 @@ th {
     gap: 4px;
 }
 
+.song-chords-grid {
+    margin-bottom: var(--space-md);
+}
+
 .dock-chip {
     padding: 2px 8px;
     font-size: var(--font-xs);

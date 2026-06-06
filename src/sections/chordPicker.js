@@ -4,17 +4,10 @@ import {
   CHROMATIC,
   getChordNotes,
   getTheoryNotes,
-  normalizePitch,
   sortNotesByMusicalOrder,
 } from '../music.js';
+import { appendChordChips, getChordContext } from '../chordChip.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
-import { pickChord as applyChordPick } from '../chordResolve.js';
-import { playVoicedChord, playChord } from '../playback.js';
-
-const playFns = (notesJson) => ({
-  playVoiced: (variant) => playVoicedChord(variant, notesJson),
-  playNotes: (notes) => playChord(notes),
-});
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
 const STRING_KEYS = ['E1', 'A', 'D', 'G', 'B', 'E2'];
@@ -35,11 +28,6 @@ function renderShapePreview(variant, notesJson) {
     ? sortNotesByMusicalOrder(getChordNotes(variant, notesJson)).join(' · ')
     : '';
   return { frets, notes };
-}
-
-function pickChord(hub, chordsJson, notesJson, chordsTheory, name) {
-  const ctx = { chordsJson, notesJson, chordsTheory };
-  applyChordPick(hub, ctx, playFns(notesJson), { chordName: name });
 }
 
 function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot) {
@@ -84,6 +72,7 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
 
 export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {}) {
   const byRoot = Object.fromEntries(CHROMATIC.map((r) => [r, theoryChordsAtRoot(r, chordsJson)]));
+  const ctx = getChordContext(hub, chordsJson, notesJson, chordsTheory);
 
   const el = document.createElement('div');
   el.id = 'chord-picker';
@@ -122,28 +111,6 @@ export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {})
   const diagramType = el.querySelector('.chord-picker-diagram-type');
   const diagramFrets = el.querySelector('.chord-picker-frets');
   const diagramNotes = el.querySelector('.chord-picker-notes');
-
-  function makeChip(name) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'dock-chip fb-selectable';
-    btn.dataset.chord = name;
-    btn.dataset.label = name;
-    btn.title = `Show ${name} on fretboard`;
-    btn.textContent = name;
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      pickChord(hub, chordsJson, notesJson, chordsTheory, name);
-    });
-    return btn;
-  }
-
-  function renderChips(container, names) {
-    container.replaceChildren();
-    for (const name of names) {
-      container.appendChild(makeChip(name));
-    }
-  }
 
   function updateDiagram(name) {
     if (!name) {
@@ -193,7 +160,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {})
     rootLabel.textContent = hub.getRoots().length > 1
       ? `At ${formatRootsDisplay(hub)} (primary ${hub.getRoot()})`
       : `At ${root}`;
-    renderChips(rootGrid, names);
+    appendChordChips(rootGrid, names, hub, ctx);
     syncChipLayers(hub, el);
 
     const displayName = resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot);

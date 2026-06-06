@@ -1,36 +1,10 @@
 import { escapeHtml } from '../utils.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
-import { pickChord as applyChordPick } from '../chordResolve.js';
-import { playVoicedChord, playChord } from '../playback.js';
+import { appendChordChips, getChordContext } from '../chordChip.js';
 
-function pickChord(hub, chordsJson, notesJson, chordsTheory, name) {
-  applyChordPick(
-    hub,
-    { chordsJson, notesJson, chordsTheory },
-    {
-      playVoiced: (variant) => playVoicedChord(variant, notesJson),
-      playNotes: (notes) => playChord(notes),
-    },
-    { chordName: name },
-  );
-}
-
-function renderChords(chipGrid, chordsList, hub, chords, notesJson, chordsTheory) {
-  chipGrid.replaceChildren();
-  for (const name of chordsList) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'dock-chip fb-selectable is-song';
-    btn.dataset.chord = name;
-    btn.dataset.label = name;
-    btn.textContent = name;
-    btn.title = `Show ${name} on fretboard`;
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      pickChord(hub, chords, notesJson, chordsTheory, name);
-    });
-    chipGrid.appendChild(btn);
-  }
+function renderChords(chipGrid, chordsList, hub, chordsJson, notesJson, chordsTheory) {
+  const ctx = getChordContext(hub, chordsJson, notesJson, chordsTheory);
+  appendChordChips(chipGrid, chordsList, hub, ctx);
 }
 
 export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex, onSongChange, chordsTheory = {}) {

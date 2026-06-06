@@ -13,19 +13,20 @@ export function renderChordsAndNotes(currentSong, chordsJson, notesJson) {
     return createSection('chords & notes', '<p>Cannot display chords and notes — data files missing.</p>', 'chords-notes-section');
   }
 
-  const uniqueChords = [...new Set(currentSong.chords.split(' '))];
+  const uniqueChords = [...new Set(currentSong.chords.split(' ').filter(Boolean))];
 
   const chordsTable = buildChordTable(uniqueChords, chordsJson, (_chord, variant) => {
     const values = Array.isArray(variant) ? variant : Object.values(variant);
     return values.map((v) => String(v));
-  }, { interactive: true, tableClass: 'chords-table' });
+  }, { tableClass: 'chords-table' });
 
   const notesTable = buildChordTable(uniqueChords, chordsJson, (_chord, variant) => {
     return sortNotesByMusicalOrder(getChordNotes(variant, notesJson));
-  }, { interactive: true, tableClass: 'notes-table' });
+  }, { tableClass: 'notes-table' });
 
   return createSection('chords & notes', `
-    <p class="fb-hint">Click a column header to highlight on fretboard (up to 3 layers, click again to remove).</p>
+    <p class="fb-hint">Click a chord chip to highlight on fretboard — synced with the Chord module.</p>
+    <div class="dock-chip-grid song-chords-grid" data-chords="${uniqueChords.join(',')}"></div>
     <div class="chords-notes-split">
       <div class="chords-notes-col">
         <h3 class="split-label">Chords</h3>

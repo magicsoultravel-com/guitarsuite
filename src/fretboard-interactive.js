@@ -1,25 +1,18 @@
 import { formatRootsDisplay, getDisplayRoot } from './displayRoot.js';
 import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes, getDiatonicTriads, resolveProgressionChords, numeralsToPattern } from './music.js';
-import { getShapeFrets, makeChordContext, pickChord } from './chordResolve.js';
+import { getShapeFrets, pickChord } from './chordResolve.js';
+import { appendChordChips, createChordChip, getChordContext, makePlayFns } from './chordChip.js';
+import { syncChipLayers } from './dockModule.js';
 import {
-  playVoicedChord,
   playFretNote,
   playScaleByName,
   playNote,
-  playChord,
 } from './playback.js';
 
 const STRING_ORDER = ['E', 'A', 'D', 'G', 'B', 'e'];
 
-function playFns(notesJson) {
-  return {
-    playVoiced: (variant) => playVoicedChord(variant, notesJson),
-    playNotes: (notes) => playChord(notes),
-  };
-}
-
 function chordCtxFromHub(hub, chordsJson, notesJson, chordsTheory) {
-  return hub.getChordContext() || makeChordContext(chordsJson, notesJson, chordsTheory);
+  return getChordContext(hub, chordsJson, notesJson, chordsTheory);
 }
 
 export function initFretboardInteractive(hub, notesJson, chordsJson) {
@@ -151,17 +144,21 @@ export function updateActiveMarkers(hub) {
       });
     }
   }
+
+  syncChipLayers(hub);
 }
 
 export function wireChordNoteTables(hub, chordsJson, notesJson, chordsTheory = {}) {
-  const ctx = () => chordCtxFromHub(hub, chordsJson, notesJson, chordsTheory);
+  const ctx = chordCtxFromHub(hub, chordsJson, notesJson, chordsTheory);
 
-  document.querySelectorAll('.fb-chord-col').forEach((th) => {
-    th.title = 'Click to highlight on fretboard (up to 3 layers)';
-    th.addEventListener('click', () => {
-      pickChord(hub, ctx(), playFns(notesJson), { chordName: th.dataset.chord });
-    });
-  });
+  function fillSongChords() {
+    const grid = document.querySelector('#chords-notes-section .song-chords-grid');
+    if (!grid) return;
+    const names = (grid.dataset.chords || '').split(',').filter(Boolean);
+    appendChordChips(grid, names, hub, ctx);
+  }
+
+  fillSongChords();
 
   document.querySelectorAll('.notes-table td').forEach((td) => {
     const pitch = normalizePitch(td.textContent.trim());
@@ -171,7 +168,10 @@ export function wireChordNoteTables(hub, chordsJson, notesJson, chordsTheory = {
     td.addEventListener('click', () => playNote(pitch));
   });
 
-  hub.subscribe(() => updateActiveMarkers(hub));
+  hub.subscribe(() => {
+    updateActiveMarkers(hub);
+    fillSongChords();
+  });
 }
 
 export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
@@ -204,9 +204,9 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
         <td>${notes.join(', ')}</td>
       `;
       tr.addEventListener('click', () => {
-        const ctx = hub.getChordContext();
-        if (!ctx) return;
-        pickChord(hub, ctx, playFns(ctx.notesJson), { theoryType: type });
+        const c = hub.getChordContext();
+        if (!c) return;
+        pickChord(hub, c, makePlayFns(c.notesJson), { theoryType: type });
       });
       tbody.appendChild(tr);
     }
@@ -243,7 +243,7 @@ export function wireScalesTheory(hub, scales, sectionEl) {
 function pickScaleTriad(hub, triad) {
   const ctx = hub.getChordContext();
   if (!ctx) return;
-  pickChord(hub, ctx, playFns(ctx.notesJson), { symbol: triad.symbol, fallbackNotes: triad.notes });
+  pickChord(hub, ctx, makePlayFns(ctx.notesJson), { symbol: triad.symbol, fallbackNotes: triad.notes });
 }
 
 function fillScaleProgRow(row, data, root, hub) {
@@ -366,12 +366,6 @@ export function wireGenreTheory(hub, scales, genres, sectionEl) {
     });
   });
 
-  function pickGenreTriad(triad) {
-    const ctx = hub.getChordContext();
-    if (!ctx) return;
-    pickChord(hub, ctx, playFns(ctx.notesJson), { symbol: triad.symbol, fallbackNotes: triad.notes });
-  }
-
   function inferGenreScale(prog, genreData) {
     if (prog.scale && scales[prog.scale]) return prog.scale;
     const pattern = prog.pattern || numeralsToPattern(prog.numerals);
@@ -396,6 +390,12 @@ export function wireGenreTheory(hub, scales, genres, sectionEl) {
       return;
     }
 
+    const ctx = hub.getChordContext();
+    if (!ctx) {
+      cell.textContent = prog.example || '—';
+      return;
+    }
+
     const genreData = genres[row.dataset.genre];
     const scaleKey = inferGenreScale(prog, genreData);
     const steps = scales[scaleKey]?.steps;
@@ -412,19 +412,11 @@ export function wireGenreTheory(hub, scales, genres, sectionEl) {
     }
 
     const chips = document.createElement('div');
-    chips.className = 'genre-prog-chips';
+    chips.className = 'dock-chip-grid genre-prog-chips';
     for (const triad of triads) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'genre-prog-chip fb-selectable scale-prog-chip';
-      btn.dataset.label = triad.symbol;
-      btn.title = `${triad.roman}: ${triad.notes.join(', ')}`;
-      btn.textContent = triad.symbol;
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        pickGenreTriad(triad);
-      });
-      chips.appendChild(btn);
+      chips.appendChild(createChordChip(hub, ctx, triad.symbol, {
+        title: `${triad.roman}: ${triad.notes.join(', ')}`,
+      }));
     }
     cell.appendChild(chips);
   }

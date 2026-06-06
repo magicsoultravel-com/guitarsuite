@@ -281,8 +281,9 @@ export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
   }
 }
 
-export function syncChipLayers(hub, container) {
-  container.querySelectorAll('.dock-chip').forEach((chip) => {
+export function syncChipLayers(hub, container = document) {
+  const root = container?.querySelectorAll ? container : document;
+  root.querySelectorAll('.dock-chip[data-chord], .dock-chip[data-label]').forEach((chip) => {
     const key = chip.dataset.chord || chip.dataset.label;
     if (!key) return;
     const slot = hub.getLayerSlot(key);

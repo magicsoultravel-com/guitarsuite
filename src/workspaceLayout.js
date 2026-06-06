@@ -130,10 +130,11 @@ export function expandedFloatingModules() {
 export function pointerToCanvasLocal(canvas, clientX, clientY) {
   const scale = effectiveZoom || 1;
   const canvasEl = canvas || ensureModuleCanvas();
-  const canvasRect = canvasEl.getBoundingClientRect();
+  const scroll = ensureWorkspaceScroll();
+  const scrollRect = scroll.getBoundingClientRect();
   return {
-    x: (clientX - canvasRect.left) / scale,
-    y: (clientY - canvasRect.top) / scale,
+    x: (clientX - scrollRect.left + scroll.scrollLeft) / scale,
+    y: (clientY - scrollRect.top + scroll.scrollTop) / scale,
   };
 }
 
@@ -296,11 +297,11 @@ export function resolveOverlapForModule(mod) {
 }
 
 /** Snap position and refresh canvas + zoom — never repositions other tiles. */
-export function commitModulePosition(mod) {
+export function commitModulePosition(mod, { adjustZoom = true } = {}) {
   mod.style.left = `${snap(Math.max(0, parseInt(mod.style.left, 10) || 0))}px`;
   mod.style.top = `${snap(Math.max(0, parseInt(mod.style.top, 10) || 0))}px`;
   resizeCanvasToContent();
-  updateWorkspaceZoom();
+  if (adjustZoom) updateWorkspaceZoom();
 }
 
 function measureViewportOverflow() {

@@ -122,11 +122,13 @@ function floatModule(mod, dockEl) {
   canvas.appendChild(mod);
 }
 
-function expandFloatingModule(mod, { keepPosition = false } = {}) {
+function expandFloatingModule(mod, { keepPosition = false, adjustZoom = true } = {}) {
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
   setExpanded?.(true, { silent: true });
   mod.classList.remove('is-float-preview');
 
+  const prevTop = parseInt(mod.style.top, 10) || 0;
+  const prevLeft = parseInt(mod.style.left, 10) || 0;
   const { width, height } = measureModuleFullSize(mod);
   applyModuleSize(mod, width, height);
   ensureResizeHandle(mod);
@@ -134,10 +136,12 @@ function expandFloatingModule(mod, { keepPosition = false } = {}) {
 
   const hasPosition = mod.style.left !== '' && mod.style.top !== '';
   if (keepPosition && hasPosition) {
-    commitModulePosition(mod);
+    mod.style.left = `${prevLeft}px`;
+    mod.style.top = `${prevTop}px`;
+    commitModulePosition(mod, { adjustZoom });
   } else {
     findInitialPosition(mod);
-    commitModulePosition(mod);
+    commitModulePosition(mod, { adjustZoom });
   }
   notifySessionChange();
 }
@@ -281,6 +285,7 @@ function wireModuleDrag(mod, dockEl) {
   let offsetX = 0;
   let offsetY = 0;
   let captureEl = null;
+  let dragFromHandle = false;
   let viewportRoot = null;
 
   function canDragFromDock() {
@@ -297,6 +302,18 @@ function wireModuleDrag(mod, dockEl) {
     viewportRoot?.classList.toggle('is-ui-dragging', on);
   }
 
+  function bindDragListeners() {
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerUp);
+  }
+
+  function unbindDragListeners() {
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    document.removeEventListener('pointercancel', onPointerUp);
+  }
+
   function syncDragOffset(clientX, clientY) {
     const canvas = ensureModuleCanvas();
     const local = pointerToCanvasLocal(canvas, clientX, clientY);
@@ -304,7 +321,15 @@ function wireModuleDrag(mod, dockEl) {
     offsetY = local.y - (parseInt(mod.style.top, 10) || 0);
   }
 
+  function placeAtPointer(clientX, clientY) {
+    const canvas = ensureModuleCanvas();
+    const local = pointerToCanvasLocal(canvas, clientX, clientY);
+    mod.style.left = `${snap(Math.max(0, local.x - offsetX))}px`;
+    mod.style.top = `${snap(Math.max(0, local.y - offsetY))}px`;
+  }
+
   function isBlockedTarget(target) {
+    if (target.closest('.dock-drag-handle')) return false;
     return !!target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle, .dock-chip, .root-chip, input, select, textarea, a');
   }
 
@@ -313,10 +338,11 @@ function wireModuleDrag(mod, dockEl) {
     if (isBlockedTarget(e.target)) return;
 
     const handleEl = getHandle();
+    dragFromHandle = sourceEl === handleEl;
     if (!mod.classList.contains('is-floating')) {
       if (!canDragFromDock()) return;
-      if (sourceEl !== handleEl) return;
-    } else if (e.target.closest('button') && sourceEl !== handleEl && !e.target.closest('.dock-drag-handle')) {
+      if (!dragFromHandle) return;
+    } else if (e.target.closest('button') && !dragFromHandle) {
       return;
     }
 
@@ -333,6 +359,7 @@ function wireModuleDrag(mod, dockEl) {
       offsetY = 0;
     }
     setDragLock(true);
+    bindDragListeners();
     sourceEl.setPointerCapture(e.pointerId);
     bar.classList.add('is-dragging');
     handleEl?.classList.add('is-dragging');
@@ -352,9 +379,12 @@ function wireModuleDrag(mod, dockEl) {
 
       const dockRect = dockEl.getBoundingClientRect();
       const inDockColumn = e.clientX < dockRect.right + 4;
-      const verticalReorder = !mod.classList.contains('is-floating')
+      const horizontalIntent = Math.abs(dx) >= Math.abs(dy);
+      const verticalReorder = !dragFromHandle
+        && !mod.classList.contains('is-floating')
         && inDockColumn
-        && Math.abs(dy) > Math.abs(dx) * 1.15;
+        && !horizontalIntent
+        && Math.abs(dy) > DRAG_THRESHOLD;
 
       if (verticalReorder) {
         mode = 'reorder';
@@ -364,13 +394,14 @@ function wireModuleDrag(mod, dockEl) {
 
       mode = 'float';
       if (!mod.classList.contains('is-floating')) {
-        beginCollapsedFloat(mod, dockEl);
         const anchor = pointerToCanvasLocal(canvas, startX, startY);
-        const grabX = Math.min(mod.offsetWidth * 0.35, 48);
+        const grabX = Math.min((dockEl?.offsetWidth || 208) * 0.35, 48);
         const grabY = 16;
+        offsetX = grabX;
+        offsetY = grabY;
+        beginCollapsedFloat(mod, dockEl);
         mod.style.left = `${snap(Math.max(0, anchor.x - grabX))}px`;
         mod.style.top = `${snap(Math.max(0, anchor.y - grabY))}px`;
-        syncDragOffset(startX, startY);
       }
 
       mod.style.zIndex = String(1000 + expandedFloatingModules().length + 1);
@@ -382,9 +413,7 @@ function wireModuleDrag(mod, dockEl) {
     }
 
     if (mode === 'float') {
-      const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
-      mod.style.left = `${snap(Math.max(0, local.x - offsetX))}px`;
-      mod.style.top = `${snap(Math.max(0, local.y - offsetY))}px`;
+      placeAtPointer(e.clientX, e.clientY);
     }
   }
 
@@ -392,23 +421,27 @@ function wireModuleDrag(mod, dockEl) {
     if (!active) return;
     const wasFloat = mode === 'float';
     active = false;
+    unbindDragListeners();
     setDragLock(false);
     bar.classList.remove('is-dragging');
     getHandle()?.classList.remove('is-dragging');
     try { captureEl?.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
     captureEl = null;
+    dragFromHandle = false;
 
     if (wasFloat) {
       if (mod.classList.contains('is-float-preview')) {
         const dockRect = dockEl.getBoundingClientRect();
         if (e.clientX > dockRect.right + 8) {
-          if (isBarOnlyModule(mod)) finalizeBarFloat(mod);
-          else expandFloatingModule(mod, { keepPosition: true });
+          if (isBarOnlyModule(mod)) finalizeBarFloat();
+          else expandFloatingModule(mod, { keepPosition: true, adjustZoom: false });
+          requestAnimationFrame(() => updateWorkspaceZoom());
         } else {
           redock(mod, dockEl);
         }
       } else {
-        commitModulePosition(mod);
+        commitModulePosition(mod, { adjustZoom: false });
+        requestAnimationFrame(() => updateWorkspaceZoom());
         notifySessionChange();
       }
     }
@@ -424,9 +457,6 @@ function wireModuleDrag(mod, dockEl) {
     }
     onPointerDown(e, bar);
   });
-  bar.addEventListener('pointermove', onPointerMove);
-  bar.addEventListener('pointerup', onPointerUp);
-  bar.addEventListener('pointercancel', onPointerUp);
 
   mod.querySelector('.dock-module-dock')?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -441,7 +471,8 @@ function isBarOnlyModule(mod) {
 
 function finalizeBarFloat(mod) {
   mod.classList.remove('is-float-preview');
-  commitModulePosition(mod);
+  commitModulePosition(mod, { adjustZoom: false });
+  requestAnimationFrame(() => updateWorkspaceZoom());
   notifySessionChange();
 }
 

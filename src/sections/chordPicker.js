@@ -80,7 +80,7 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
     return `${name} · ${type}${notes || frets.join(' ')}`;
   }
   const layer = hub.getLayers().find((l) => l.chordRef === name || l.label === name);
-  if (layer?.via && chordsJson[layer.chordRef]) {
+  if (layer?.via && layer.chordRef && chordsJson[layer.chordRef]) {
     const data = chordsJson[layer.chordRef];
     const { frets, notes } = renderShapePreview(data.variant1, notesJson);
     return `${layer.chordRef} · ${layer.via} · ${notes || frets.join(' ')}`;
@@ -92,7 +92,6 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
     const notes = getTheoryNotes(root, data.intervals).join(' · ');
     return `${short} · ${name} · ${notes}`;
   }
-  const layer = hub.getLayers().find((l) => l.label === name);
   if (layer?.notes.size) {
     return `${name} · ${[...layer.notes].join(' · ')}`;
   }
@@ -199,7 +198,6 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
       diagramNotes.textContent = notes;
       return;
     }
-    const layer = hub.getLayers().find((l) => l.label === name);
     if (layer) {
       diagramName.textContent = layer.chordRef || name;
       diagramType.textContent = layer.via || 'Triad';

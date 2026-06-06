@@ -15,7 +15,7 @@ export function renderScalesTheory(scales) {
     })
     .join('');
 
-  return createSection('scales / modes', `
+  return createSection('Scales & modes', `
     <p class="fb-hint">Set root in the dock (1–3 consecutive notes). Click a row to highlight on fretboard — syncs with genre theory and scale progressions.</p>
     <table id="scales-theory-table">
       <thead>

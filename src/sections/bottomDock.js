@@ -3,7 +3,6 @@ import { renderChordPicker } from './chordPicker.js';
 import { renderFretboardDrawer } from './fretboardDrawer.js';
 import { createNowPlayingDrawer } from './songBook.js';
 import { renderToolsDock } from './tools.js';
-import { renderSelectionPanel } from './selectionPanel.js';
 import { initDockModules } from '../dockModule.js';
 
 export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryContext = {}) {
@@ -51,12 +50,6 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
   document.body.appendChild(dock);
   document.body.classList.add('has-tool-dock');
   initDockModules(dock);
-  renderSelectionPanel(hub, {
-    chordsJson: chords,
-    scalesJson: theoryContext.scales,
-    chordsTheory: theoryContext.chordsTheory,
-    notesJson: notes,
-  });
 
   return {
     dock,

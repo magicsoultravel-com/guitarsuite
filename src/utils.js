@@ -23,9 +23,8 @@ export function createSection(title, innerHtml, sectionId = null) {
 export function renderFooter(container) {
   const year = new Date().getFullYear();
   container.innerHTML = `
-    &copy; ${year} minimal website design inc.<br><br>
-    <div class="bottom-login-status">
-      <div class="user-status">Status: Logged out</div>
+    <div class="footer-meta">
+      <span>&copy; ${year} minimal website design inc.</span>
     </div>
   `;
 }

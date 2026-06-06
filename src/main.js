@@ -8,9 +8,10 @@ import { renderScalesTheory } from './sections/scalesTheory.js';
 import { renderScaleProgressions } from './sections/scaleProgressions.js';
 import { renderGenreTheory } from './sections/genreTheory.js';
 import { renderUsefulLinks } from './sections/usefulLinks.js';
-import { renderBlogger } from './sections/blogger.js';
 import { renderAbout } from './sections/about.js';
 import { renderGallery } from './sections/gallery.js';
+import { renderContentDock } from './sections/contentDock.js';
+import { renderSelectionFooter } from './sections/selectionFooter.js';
 import { createFretboardHub } from './fretboardHub.js';
 import {
   initFretboardInteractive,
@@ -21,8 +22,8 @@ import {
   wireGenreTheory,
 } from './fretboard-interactive.js';
 
-const app = document.getElementById('app');
-renderFooter(document.getElementById('site-footer'));
+const footerEl = document.getElementById('site-footer');
+renderFooter(footerEl);
 
 const params = new URLSearchParams(location.search);
 let songIndex = parseInt(params.get('songIndex') || '0', 10);
@@ -41,7 +42,6 @@ try {
     scales,
     genres,
     usefulLinks,
-    bloggerPosts,
     about,
     galleryManifest,
   ] = await Promise.all([
@@ -52,7 +52,6 @@ try {
     fetchJson(asset('assets/scales-theory.json')),
     fetchJson(asset('assets/genre-theory.json')),
     fetchJson(asset('content/useful-links.json')),
-    fetchJson(asset('data/developer-blogger.json')),
     fetchJson(asset('content/about.json')),
     fetchJson(asset('uploads/gallery/manifest.json')).catch(() => []),
   ]);
@@ -63,16 +62,35 @@ try {
   }
   hub.setChordContext({ chordsJson: chords, notesJson: notes, chordsTheory });
 
+  const app = document.getElementById('app');
+  app.appendChild(renderAbout(about));
+
+  const theorySection = renderChordsTheory();
+  const scalesSection = renderScalesTheory(scales);
+  const progressionsSection = renderScaleProgressions(scales);
+  const genreSection = renderGenreTheory(genres);
+
+  const contentDock = renderContentDock({
+    'chords-notes': renderChordsAndNotes(songs[songIndex] ?? null, chords, notes),
+    'chords-theory': theorySection,
+    'scales-modes': scalesSection,
+    'scale-progressions': progressionsSection,
+    'genre-theory': genreSection,
+    'useful-links': renderUsefulLinks(usefulLinks),
+    gallery: renderGallery(galleryManifest),
+  });
+
   function mountChordsAndNotes(song) {
-    const existing = document.getElementById('chords-notes-section');
-    const section = renderChordsAndNotes(song, chords, notes);
-    if (existing) {
-      existing.replaceWith(section);
-    } else {
-      app.prepend(section);
-    }
+    contentDock.updateChordsNotes(song, chords, notes);
     wireChordNoteTables(hub, chords, notes, chordsTheory);
   }
+
+  const selectionContext = {
+    chordsJson: chords,
+    scalesJson: scales,
+    chordsTheory,
+    notesJson: notes,
+  };
 
   const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex, {
     scales,
@@ -84,31 +102,17 @@ try {
     },
   });
 
+  renderSelectionFooter(hub, selectionContext, footerEl);
+
   mountChordsAndNotes(currentSong);
 
   initFretboardInteractive(hub, notes, chords);
 
-  const theorySection = renderChordsTheory();
-  app.appendChild(theorySection);
-  wireChordsTheory(hub, chordsTheory, intervals, theorySection);
-
-  const scalesSection = renderScalesTheory(scales);
-  app.appendChild(scalesSection);
-  wireScalesTheory(hub, scales, scalesSection);
-
-  const progressionsSection = renderScaleProgressions(scales);
-  app.appendChild(progressionsSection);
-  wireScaleProgressions(hub, scales, progressionsSection);
-
-  const genreSection = renderGenreTheory(genres);
-  app.appendChild(genreSection);
-  wireGenreTheory(hub, scales, genres, genreSection);
-
-  app.appendChild(renderUsefulLinks(usefulLinks));
-  app.appendChild(renderBlogger(bloggerPosts));
-  app.appendChild(renderAbout(about));
-  app.appendChild(renderGallery(galleryManifest));
+  wireChordsTheory(hub, chordsTheory, intervals, document.getElementById('chords-theory-section'));
+  wireScalesTheory(hub, scales, document.getElementById('scales-theory-section'));
+  wireScaleProgressions(hub, scales, document.getElementById('scale-progressions-section'));
+  wireGenreTheory(hub, scales, genres, document.getElementById('genre-theory-section'));
 } catch (err) {
-  app.innerHTML = `<div class="section"><h2>Error</h2><p>${err.message}</p></div>`;
+  document.getElementById('app').innerHTML = `<div class="section"><h2>Error</h2><p>${err.message}</p></div>`;
   console.error(err);
 }

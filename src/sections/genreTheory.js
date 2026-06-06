@@ -63,7 +63,7 @@ export function renderGenreTheory(genres) {
 
   return createSection(
     'genre theory',
-    `<p class="fb-hint">Broad strokes for each style. Scale chips highlight across <strong>Scales / modes</strong> and <strong>Scale progressions</strong>. Progression chords transpose to root <strong class="genre-prog-root">E</strong> (latest in your root span).</p>
+    `<p class="fb-hint">Broad strokes for each style. Scale chips highlight across <strong>Scales & modes</strong> and <strong>Scale progressions</strong>. Progression chords transpose to root <strong class="genre-prog-root">E</strong> (latest in your root span).</p>
     <div class="genre-theory-grid">${cards}</div>`,
     'genre-theory-section',
   );

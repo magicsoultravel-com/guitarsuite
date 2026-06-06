@@ -2,7 +2,6 @@ import { fetchJson, renderFooter } from './utils.js';
 import { asset } from './paths.js';
 import { renderBottomDock } from './sections/bottomDock.js';
 import { renderChordsAndNotes } from './sections/songChordsNotes.js';
-import { renderFretboard } from './sections/fretboard.js';
 import { renderChordsTheory } from './sections/chordsTheory.js';
 import { renderScalesTheory } from './sections/scalesTheory.js';
 import { renderTools } from './sections/tools.js';
@@ -10,8 +9,7 @@ import { renderUsefulLinks } from './sections/usefulLinks.js';
 import { renderBlogger } from './sections/blogger.js';
 import { renderAbout } from './sections/about.js';
 import { renderGallery } from './sections/gallery.js';
-import { createFretboardHub, renderRootToolbar } from './fretboardHub.js';
-import { initFretboardSidebar } from './sidebar.js';
+import { createFretboardHub } from './fretboardHub.js';
 import {
   initFretboardInteractive,
   wireChordNoteTables,
@@ -52,11 +50,6 @@ try {
   ]);
 
   const hub = createFretboardHub(initialRoot);
-  const sidebarInner = document.getElementById('sidebar-inner');
-  sidebarInner.appendChild(renderRootToolbar(hub));
-  sidebarInner.appendChild(renderFretboard(notes));
-
-  initFretboardSidebar();
 
   const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex);
   app.appendChild(renderChordsAndNotes(currentSong, chords, notes));

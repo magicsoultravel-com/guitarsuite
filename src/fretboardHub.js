@@ -80,39 +80,49 @@ export function createFretboardHub(initialRoot = 'C') {
   };
 }
 
-export function renderRootToolbar(hub) {
-  const bar = document.createElement('div');
-  bar.className = 'sidebar-panel root-toolbar-panel';
-  bar.id = 'root-toolbar';
-
+export function renderRootToolbar(hub, { controlsEl = null, summaryEl = null } = {}) {
   const options = CHROMATIC.map(
     (n) => `<option value="${n}"${n === hub.getRoot() ? ' selected' : ''}>${n}</option>`
   ).join('');
 
-  bar.innerHTML = `
-    <div class="root-row">
-      <select id="global-root-select" class="root-select" title="Root note">${options}</select>
-      <button type="button" id="fretboard-reset" class="icon-btn reset-btn" title="Reset fretboard" aria-label="Reset fretboard">↺</button>
-    </div>
-    <span id="fretboard-source" class="fretboard-source"></span>
+  const rootRow = document.createElement('div');
+  rootRow.className = 'root-row';
+  rootRow.innerHTML = `
+    <select id="global-root-select" class="root-select" title="Root note">${options}</select>
+    <button type="button" id="fretboard-reset" class="icon-btn reset-btn" title="Reset fretboard" aria-label="Reset fretboard">↺</button>
   `;
 
-  bar.querySelector('#global-root-select').addEventListener('change', (e) => {
+  const summary = summaryEl || document.createElement('span');
+  summary.id = 'fretboard-source';
+  summary.classList.add('fretboard-source');
+
+  let bar;
+  if (controlsEl) {
+    controlsEl.appendChild(rootRow);
+    bar = controlsEl;
+  } else {
+    bar = document.createElement('div');
+    bar.className = 'root-toolbar-panel';
+    bar.id = 'root-toolbar';
+    bar.appendChild(rootRow);
+    bar.appendChild(summary);
+  }
+
+  rootRow.querySelector('#global-root-select').addEventListener('change', (e) => {
     hub.setRoot(e.target.value);
     const url = new URL(location.href);
     url.searchParams.set('root', e.target.value);
     history.replaceState(null, '', url);
   });
 
-  bar.querySelector('#fretboard-reset').addEventListener('click', () => hub.reset());
+  rootRow.querySelector('#fretboard-reset').addEventListener('click', () => hub.reset());
 
   hub.subscribe(() => {
-    const select = bar.querySelector('#global-root-select');
+    const select = rootRow.querySelector('#global-root-select');
     if (select.value !== hub.getRoot()) select.value = hub.getRoot();
-    const src = bar.querySelector('#fretboard-source');
     const label = hub.getSourceLabel();
     const notes = [...hub.getActiveNotes()].join(', ');
-    src.textContent = label && label !== 'root' ? `${label}: ${notes}` : notes;
+    summary.textContent = label && label !== 'root' ? `${label}: ${notes}` : notes;
   });
 
   return bar;

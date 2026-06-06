@@ -1,3 +1,4 @@
+import { renderFretboardDrawer } from './fretboardDrawer.js';
 import { renderChordPicker } from './chordPicker.js';
 import { createNowPlayingDrawer } from './songBook.js';
 
@@ -7,6 +8,7 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex) {
   dock.className = 'bottom-dock';
 
   const currentSong = songs[songIndex] ?? null;
+  dock.appendChild(renderFretboardDrawer(hub, notes));
   dock.appendChild(renderChordPicker(hub, chords, notes, currentSong));
   dock.appendChild(createNowPlayingDrawer(songs, chords, songIndex));
 

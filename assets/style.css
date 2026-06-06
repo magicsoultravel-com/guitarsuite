@@ -10,7 +10,6 @@
     --space-lg: 14px;
     --radius: 4px;
     --max-width: 920px;
-    --sidebar-width: 188px;
     --color-bg-panel: rgba(26, 26, 26, 0.92);
     --color-accent: #c4a574;
     --color-accent-strong: #dcc9a3;
@@ -37,59 +36,17 @@ body {
     color: #fff;
 }
 
-/* --- Page layout: sidebar + main --- */
+/* --- Page layout --- */
 .site-layout {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-sm);
+    display: block;
     position: relative;
 }
 
-.fretboard-sidebar {
-    flex: 0 0 var(--sidebar-width);
-    width: var(--sidebar-width);
-    position: sticky;
-    top: var(--space-sm);
-    align-self: flex-start;
-    max-height: calc(100vh - var(--space-sm) * 2);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-bg-panel);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    transition: flex-basis 0.2s ease, width 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
-}
-
-.fretboard-sidebar.is-collapsed {
-    flex-basis: 0;
-    width: 0;
+.main-column {
+    flex: 1;
     min-width: 0;
-    opacity: 0;
-    margin-right: calc(-1 * var(--space-sm));
-    border-width: 0;
-    pointer-events: none;
-}
-
-.sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid var(--color-border);
-    flex-shrink: 0;
-}
-
-.sidebar-header h2 {
-    margin: 0;
-    font-size: 0.95em;
-    border-bottom: none;
-    padding: 0;
-}
-
-.sidebar-toggle {
-    flex-shrink: 0;
+    max-width: var(--max-width);
+    margin: 0 auto;
 }
 
 .icon-btn {
@@ -115,8 +72,20 @@ body.has-bottom-dock.chord-picker-expanded {
     padding-bottom: calc(var(--now-playing-bar-h) + 140px);
 }
 
-body.has-bottom-dock.now-playing-expanded.chord-picker-expanded {
-    padding-bottom: calc(var(--now-playing-bar-h) + 220px);
+body.has-bottom-dock.fretboard-expanded {
+    padding-bottom: calc(var(--now-playing-bar-h) + 280px);
+}
+
+body.has-bottom-dock.fretboard-expanded.chord-picker-expanded {
+    padding-bottom: calc(var(--now-playing-bar-h) + 360px);
+}
+
+body.has-bottom-dock.fretboard-expanded.now-playing-expanded {
+    padding-bottom: calc(var(--now-playing-bar-h) + 300px);
+}
+
+body.has-bottom-dock.fretboard-expanded.chord-picker-expanded.now-playing-expanded {
+    padding-bottom: calc(var(--now-playing-bar-h) + 400px);
 }
 
 body.has-now-playing {
@@ -128,34 +97,6 @@ body.has-now-playing.now-playing-expanded {
 }
 
 .icon-btn:hover {
-    background: var(--color-highlight-bg);
-}
-
-.hamburger {
-    flex-direction: column;
-    gap: 3px;
-    width: 28px;
-    height: 28px;
-    padding: 6px;
-}
-
-.hamburger span {
-    display: block;
-    width: 100%;
-    height: 2px;
-    background: var(--color-accent);
-    border-radius: 1px;
-}
-
-.sidebar-show-btn {
-    position: sticky;
-    top: var(--space-sm);
-    flex: 0 0 auto;
-    align-self: flex-start;
-    z-index: 5;
-}
-
-.sidebar-show-btn:hover {
     background: var(--color-highlight-bg);
 }
 
@@ -224,75 +165,27 @@ body.has-now-playing.now-playing-expanded {
     background: rgba(255, 255, 255, 0.04);
 }
 
-.fretboard-sidebar .fretboard-source {
-    display: block;
+.fretboard-drawer .fretboard-source,
+.fretboard-drawer #fret-notation-display,
+.fretboard-drawer #related-chords-display {
     font-size: var(--font-xs);
     color: var(--color-muted);
-    word-break: break-word;
 }
 
-.fretboard-sidebar #fret-notation-display,
-.fretboard-sidebar #related-chords-display {
-    font-size: var(--font-xs);
+.fretboard-drawer #fret-notation-display,
+.fretboard-drawer #related-chords-display {
     margin-top: var(--space-xs);
     white-space: pre-wrap;
 }
 
-.sidebar-inner {
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: var(--space-sm);
-    flex: 1;
-    min-height: 0;
-}
-
-.sidebar-panel {
-    margin-bottom: var(--space-sm);
-}
-
-.sidebar-panel:last-child {
-    margin-bottom: 0;
-}
-
-.main-column {
-    flex: 1;
-    min-width: 0;
-    max-width: var(--max-width);
+.fretboard-drawer-board .fretboard-vertical-wrap {
+    margin-bottom: var(--space-xs);
 }
 
 .main-column .section {
     max-width: none;
-    margin-left: 0;
-    margin-right: 0;
-}
-
-@media (max-width: 720px) {
-    .site-layout {
-        flex-direction: column;
-    }
-
-    .fretboard-sidebar {
-        position: relative;
-        top: auto;
-        width: 100%;
-        flex: none;
-        max-height: 55vh;
-    }
-
-    .fretboard-sidebar.is-collapsed {
-        max-height: 0;
-        padding: 0;
-        margin: 0;
-    }
-
-    .sidebar-show-btn {
-        width: 36px;
-        height: 36px;
-    }
-
-    .main-column {
-        max-width: none;
-    }
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* --- Headings --- */
@@ -554,7 +447,7 @@ th {
     outline: 1px solid var(--color-accent);
 }
 
-/* --- Bottom dock: chord picker + now playing --- */
+/* --- Bottom dock: fretboard + chord picker + now playing --- */
 .bottom-dock {
     position: fixed;
     left: var(--space-sm);
@@ -564,6 +457,86 @@ th {
     align-items: flex-end;
     gap: var(--space-sm);
     max-width: calc(100vw - var(--space-sm) * 2);
+}
+
+.fretboard-drawer {
+    width: min(220px, 28vw);
+    max-width: 220px;
+    flex-shrink: 1;
+    min-width: 0;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.45);
+}
+
+.fretboard-drawer-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: var(--now-playing-bar-h);
+    padding: 0 var(--space-sm);
+    cursor: pointer;
+}
+
+.fretboard-drawer-label {
+    flex-shrink: 0;
+    font-size: var(--font-xs);
+    font-weight: 600;
+    color: var(--color-accent-strong);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.fretboard-drawer-controls {
+    flex-shrink: 0;
+}
+
+.fretboard-drawer-controls .root-row {
+    margin-bottom: 0;
+}
+
+.fretboard-drawer-summary {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.65em;
+    color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fretboard-drawer-chevron {
+    flex-shrink: 0;
+    font-size: 0.55em;
+    color: var(--color-muted);
+    padding: 4px;
+}
+
+.fretboard-drawer-panel {
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-sm);
+    max-height: min(320px, 45vh);
+    overflow: auto;
+}
+
+.fretboard-drawer-inner {
+    min-width: 0;
+}
+
+.fretboard-drawer.is-expanded {
+    width: min(240px, 32vw);
+    max-width: 240px;
+}
+
+.fretboard-drawer.is-expanded .fretboard-vertical {
+    font-size: 0.62rem;
+}
+
+.fretboard-drawer.is-expanded .fretboard-vertical .fret-head,
+.fretboard-drawer.is-expanded .fretboard-vertical .string-head,
+.fretboard-drawer.is-expanded .fretboard-vertical td.fb-cell {
+    font-size: 0.62rem;
 }
 
 .chord-picker {
@@ -894,12 +867,15 @@ th {
         right: var(--space-sm);
     }
 
+    .fretboard-drawer,
+    .fretboard-drawer.is-expanded,
     .chord-picker,
     .now-playing-drawer {
         width: 100%;
         max-width: none;
     }
 
+    .fretboard-drawer-summary,
     .chord-picker-preview {
         display: none;
     }

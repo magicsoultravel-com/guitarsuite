@@ -20,7 +20,7 @@ function noteAtFret(stringData, fret) {
 
 export function renderFretboard(fretboardData) {
   const panel = document.createElement('div');
-  panel.className = 'sidebar-panel fretboard-panel';
+  panel.className = 'fretboard-panel';
 
   const headerCells = STRING_ORDER.map(
     (s) => `<th class="string-head">${escapeHtml(s)}</th>`

@@ -17,14 +17,13 @@
     --color-highlight-bg: rgba(196, 165, 116, 0.22);
     --color-border: #333;
     --color-muted: #999;
-    --now-playing-bar-h: 42px;
     --layer-color-1: #c4a574;
     --layer-color-2: #7aab8a;
     --layer-color-3: #8a9cc4;
     --layer-bg-1: rgba(196, 165, 116, 0.42);
     --layer-bg-2: rgba(122, 171, 138, 0.42);
-    --dock-bar-h: 42px;
-    --dock-bar-stacked-h: 56px;
+    --layer-bg-3: rgba(138, 156, 196, 0.42);
+    --dock-bar-h: 52px;
 }
 
 *,
@@ -71,12 +70,12 @@ body {
 }
 
 body.has-bottom-dock {
-    padding-bottom: calc(var(--now-playing-bar-h) + var(--space-sm) * 2);
+    padding-bottom: calc(var(--dock-bar-h) + var(--space-sm) * 2);
 }
 
 body.has-bottom-dock.now-playing-expanded,
 body.has-bottom-dock.chord-picker-expanded {
-    padding-bottom: calc(var(--now-playing-bar-h) + 140px);
+    padding-bottom: calc(var(--dock-bar-h) + 140px);
 }
 
 body.has-bottom-dock.fretboard-expanded {
@@ -96,11 +95,11 @@ body.has-bottom-dock.fretboard-expanded.chord-picker-expanded.now-playing-expand
 }
 
 body.has-now-playing {
-    padding-bottom: calc(var(--now-playing-bar-h) + var(--space-sm) * 2);
+    padding-bottom: calc(var(--dock-bar-h) + var(--space-sm) * 2);
 }
 
 body.has-now-playing.now-playing-expanded {
-    padding-bottom: calc(var(--now-playing-bar-h) + 120px);
+    padding-bottom: calc(var(--dock-bar-h) + 120px);
 }
 
 .icon-btn:hover {
@@ -518,7 +517,10 @@ th {
     bottom: var(--space-sm);
     z-index: 100;
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
+    align-content: flex-end;
+    justify-content: flex-start;
     gap: var(--space-sm);
     max-width: calc(100vw - var(--space-sm) * 2);
 }
@@ -528,7 +530,7 @@ th {
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    flex-shrink: 1;
+    flex: 0 0 auto;
     min-width: 0;
 }
 
@@ -539,24 +541,43 @@ th {
     flex-shrink: 0;
 }
 
-.dock-module--fretboard {
-    width: min(240px, 30vw);
-    max-width: 240px;
+.dock-module--root {
+    width: min(300px, 34vw);
+    max-width: 300px;
 }
 
 .dock-module--chords {
-    width: min(320px, 42vw);
-    max-width: 320px;
+    width: min(300px, 36vw);
+    max-width: 300px;
+}
+
+.dock-module--fretboard {
+    width: min(220px, 28vw);
+    max-width: 220px;
+}
+
+.dock-module--now-playing {
+    width: min(240px, 28vw);
+    max-width: 240px;
+}
+
+.dock-module--tools {
+    width: min(200px, 24vw);
+    max-width: 200px;
 }
 
 .dock-module-bar {
     display: flex;
     align-items: center;
     gap: var(--space-xs);
+    height: var(--dock-bar-h);
     min-height: var(--dock-bar-h);
+    max-height: var(--dock-bar-h);
     padding: 0 var(--space-sm);
     cursor: pointer;
     user-select: none;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .dock-drag-handle {
@@ -712,65 +733,43 @@ th {
     max-height: 220px;
 }
 
-.dock-module--now-playing {
-    width: min(280px, 32vw);
-    max-width: 280px;
-    flex-shrink: 0;
-}
-
-.dock-module--root {
-    width: min(360px, 42vw);
-    max-width: 360px;
-}
-
-.dock-module--tools {
-    width: min(280px, 32vw);
-    max-width: 280px;
-}
-
-.dock-module-bar--chord {
-    min-height: var(--dock-bar-stacked-h);
-    align-items: center;
-}
-
-.chord-picker-collapsed {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 4px 0;
-}
-
 .chord-picker-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
+    flex-shrink: 0;
+    max-width: 3.5em;
+    font-size: var(--font-sm);
+    font-weight: 700;
+    color: var(--color-accent-strong);
 }
 
-.chord-picker-meta {
-    flex: unset;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
+.chord-picker-preview {
+    flex-shrink: 0;
     font-family: Consolas, 'Courier New', monospace;
     font-size: 0.65em;
+    color: var(--color-muted);
+    letter-spacing: 0.04em;
+    max-width: 4.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.dock-module-bar--now-playing {
-    min-height: var(--dock-bar-stacked-h);
-    align-items: center;
+.dock-module--chords .dock-module-strip {
+    flex: 1;
+    min-width: 0;
 }
 
 .dock-module-bar--now-playing .dock-module-main {
     flex: 1;
     min-width: 0;
+    padding: 2px 4px;
+    gap: 0;
+    justify-content: center;
 }
 
 .dock-module-bar--now-playing .dock-module-title {
     display: block;
+    font-size: 0.8em;
+    line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -780,6 +779,8 @@ th {
 .dock-module-bar--now-playing .dock-module-sub {
     display: block;
     flex: unset;
+    font-size: 0.68em;
+    line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -790,9 +791,12 @@ th {
     flex: 1;
     min-width: 0;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 3px;
-    padding: 4px 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    align-items: center;
+    height: 100%;
 }
 
 .dock-module--root .root-chip {
@@ -804,6 +808,10 @@ th {
 
 .dock-module-bar--root {
     cursor: default;
+}
+
+.dock-module-bar--now-playing {
+    cursor: pointer;
 }
 
 .tools-panel {
@@ -1075,9 +1083,8 @@ body.has-bottom-dock.tools-expanded {
         max-width: none !important;
     }
 
-    .fretboard-drawer-summary,
-    .chord-picker-meta {
-        display: none;
+    .chord-picker-preview {
+        max-width: 3em;
     }
 }
 

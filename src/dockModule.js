@@ -1,6 +1,8 @@
 const EXPANDED_KEY = 'guitarsuite-dock-expanded';
+const GRID = 8;
+const DOCK_GAP = 8;
 
-const DEFAULT_ORDER = ['fretboard', 'chords', 'now-playing', 'root', 'tools'];
+export const DEFAULT_ORDER = ['root', 'chords', 'fretboard', 'now-playing', 'tools'];
 
 function loadExpanded(id) {
   try {
@@ -34,6 +36,9 @@ export function wireDockExpand(el, { bodyClass, moduleId = null, storageKey = nu
     chevron.textContent = open ? '▼' : '▲';
     chevron.setAttribute('aria-expanded', String(open));
     if (persist && id) saveExpanded(id, open);
+    if (el.classList.contains('is-floating')) {
+      requestAnimationFrame(resolveFloatingLayout);
+    }
   }
 
   if (persist && id) {
@@ -65,6 +70,10 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function snap(value) {
+  return Math.round(value / GRID) * GRID;
+}
+
 function orderModules(dockEl) {
   for (const id of DEFAULT_ORDER) {
     const mod = dockEl.querySelector(`[data-dock-id="${id}"]`);
@@ -88,10 +97,90 @@ function floatModule(mod) {
   const rect = mod.getBoundingClientRect();
   mod.classList.add('is-floating');
   mod.style.width = `${rect.width}px`;
-  mod.style.left = `${rect.left}px`;
-  mod.style.top = `${rect.top}px`;
+  mod.style.left = `${snap(rect.left)}px`;
+  mod.style.top = `${snap(rect.top)}px`;
   document.body.appendChild(mod);
   mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
+}
+
+function moduleBox(mod) {
+  const left = parseInt(mod.style.left, 10) || 0;
+  const top = parseInt(mod.style.top, 10) || 0;
+  const width = mod.offsetWidth;
+  const height = mod.offsetHeight;
+  return { left, top, right: left + width, bottom: top + height, width, height };
+}
+
+function boxesOverlap(a, b, pad = DOCK_GAP) {
+  return !(
+    a.right + pad <= b.left
+    || a.left >= b.right + pad
+    || a.bottom + pad <= b.top
+    || a.top >= b.bottom + pad
+  );
+}
+
+function dockBarRect(dockEl) {
+  if (!dockEl) return null;
+  const rect = dockEl.getBoundingClientRect();
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function resolveFloatingLayout(dockEl) {
+  const floating = [...document.querySelectorAll('.dock-module.is-floating')];
+  if (!floating.length) return;
+
+  floating.sort((a, b) => {
+    const za = parseInt(a.style.zIndex, 10) || 0;
+    const zb = parseInt(b.style.zIndex, 10) || 0;
+    if (za !== zb) return zb - za;
+    const ta = parseInt(a.style.top, 10) || 0;
+    const tb = parseInt(b.style.top, 10) || 0;
+    if (ta !== tb) return ta - tb;
+    return (parseInt(a.style.left, 10) || 0) - (parseInt(b.style.left, 10) || 0);
+  });
+
+  const dockRect = dockBarRect(dockEl);
+  const placed = [];
+
+  for (const mod of floating) {
+    let { left, top } = moduleBox(mod);
+    left = snap(left);
+    top = snap(top);
+
+    for (let attempt = 0; attempt < 48; attempt++) {
+      const box = { left, top, right: left + mod.offsetWidth, bottom: top + mod.offsetHeight };
+      const blockers = [...placed];
+      if (dockRect && boxesOverlap(box, dockRect)) blockers.push(dockRect);
+
+      const hit = blockers.find((b) => boxesOverlap(box, b));
+      if (!hit) break;
+
+      const tryRight = snap(hit.right + DOCK_GAP);
+      const tryDown = snap(hit.bottom + DOCK_GAP);
+
+      if (tryRight + mod.offsetWidth <= window.innerWidth - DOCK_GAP) {
+        left = tryRight;
+      } else {
+        left = snap(parseInt(mod.style.left, 10) || DOCK_GAP);
+        top = tryDown;
+      }
+    }
+
+    left = clamp(left, DOCK_GAP, window.innerWidth - mod.offsetWidth - DOCK_GAP);
+    top = clamp(top, DOCK_GAP, window.innerHeight - mod.offsetHeight - DOCK_GAP);
+
+    mod.style.left = `${left}px`;
+    mod.style.top = `${top}px`;
+    placed.push(moduleBox(mod));
+  }
 }
 
 function wireDrag(mod, dockEl) {
@@ -117,10 +206,10 @@ function wireDrag(mod, dockEl) {
 
   handle.addEventListener('pointermove', (e) => {
     if (!dragging) return;
-    const maxLeft = window.innerWidth - mod.offsetWidth - 8;
-    const maxTop = window.innerHeight - mod.offsetHeight - 8;
-    mod.style.left = `${clamp(e.clientX - offsetX, 8, maxLeft)}px`;
-    mod.style.top = `${clamp(e.clientY - offsetY, 8, maxTop)}px`;
+    const maxLeft = window.innerWidth - mod.offsetWidth - DOCK_GAP;
+    const maxTop = window.innerHeight - mod.offsetHeight - DOCK_GAP;
+    mod.style.left = `${snap(clamp(e.clientX - offsetX, DOCK_GAP, maxLeft))}px`;
+    mod.style.top = `${snap(clamp(e.clientY - offsetY, DOCK_GAP, maxTop))}px`;
   });
 
   const endDrag = (e) => {
@@ -130,6 +219,7 @@ function wireDrag(mod, dockEl) {
     try {
       handle.releasePointerCapture(e.pointerId);
     } catch (_) { /* ignore */ }
+    resolveFloatingLayout(dockEl);
   };
 
   handle.addEventListener('pointerup', endDrag);
@@ -146,6 +236,8 @@ export function initDockModules(dockEl) {
     wireDrag(mod, dockEl);
   });
   orderModules(dockEl);
+
+  window.addEventListener('resize', () => resolveFloatingLayout(dockEl));
 }
 
 export function ensureDockChrome(el, id, label, { expandable = true } = {}) {

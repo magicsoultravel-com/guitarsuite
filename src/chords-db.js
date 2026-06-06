@@ -1,10 +1,11 @@
 import { escapeHtml, fetchJson, renderFooter } from './utils.js';
+import { asset } from './paths.js';
 
 const app = document.getElementById('app');
 renderFooter(document.getElementById('site-footer'));
 
 try {
-  const chords = await fetchJson('/assets/chords.json');
+  const chords = await fetchJson(asset('assets/chords.json'));
 
   const rows = Object.entries(chords).map(([name, chord]) => {
     let variantHtml = '<div class="no-shape">No variant1 data</div>';

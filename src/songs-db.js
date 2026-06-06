@@ -1,4 +1,5 @@
 import { escapeHtml, fetchJson, renderFooter } from './utils.js';
+import { asset } from './paths.js';
 import { musicalSort } from './music.js';
 
 const app = document.getElementById('app');
@@ -85,7 +86,7 @@ function renderTable() {
 }
 
 try {
-  songs = await fetchJson('/assets/songs.json');
+  songs = await fetchJson(asset('assets/songs.json'));
   sortSongs();
   renderTable();
 } catch (err) {

@@ -30,8 +30,8 @@ export function renderSongBook(songs, chords, songIndex) {
       </div>
       <a href="?songIndex=${prevIndex}">Previous</a>
       <a href="?songIndex=${nextIndex}">Next</a>
-      <p>Total Songs: <a href="/songs-db.html" style="text-decoration:none;">${songs.length}</a></p>
-      <p>Total Chords: <a href="/chords-db.html" style="text-decoration:none;">${Object.keys(chords).length}</a><br><br></p>
+      <p>Total Songs: <a href="./songs-db.html" style="text-decoration:none;">${songs.length}</a></p>
+      <p>Total Chords: <a href="./chords-db.html" style="text-decoration:none;">${Object.keys(chords).length}</a><br><br></p>
       <button id="show-chords-button">show</button>
       <div id="chords-container" style="display:none;">${escapeHtml(chordLines.join(' | '))}</div>
       <br><br>

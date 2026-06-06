@@ -1,3 +1,5 @@
+import { asset } from './paths.js';
+
 export function initFretboardInteractive() {
   const fretboardTable = document.getElementById('fretboard-table');
   const fretNotationDisplay = document.getElementById('fret-notation-display');
@@ -95,8 +97,8 @@ export function initFretboardInteractive() {
   }
 
   Promise.all([
-    fetch('/assets/notes.json').then((r) => r.json()),
-    fetch('/assets/chords.json').then((r) => r.json()),
+    fetch(asset('assets/notes.json')).then((r) => r.json()),
+    fetch(asset('assets/chords.json')).then((r) => r.json()),
   ])
     .then(([notes, chords]) => {
       notesData = notes;

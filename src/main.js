@@ -1,4 +1,5 @@
 import { fetchJson, renderFooter } from './utils.js';
+import { asset } from './paths.js';
 import { renderSongBook } from './sections/songBook.js';
 import { renderChordsSheet } from './sections/chordsSheet.js';
 import { renderMusicalNotes } from './sections/musicalNotes.js';
@@ -31,16 +32,16 @@ try {
     about,
     galleryManifest,
   ] = await Promise.all([
-    fetchJson('/assets/songs.json'),
-    fetchJson('/assets/chords.json'),
-    fetchJson('/assets/notes.json'),
-    fetchJson('/assets/chords-theory.json'),
-    fetchJson('/assets/chords-theory-intervals.json'),
-    fetchJson('/assets/scales-theory.json'),
-    fetchJson('/content/useful-links.json'),
-    fetchJson('/data/developer-blogger.json'),
-    fetchJson('/content/about.json'),
-    fetchJson('/uploads/gallery/manifest.json').catch(() => []),
+    fetchJson(asset('assets/songs.json')),
+    fetchJson(asset('assets/chords.json')),
+    fetchJson(asset('assets/notes.json')),
+    fetchJson(asset('assets/chords-theory.json')),
+    fetchJson(asset('assets/chords-theory-intervals.json')),
+    fetchJson(asset('assets/scales-theory.json')),
+    fetchJson(asset('content/useful-links.json')),
+    fetchJson(asset('data/developer-blogger.json')),
+    fetchJson(asset('content/about.json')),
+    fetchJson(asset('uploads/gallery/manifest.json')).catch(() => []),
   ]);
 
   const { section: songSection, currentSong } = renderSongBook(songs, chords, songIndex);

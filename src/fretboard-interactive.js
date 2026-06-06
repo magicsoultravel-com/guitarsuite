@@ -1,9 +1,10 @@
-import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes } from './music.js';
+import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes, getDiatonicTriads, resolveProgressionChords } from './music.js';
 import {
   playChordByName,
   playFretNote,
   playScaleByName,
   playTheoryType,
+  playTriad,
   playNote,
 } from './playback.js';
 
@@ -192,6 +193,113 @@ export function wireScalesTheory(hub, scales, sectionEl) {
   });
 
   hub.subscribe(() => updateActiveMarkers(hub));
+}
+
+function pickScaleTriad(hub, triad) {
+  hub.toggleSelection({ label: triad.symbol, notes: triad.notes, family: 'chord' });
+  playTriad(triad.notes);
+}
+
+function fillScaleCard(card, scaleName, data, root, hub) {
+  const body = card.querySelector('.scale-prog-card-body');
+  if (!body || !data?.steps) return;
+
+  const triads = getDiatonicTriads(root, data.steps);
+  body.replaceChildren();
+
+  const diatonicBlock = document.createElement('div');
+  diatonicBlock.className = 'scale-prog-block';
+  const diatonicLabel = document.createElement('span');
+  diatonicLabel.className = 'scale-prog-subhead';
+  diatonicLabel.textContent = 'Diatonic triads';
+  diatonicBlock.appendChild(diatonicLabel);
+
+  const diatonicChips = document.createElement('div');
+  diatonicChips.className = 'scale-diatonic-chords';
+  for (const triad of triads) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'scale-prog-chip fb-selectable';
+    btn.dataset.label = triad.symbol;
+    btn.title = `${triad.roman}: ${triad.notes.join(', ')}`;
+    btn.innerHTML = `<span class="scale-prog-roman">${triad.roman}</span> ${triad.symbol}`;
+    btn.addEventListener('click', () => pickScaleTriad(hub, triad));
+    diatonicChips.appendChild(btn);
+  }
+  diatonicBlock.appendChild(diatonicChips);
+  body.appendChild(diatonicBlock);
+
+  const progBlock = document.createElement('div');
+  progBlock.className = 'scale-prog-block';
+  const progLabel = document.createElement('span');
+  progLabel.className = 'scale-prog-subhead';
+  progLabel.textContent = 'Progressions';
+  progBlock.appendChild(progLabel);
+
+  const progList = document.createElement('div');
+  progList.className = 'scale-progressions-list';
+
+  for (const prog of data.progressions || []) {
+    const row = document.createElement('div');
+    row.className = 'scale-prog-row';
+
+    const title = document.createElement('span');
+    title.className = 'scale-prog-name';
+    title.textContent = prog.name;
+    row.appendChild(title);
+
+    const chips = document.createElement('div');
+    chips.className = 'scale-prog-chips';
+    for (const triad of resolveProgressionChords(root, data.steps, prog.pattern)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'scale-prog-chip fb-selectable is-prog';
+      btn.dataset.label = triad.symbol;
+      btn.title = `${triad.roman}: ${triad.notes.join(', ')}`;
+      btn.textContent = triad.symbol;
+      btn.addEventListener('click', () => pickScaleTriad(hub, triad));
+      chips.appendChild(btn);
+    }
+    row.appendChild(chips);
+
+    const pattern = document.createElement('code');
+    pattern.className = 'scale-prog-pattern';
+    pattern.textContent = prog.pattern;
+    row.appendChild(pattern);
+
+    progList.appendChild(row);
+  }
+
+  if (!data.progressions?.length) {
+    const empty = document.createElement('p');
+    empty.className = 'scale-prog-empty';
+    empty.textContent = 'No progressions defined.';
+    progList.appendChild(empty);
+  }
+
+  progBlock.appendChild(progList);
+  body.appendChild(progBlock);
+}
+
+export function wireScaleProgressions(hub, scales, sectionEl) {
+  const rootEl = sectionEl.querySelector('.scale-prog-root');
+  const cards = sectionEl.querySelectorAll('.scale-prog-card');
+  if (!cards.length) return;
+
+  function render() {
+    const root = hub.getRoot();
+    if (rootEl) rootEl.textContent = root;
+
+    for (const card of cards) {
+      const scaleName = card.dataset.scale;
+      fillScaleCard(card, scaleName, scales[scaleName], root, hub);
+    }
+
+    updateActiveMarkers(hub);
+  }
+
+  hub.subscribe(render);
+  render();
 }
 
 export function wireGenreTheory(hub, scales, sectionEl) {

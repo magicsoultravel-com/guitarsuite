@@ -3,7 +3,7 @@ import { asset } from './paths.js';
 import { renderBottomDock } from './sections/bottomDock.js';
 import { renderChordsAndNotes } from './sections/songChordsNotes.js';
 import { renderChordsTheory } from './sections/chordsTheory.js';
-import { renderScalesTheory } from './sections/scalesTheory.js';
+import { renderScalesArea, wireScalesAreaTabs } from './sections/scalesArea.js';
 import { renderGenreTheory } from './sections/genreTheory.js';
 import { renderUsefulLinks } from './sections/usefulLinks.js';
 import { renderBlogger } from './sections/blogger.js';
@@ -15,6 +15,7 @@ import {
   wireChordNoteTables,
   wireChordsTheory,
   wireScalesTheory,
+  wireScaleProgressions,
   wireGenreTheory,
 } from './fretboard-interactive.js';
 
@@ -82,9 +83,11 @@ try {
   app.appendChild(theorySection);
   wireChordsTheory(hub, chordsTheory, intervals, theorySection);
 
-  const scalesSection = renderScalesTheory(scales);
-  app.appendChild(scalesSection);
-  wireScalesTheory(hub, scales, scalesSection);
+  const scalesArea = renderScalesArea(scales);
+  app.appendChild(scalesArea);
+  wireScalesAreaTabs(scalesArea);
+  wireScalesTheory(hub, scales, scalesArea);
+  wireScaleProgressions(hub, scales, scalesArea);
 
   const genreSection = renderGenreTheory(genres);
   app.appendChild(genreSection);

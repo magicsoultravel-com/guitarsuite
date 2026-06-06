@@ -1282,6 +1282,146 @@ th {
     max-width: 16em;
 }
 
+.scale-prog-hint .scale-prog-root {
+    color: var(--color-accent);
+}
+
+.scales-area-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.scales-area-head h2 {
+    margin: 0;
+    border-bottom: none;
+}
+
+.scale-tabs {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.scale-tab {
+    padding: 4px 10px;
+    font-size: var(--font-sm);
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-muted);
+    cursor: pointer;
+}
+
+.scale-tab:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.scale-tab.is-active {
+    color: #000;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.scale-progressions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.scale-prog-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-sm);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.scale-prog-card-title {
+    margin: 0 0 var(--space-sm);
+    font-size: var(--font-sm);
+    color: var(--color-accent-strong);
+    border-bottom: none;
+}
+
+.scale-prog-empty {
+    margin: 0;
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+}
+
+.scale-prog-block {
+    margin-bottom: var(--space-md);
+}
+
+.scale-prog-subhead {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    font-weight: 500;
+    border-bottom: none;
+}
+
+.scale-diatonic-chords,
+.scale-prog-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.scale-prog-chip {
+    padding: 3px 8px;
+    font-size: var(--font-sm);
+    font-family: inherit;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.scale-prog-chip:hover {
+    border-color: var(--color-accent);
+    background: rgba(0, 255, 0, 0.08);
+}
+
+.scale-prog-chip.fb-active {
+    background: rgba(0, 255, 0, 0.15);
+    border-color: var(--color-accent);
+}
+
+.scale-prog-roman {
+    color: var(--color-muted);
+    font-size: 0.85em;
+    margin-right: 2px;
+}
+
+.scale-prog-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.scale-prog-name {
+    flex: 0 0 7em;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--color-accent-strong);
+}
+
+.scale-prog-pattern {
+    flex: 1 1 100%;
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    margin-left: calc(7em + var(--space-sm));
+}
+
 @media (max-width: 640px) {
     body.has-tool-dock {
         padding-left: var(--space-sm);

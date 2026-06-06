@@ -82,6 +82,10 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
     const notes = getTheoryNotes(root, data.intervals).join(' · ');
     return `${short} · ${name} · ${notes}`;
   }
+  const layer = hub.getLayers().find((l) => l.label === name);
+  if (layer?.notes.size) {
+    return `${name} · ${[...layer.notes].join(' · ')}`;
+  }
   return '—';
 }
 
@@ -181,6 +185,14 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
       diagramType.textContent = name;
       diagramFrets.textContent = data.intervals;
       diagramNotes.textContent = notes;
+      return;
+    }
+    const layer = hub.getLayers().find((l) => l.label === name);
+    if (layer) {
+      diagramName.textContent = name;
+      diagramType.textContent = 'Triad';
+      diagramFrets.textContent = '—';
+      diagramNotes.textContent = [...layer.notes].join(' · ');
       return;
     }
     diagramName.textContent = '—';

@@ -4,12 +4,15 @@ import {
   getScaleNotesWithOctaves,
   getTheoryNotes,
   normalizePitch,
-  pitchToIndex,
   sortNotesByMusicalOrder,
 } from './music.js';
 
 const SOUND_KEY = 'guitarsuite-sound-enabled';
 const FOCUS_KEY = 'guitarsuite-focus-modules';
+
+/** Guitar-friendly playback register (roughly frets 3–12 on middle strings). */
+export const GUITAR_OCTAVE = 3;
+export const GUITAR_OCTAVE_HIGH = 4;
 
 const STRING_OCTAVES = { E: 2, A: 2, D: 3, G: 3, B: 3, e: 4 };
 
@@ -38,9 +41,13 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function clampGuitarOctave(octave) {
+  return Math.min(GUITAR_OCTAVE_HIGH, Math.max(GUITAR_OCTAVE, octave));
+}
+
 function octaveFromFret(stringName, fret) {
   const f = Number(fret) || 0;
-  const base = STRING_OCTAVES[stringName] ?? 4;
+  const base = STRING_OCTAVES[stringName] ?? GUITAR_OCTAVE;
   if (f <= 0) return base;
   return base + Math.floor(f / 12);
 }
@@ -74,26 +81,27 @@ export function initPlayback() {
   document.body.classList.toggle('focus-modules', focusModules);
 }
 
-export function playNote(pitch, octave = 4) {
+export function playNote(pitch, octave = GUITAR_OCTAVE) {
   if (!soundEnabled) return;
   sequenceId += 1;
   const p = normalizePitch(pitch);
   if (!p) return;
-  playPitch(p, octave);
+  playPitch(p, clampGuitarOctave(octave));
 }
 
 export function playFretNote(stringName, fret, pitch) {
-  playNote(pitch, octaveFromFret(stringName, fret));
+  playNote(pitch, clampGuitarOctave(octaveFromFret(stringName, fret)));
 }
 
-async function runSequence(pitches, gapMs, octave = 4) {
+async function runSequence(pitches, gapMs, octave = GUITAR_OCTAVE) {
   if (!soundEnabled || !pitches.length) return;
   const id = ++sequenceId;
+  const oct = clampGuitarOctave(octave);
   for (const pitch of pitches) {
     if (id !== sequenceId) return;
     const p = normalizePitch(pitch);
     if (!p) continue;
-    playPitch(p, octave);
+    playPitch(p, oct);
     await sleep(gapMs);
   }
 }
@@ -105,23 +113,18 @@ async function runPitchOctaveSequence(entries, gapMs) {
     if (id !== sequenceId) return;
     const p = normalizePitch(pitch);
     if (!p) continue;
-    playPitch(p, octave);
+    playPitch(p, clampGuitarOctave(octave));
     await sleep(gapMs);
   }
 }
 
-function startOctaveForRoot(root) {
-  const idx = pitchToIndex(root);
-  return idx >= 0 && idx <= 4 ? 2 : 3;
-}
-
 export function playChord(notes) {
   const unique = sortNotesByMusicalOrder([...new Set(notes.map(normalizePitch).filter(Boolean))]);
-  runSequence(unique, 150);
+  runSequence(unique, 150, GUITAR_OCTAVE);
 }
 
 export function playScale(root, steps) {
-  const entries = getScaleNotesWithOctaves(root, steps, startOctaveForRoot(root));
+  const entries = getScaleNotesWithOctaves(root, steps, GUITAR_OCTAVE, GUITAR_OCTAVE_HIGH);
   runPitchOctaveSequence(entries, 130);
 }
 
@@ -169,4 +172,8 @@ export function playTheoryType(type, root, chordsTheory) {
   const data = chordsTheory[type];
   if (!data) return;
   playChord(getTheoryNotes(root, data.intervals));
+}
+
+export function playTriad(notes) {
+  playChord(notes);
 }

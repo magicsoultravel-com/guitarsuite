@@ -90,8 +90,8 @@ export function getScaleNotes(root, steps) {
   return getScaleSemitones(steps).map((s) => CHROMATIC[(rootIdx + s) % 12]);
 }
 
-/** Ascending scale degrees with octaves that rise when the pitch wraps. */
-export function getScaleNotesWithOctaves(root, steps, startOctave = 3) {
+/** Ascending scale degrees with octaves that rise when the pitch wraps (capped for guitar range). */
+export function getScaleNotesWithOctaves(root, steps, startOctave = 3, maxOctave = 4) {
   const pitches = getScaleNotes(root, steps);
   if (!pitches.length) return [];
   let octave = startOctave;
@@ -99,9 +99,72 @@ export function getScaleNotesWithOctaves(root, steps, startOctave = 3) {
   return pitches.map((pitch, i) => {
     const idx = pitchToIndex(pitch);
     if (i > 0 && idx <= lastIdx) octave += 1;
+    octave = Math.min(octave, maxOctave);
     lastIdx = idx;
     return { pitch, octave };
   });
+}
+
+function triadQuality(thirdInterval, fifthInterval) {
+  if (thirdInterval === 3 && fifthInterval === 6) return 'dim';
+  if (thirdInterval === 3 && fifthInterval === 7) return 'min';
+  if (thirdInterval === 4 && fifthInterval === 7) return 'maj';
+  if (thirdInterval === 4 && fifthInterval === 8) return 'aug';
+  return 'maj';
+}
+
+function chordSymbol(root, quality) {
+  if (quality === 'min') return `${root}m`;
+  if (quality === 'dim') return `${root}dim`;
+  if (quality === 'aug') return `${root}aug`;
+  return root;
+}
+
+function romanNumeral(degree, quality) {
+  const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+  let roman = numerals[degree] || String(degree + 1);
+  if (quality === 'min') roman = roman.toLowerCase();
+  if (quality === 'dim') roman = `${roman.toLowerCase()}°`;
+  return roman;
+}
+
+/** Diatonic triad on each scale degree. */
+export function getDiatonicTriads(root, steps) {
+  const notes = getScaleNotes(root, steps);
+  if (!notes.length) return [];
+  const len = notes.length;
+
+  return notes.map((rootNote, degree) => {
+    const thirdNote = notes[(degree + 2) % len];
+    const fifthNote = notes[(degree + 4) % len];
+    const ri = pitchToIndex(rootNote);
+    let ti = pitchToIndex(thirdNote);
+    let fi = pitchToIndex(fifthNote);
+    if (ti <= ri) ti += 12;
+    if (fi <= ti) fi += 12;
+    const quality = triadQuality(ti - ri, fi - ri);
+    return {
+      degree,
+      root: rootNote,
+      notes: [rootNote, thirdNote, fifthNote],
+      quality,
+      symbol: chordSymbol(rootNote, quality),
+      roman: romanNumeral(degree, quality),
+    };
+  });
+}
+
+export function findTriadByRoman(triads, numeral) {
+  return triads.find((t) => t.roman === numeral) || null;
+}
+
+export function resolveProgressionChords(root, steps, pattern) {
+  const triads = getDiatonicTriads(root, steps);
+  return pattern
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((numeral) => findTriadByRoman(triads, numeral))
+    .filter(Boolean);
 }
 
 export function buildChordTable(uniqueChords, chordsJson, getCellValue, options = {}) {

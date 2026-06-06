@@ -1,8 +1,7 @@
 import { enrichChordsJson } from './chordVoicings.js';
-import { fetchJson, renderFooter } from './utils.js';
+import { fetchJson } from './utils.js';
 import { asset } from './paths.js';
-import { renderBottomDock } from './sections/bottomDock.js';
-import { renderChordsAndNotes } from './sections/songChordsNotes.js';
+import { buildContentSections, renderModuleDock } from './sections/moduleDock.js';
 import { renderChordsTheory } from './sections/chordsTheory.js';
 import { renderScalesTheory } from './sections/scalesTheory.js';
 import { renderScaleProgressions } from './sections/scaleProgressions.js';
@@ -10,7 +9,6 @@ import { renderGenreTheory } from './sections/genreTheory.js';
 import { renderUsefulLinks } from './sections/usefulLinks.js';
 import { renderAbout } from './sections/about.js';
 import { renderGallery } from './sections/gallery.js';
-import { renderContentDock } from './sections/contentDock.js';
 import { renderSelectionFooter } from './sections/selectionFooter.js';
 import { createFretboardHub } from './fretboardHub.js';
 import { applyModulesState, collectDockOrders, collectModulesState } from './dockModule.js';
@@ -26,7 +24,6 @@ import {
 } from './fretboard-interactive.js';
 
 const footerEl = document.getElementById('site-footer');
-renderFooter(footerEl);
 
 const params = new URLSearchParams(location.search);
 let songIndex = parseInt(params.get('songIndex') || '0', 10);
@@ -68,34 +65,20 @@ try {
   const app = document.getElementById('app');
   app.appendChild(renderAbout(about));
 
-  const theorySection = renderChordsTheory();
-  const scalesSection = renderScalesTheory(scales);
-  const progressionsSection = renderScaleProgressions(scales);
-  const genreSection = renderGenreTheory(genres);
-
-  const contentDock = renderContentDock({
-    'chords-notes': renderChordsAndNotes(songs[songIndex] ?? null, chords, notes),
-    'chords-theory': theorySection,
-    'scales-modes': scalesSection,
-    'scale-progressions': progressionsSection,
-    'genre-theory': genreSection,
-    'useful-links': renderUsefulLinks(usefulLinks),
-    gallery: renderGallery(galleryManifest),
+  const contentSections = buildContentSections({
+    songs,
+    songIndex,
+    chords,
+    notes,
+    theorySection: renderChordsTheory(),
+    scalesSection: renderScalesTheory(scales),
+    progressionsSection: renderScaleProgressions(scales),
+    genreSection: renderGenreTheory(genres),
+    usefulLinksSection: renderUsefulLinks(usefulLinks),
+    gallerySection: renderGallery(galleryManifest),
   });
 
-  function mountChordsAndNotes(song) {
-    contentDock.updateChordsNotes(song, chords, notes);
-    wireChordNoteTables(hub, chords, notes, chordsTheory);
-  }
-
-  const selectionContext = {
-    chordsJson: chords,
-    scalesJson: scales,
-    chordsTheory,
-    notesJson: notes,
-  };
-
-  const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex, {
+  const moduleDock = renderModuleDock(hub, songs, chords, notes, songIndex, contentSections, {
     scales,
     chordsTheory,
     curatedKeys: new Set(Object.keys(rawChords)),
@@ -105,10 +88,20 @@ try {
     },
   });
 
-  renderSelectionFooter(hub, selectionContext, footerEl);
+  function mountChordsAndNotes(song) {
+    moduleDock.updateChordsNotes(song, chords, notes);
+    wireChordNoteTables(hub, chords, notes, chordsTheory);
+  }
+
+  renderSelectionFooter(hub, {
+    chordsJson: chords,
+    scalesJson: scales,
+    chordsTheory,
+    notesJson: notes,
+  }, footerEl);
 
   initWorkspace();
-  mountChordsAndNotes(currentSong);
+  mountChordsAndNotes(moduleDock.currentSong);
 
   initFretboardInteractive(hub, notes, chords);
 

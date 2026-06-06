@@ -11,8 +11,9 @@
 </head>
 <body>
   <div class="page-wrapper">
-    <header>
+    <header class="site-brand">
       <h1>A guitar suite...</h1>
+      <p class="site-tagline" id="site-tagline"></p>
     </header>
     <main class="site-layout">
       <div class="main-column">
@@ -23,6 +24,8 @@
   </div>
   <script type="module" src="./src/main.js"></script>
   <script>
+    document.getElementById('site-tagline').textContent =
+      '\u00A9 ' + new Date().getFullYear() + ' minimal website design inc.';
     window.addEventListener('load', function () {
       setTimeout(function () {
         var app = document.getElementById('app');

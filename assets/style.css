@@ -901,17 +901,15 @@ th {
     box-shadow: inset 0 -2px 0 var(--color-accent-strong);
 }
 
-.dock-root-hint {
-    font-size: var(--font-xs);
-    color: var(--color-muted);
-    flex-shrink: 0;
-    padding: 0 var(--space-xs);
+.dock-module--root .dock-module-label {
+    display: none;
 }
 
 .dock-module-bar--root {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
+    gap: 2px;
+    cursor: default;
 }
 
 .genre-prog-chips {
@@ -1001,6 +999,14 @@ body.has-selection-footer .module-dock {
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
 }
 
+#module-canvas .dock-module.is-floating .dock-drag-handle {
+    pointer-events: auto;
+}
+
+.module-dock {
+    pointer-events: auto;
+}
+
 #module-canvas .dock-module.is-floating.is-resizing {
     transition: none;
 }
@@ -1031,12 +1037,15 @@ body.has-selection-footer .module-dock {
     transition: opacity 0.12s ease, visibility 0.12s;
 }
 
-.dock-module--expandable .dock-drag-handle {
+.dock-module--expandable .dock-drag-handle,
+.dock-module--draggable .dock-drag-handle {
     display: inline-flex;
-    opacity: 0.55;
+    opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transition: opacity 0.12s ease;
+    transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+    position: relative;
+    z-index: 3;
 }
 
 .dock-module--expandable:not(.is-floating) .dock-module-dock {
@@ -1052,7 +1061,8 @@ body.has-selection-footer .module-dock {
 
 .dock-module--expandable .dock-module-bar:hover .dock-drag-handle,
 .dock-module--expandable .dock-module-bar.is-dragging .dock-drag-handle,
-.dock-module--expandable .dock-drag-handle.is-dragging {
+.dock-module--expandable .dock-drag-handle.is-dragging,
+.dock-module--draggable .dock-drag-handle.is-dragging {
     opacity: 1;
 }
 
@@ -1123,8 +1133,9 @@ body.has-selection-footer .module-dock {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 28px;
+    width: var(--btn-sm);
+    min-width: var(--btn-sm);
+    height: calc(var(--dock-bar-h) - 8px);
     padding: 0;
     margin: 0;
     border: 1px solid transparent;
@@ -1135,6 +1146,8 @@ body.has-selection-footer .module-dock {
     line-height: 1;
     cursor: grab;
     touch-action: none;
+    position: relative;
+    z-index: 3;
 }
 
 .dock-drag-handle:hover {
@@ -1370,10 +1383,6 @@ body.has-selection-footer .module-dock {
     padding: 1px 2px;
     font-size: 0.68em;
     line-height: 1.2;
-}
-
-.dock-module-bar--root {
-    cursor: default;
 }
 
 .dock-module-bar--now-playing {

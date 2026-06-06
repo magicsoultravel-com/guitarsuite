@@ -103,8 +103,10 @@ try {
 
   const tagline = document.getElementById('site-tagline');
   if (tagline) {
+    const songCount = Array.isArray(songs) ? songs.length : 0;
+    const scaleCount = scales && typeof scales === 'object' ? Object.keys(scales).length : 0;
     const chordCount = Object.keys(chords).length;
-    tagline.textContent = `${APP_VERSION} · ${chordCount.toLocaleString()} chords · © ${new Date().getFullYear()} minimal website design inc.`;
+    tagline.textContent = `${APP_VERSION} · ${songCount.toLocaleString()} songs · ${scaleCount.toLocaleString()} scales · ${chordCount.toLocaleString()} chords · © ${new Date().getFullYear()} minimal website design inc.`;
   }
 
   initWorkspace();

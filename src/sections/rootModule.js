@@ -14,11 +14,10 @@ export function renderRootModule(hub) {
   el.innerHTML = `
     <div class="dock-module-bar dock-module-bar--root">
       <div class="dock-root-strip">${chips}</div>
-      <span class="dock-root-hint" title="Select up to 3 consecutive roots">1–3</span>
     </div>
   `;
 
-  ensureDockChrome(el, 'root', 'root', { expandable: false });
+  ensureDockChrome(el, 'root', 'root', { expandable: false, draggable: true });
 
   function syncRoot() {
     const roots = hub.getRoots();

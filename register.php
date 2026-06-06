@@ -1,0 +1,70 @@
+{
+  "Major": {
+    "short": "C",
+    "intervals": "0 4 7"
+  },
+  "Minor": {
+    "short": "Cm",
+    "intervals": "0 3 7"
+  },
+  "Diminished": {
+    "short": "Cdim",
+    "intervals": "0 3 6"
+  },
+  "Augmented": {
+    "short": "Caug",
+    "intervals": "0 4 8"
+  },
+  "Major 7th": {
+    "short": "Cmaj7",
+    "intervals": "0 4 7 11"
+  },
+  "Minor 7th": {
+    "short": "Cm7",
+    "intervals": "0 3 7 10"
+  },
+  "Dominant 7th": {
+    "short": "C7",
+    "intervals": "0 4 7 10"
+  },
+  "Diminished 7th": {
+    "short": "Cdim7",
+    "intervals": "0 3 6 9"
+  },
+  "Half-Diminished 7th": {
+    "short": "Cm7b5",
+    "intervals": "0 3 6 10"
+  },
+  "Suspended 2nd": {
+    "short": "Csus2",
+    "intervals": "0 2 7"
+  },
+  "Suspended 4th": {
+    "short": "Csus4",
+    "intervals": "0 5 7"
+  },
+  "Add 9th": {
+    "short": "Cadd9",
+    "intervals": "0 4 7 14"
+  },
+  "Minor Add 9th": {
+    "short": "Cmadd9",
+    "intervals": "0 3 7 14"
+  },
+  "6th": {
+    "short": "C6",
+    "intervals": "0 4 7 9"
+  },
+  "Minor 6th": {
+    "short": "Cm6",
+    "intervals": "0 3 7 9"
+  },
+  "9th": {
+    "short": "C9",
+    "intervals": "0 4 7 10 14"
+  },
+  "Minor 9th": {
+    "short": "Cm9",
+    "intervals": "0 3 7 10 14"
+  }
+}

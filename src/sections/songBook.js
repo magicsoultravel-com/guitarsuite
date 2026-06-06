@@ -22,7 +22,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex)
   const currentSong = songs[songIndex];
   if (!currentSong) {
     drawer.innerHTML = `
-      <div class="dock-module-bar dock-module-bar--stacked">
+      <div class="dock-module-bar">
         <span class="dock-module-sub">No song selected</span>
       </div>
     `;
@@ -35,15 +35,13 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex)
   const chordsList = currentSong.chords.split(' ').filter(Boolean);
 
   drawer.innerHTML = `
-    <div class="dock-module-bar dock-module-bar--stacked">
-      <div class="dock-module-controls dock-nav-group">
-        <a href="${songUrl(prevIndex)}" class="dock-nav-btn" title="Previous" aria-label="Previous song">‹</a>
-        <a href="${songUrl(nextIndex)}" class="dock-nav-btn" title="Next" aria-label="Next song">›</a>
-      </div>
-      <div class="now-playing-info">
+    <div class="dock-module-bar dock-module-bar--now-playing">
+      <a href="${songUrl(prevIndex)}" class="dock-nav-btn" title="Previous" aria-label="Previous song">‹</a>
+      <button type="button" class="dock-module-main now-playing-toggle" aria-expanded="false">
         <span class="dock-module-title">${escapeHtml(currentSong.title)}</span>
         <span class="dock-module-sub">${escapeHtml(currentSong.artist)}</span>
-      </div>
+      </button>
+      <a href="${songUrl(nextIndex)}" class="dock-nav-btn" title="Next" aria-label="Next song">›</a>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
     <div class="dock-module-panel" hidden>
@@ -61,6 +59,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex)
 
   ensureDockChrome(drawer, 'now-playing', 'Now playing');
 
+  const toggle = drawer.querySelector('.now-playing-toggle');
   const chipGrid = drawer.querySelector('.now-playing-chords');
 
   for (const name of chordsList) {
@@ -83,7 +82,13 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex)
     moduleId: 'now-playing',
   });
 
-  wireDockBarToggle(drawer, setExpanded, '.dock-nav-group, .dock-nav-btn, .now-playing-info, .dock-chip');
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const panel = drawer.querySelector('.dock-module-panel');
+    if (panel) setExpanded(panel.hidden);
+  });
+
+  wireDockBarToggle(drawer, setExpanded, '.dock-nav-btn, .now-playing-toggle');
 
   hub?.subscribe(() => syncChipLayers(hub, drawer));
 

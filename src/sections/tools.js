@@ -17,38 +17,46 @@ export function renderToolsDock() {
       <span class="dock-module-sub tools-bar-summary">Metronome · Tuner</span>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
-    <div class="dock-module-panel" hidden>
-      <div class="dock-section">
-        <span class="dock-section-label">Metronome</span>
-        <div class="tools-row">
-          <button type="button" class="dock-nav-btn bpm-step" data-delta="-5">−5</button>
-          <button type="button" class="dock-nav-btn bpm-step" data-delta="-1">−</button>
-          <input type="number" id="tempo" class="input-bpm" value="120" min="30" max="250">
-          <button type="button" class="dock-nav-btn bpm-step" data-delta="1">+</button>
-          <button type="button" class="dock-nav-btn bpm-step" data-delta="5">+5</button>
-          <select id="time-signature" class="dock-select select-wide" title="Time signature">
-            <option value="4/4">4/4</option>
-            <option value="3/4">3/4</option>
-            <option value="6/8">6/8</option>
-          </select>
-          <button type="button" class="dock-nav-btn" id="start-metronome" title="Start">▶</button>
-          <button type="button" class="dock-nav-btn" id="stop-metronome" title="Stop" disabled>■</button>
+    <div class="dock-module-panel tools-panel" hidden>
+      <div class="tools-stack">
+        <div class="dock-section tools-block">
+          <span class="dock-section-label">Metronome</span>
+          <div class="tools-controls-col">
+            <div class="tools-inline">
+              <button type="button" class="dock-nav-btn bpm-step" data-delta="-5">−5</button>
+              <button type="button" class="dock-nav-btn bpm-step" data-delta="-1">−</button>
+              <input type="number" id="tempo" class="input-bpm" value="120" min="30" max="250">
+              <button type="button" class="dock-nav-btn bpm-step" data-delta="1">+</button>
+              <button type="button" class="dock-nav-btn bpm-step" data-delta="5">+5</button>
+            </div>
+            <div class="tools-inline">
+              <select id="time-signature" class="dock-select select-wide" title="Time signature">
+                <option value="4/4">4/4</option>
+                <option value="3/4">3/4</option>
+                <option value="6/8">6/8</option>
+              </select>
+              <button type="button" class="dock-nav-btn" id="start-metronome" title="Start">▶</button>
+              <button type="button" class="dock-nav-btn" id="stop-metronome" title="Stop" disabled>■</button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="dock-section">
-        <span class="dock-section-label">Tuner</span>
-        <div class="tools-row">
-          <select id="tuner-note" class="dock-select">${noteOptions}</select>
-          <select id="tuner-octave" class="dock-select select-wide">
-            <option value="3">oct 3</option>
-            <option value="4" selected>oct 4</option>
-            <option value="5">oct 5</option>
-          </select>
-          <button type="button" class="dock-nav-btn" id="play-note" title="Play note">♪</button>
-        </div>
-        <div class="tools-row">
-          <select id="tuner-string" class="dock-select select-wide">${stringOptions}</select>
-          <button type="button" class="dock-nav-btn" id="play-string" title="Play string">♪</button>
+        <div class="dock-section tools-block">
+          <span class="dock-section-label">Tuner</span>
+          <div class="tools-controls-col">
+            <div class="tools-inline">
+              <select id="tuner-note" class="dock-select">${noteOptions}</select>
+              <select id="tuner-octave" class="dock-select select-wide">
+                <option value="3">oct 3</option>
+                <option value="4" selected>oct 4</option>
+                <option value="5">oct 5</option>
+              </select>
+              <button type="button" class="dock-nav-btn" id="play-note" title="Play note">♪</button>
+            </div>
+            <div class="tools-inline">
+              <select id="tuner-string" class="dock-select select-wide">${stringOptions}</select>
+              <button type="button" class="dock-nav-btn" id="play-string" title="Play string">♪</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -151,7 +159,7 @@ export function renderToolsDock() {
     moduleId: 'tools',
   });
 
-  wireDockBarToggle(el, setExpanded, '.tools-row, .dock-nav-btn, .dock-select, .input-bpm, .bpm-step');
+  wireDockBarToggle(el, setExpanded, '.tools-stack, .dock-nav-btn, .dock-select, .input-bpm, .bpm-step');
 
   updateSummary();
   return el;

@@ -1,4 +1,3 @@
-import { escapeHtml } from '../utils.js';
 import {
   CHROMATIC,
   getChordNotes,
@@ -49,30 +48,34 @@ function pickChord(hub, chordsJson, notesJson, name) {
   hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson) });
 }
 
+function resolveDisplayChord(hub, chordsJson, byRoot, songChords) {
+  const layers = hub.getLayers().filter((l) => l.label !== 'manual');
+  const chordLayer = [...layers].reverse().find((l) => chordsJson[l.label]);
+  if (chordLayer) return chordLayer.label;
+
+  const root = hub.getRoot();
+  const songAtRoot = songChords.find((c) => resolveChordRoot(c, chordsJson[c]) === root);
+  if (songAtRoot) return songAtRoot;
+
+  const atRoot = byRoot[root] || [];
+  return atRoot[0] || '—';
+}
+
 export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
   const byRoot = groupChordsByRoot(chordsJson);
   const songChords = [...new Set((currentSong?.chords || '').split(/\s+/).filter(Boolean))].sort(musicalSort);
   const songSet = new Set(songChords);
 
-  const firstSongRoot = songChords.length
-    ? resolveChordRoot(songChords[0], chordsJson[songChords[0]])
-    : hub.getRoot();
-
   const el = document.createElement('div');
   el.id = 'chord-picker';
   el.className = 'chord-picker';
 
-  const rootOptions = CHROMATIC.map(
-    (n) => `<option value="${n}"${n === firstSongRoot ? ' selected' : ''}>${n}</option>`
-  ).join('');
-
   el.innerHTML = `
-    <div class="dock-module-bar">
-      <div class="dock-module-controls">
-        <select class="dock-select chord-picker-root" title="Root note">${rootOptions}</select>
+    <div class="dock-module-bar dock-module-bar--chord">
+      <div class="chord-picker-collapsed">
+        <span class="chord-picker-name dock-module-title">—</span>
+        <span class="chord-picker-meta dock-module-sub"></span>
       </div>
-      <div class="dock-module-strip chord-picker-strip" role="listbox" aria-label="Chords for selected root"></div>
-      <span class="dock-module-sub chord-picker-preview" aria-live="polite"></span>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
     <div class="dock-module-panel" hidden>
@@ -81,7 +84,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
         <div class="dock-chip-grid chord-picker-song-grid"></div>
       </div>
       <div class="dock-section">
-        <span class="dock-section-label">All at root</span>
+        <span class="dock-section-label chord-picker-root-label">At root</span>
         <div class="dock-chip-grid chord-picker-root-grid"></div>
       </div>
       <div class="dock-detail chord-picker-diagram">
@@ -100,9 +103,9 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
 
   ensureDockChrome(el, 'chords', 'Chord');
 
-  const rootSelect = el.querySelector('.chord-picker-root');
-  const strip = el.querySelector('.chord-picker-strip');
-  const preview = el.querySelector('.chord-picker-preview');
+  const nameEl = el.querySelector('.chord-picker-name');
+  const metaEl = el.querySelector('.chord-picker-meta');
+  const rootLabel = el.querySelector('.chord-picker-root-label');
   const songGrid = el.querySelector('.chord-picker-song-grid');
   const rootGrid = el.querySelector('.chord-picker-root-grid');
   const diagramName = el.querySelector('.chord-picker-diagram-name');
@@ -110,16 +113,11 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
   const diagramFrets = el.querySelector('.chord-picker-frets');
   const diagramNotes = el.querySelector('.chord-picker-notes');
 
-  function makeChip(name, { compact = false } = {}) {
+  function makeChip(name) {
     const inSong = songSet.has(name);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = [
-      'dock-chip',
-      'fb-selectable',
-      compact ? 'is-compact' : '',
-      inSong ? 'is-song' : '',
-    ].filter(Boolean).join(' ');
+    btn.className = ['dock-chip', 'fb-selectable', inSong ? 'is-song' : ''].filter(Boolean).join(' ');
     btn.dataset.chord = name;
     btn.dataset.label = name;
     btn.title = inSong ? `${name} (in current song)` : `Show ${name} on fretboard`;
@@ -131,20 +129,20 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
     return btn;
   }
 
-  function renderChips(container, names, { compact = false } = {}) {
+  function renderChips(container, names) {
     container.replaceChildren();
     for (const name of names) {
-      container.appendChild(makeChip(name, { compact }));
+      container.appendChild(makeChip(name));
     }
   }
 
   function updateDiagram(name) {
-    if (!name || !chordsJson[name]) {
+    if (!name || name === '—' || !chordsJson[name]) {
       diagramName.textContent = '—';
       diagramType.textContent = '';
       diagramFrets.textContent = '—';
       diagramNotes.textContent = '';
-      preview.textContent = '';
+      metaEl.textContent = '';
       return;
     }
     const data = chordsJson[name];
@@ -153,44 +151,28 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
     diagramType.textContent = data.type ? data.type : '';
     diagramFrets.textContent = frets.join(' ');
     diagramNotes.textContent = notes;
-    preview.textContent = frets.join('·');
+    const typeBit = data.type ? `${data.type} · ` : '';
+    metaEl.textContent = `${typeBit}${frets.join(' ')}`;
   }
 
-  function refreshRootUI() {
-    const root = rootSelect.value;
+  function refreshUI() {
+    const root = hub.getRoot();
     const names = byRoot[root] || [];
-    renderChips(strip, names, { compact: true });
+    rootLabel.textContent = `At ${root}`;
     renderChips(rootGrid, names);
     renderChips(songGrid, songChords);
-    syncActive();
-  }
-
-  function syncActive() {
     syncChipLayers(hub, el);
-    const layers = hub.getLayers().filter((l) => l.label !== 'manual');
-    const top = layers[layers.length - 1];
-    updateDiagram(top && chordsJson[top.label] ? top.label : null);
+
+    const displayName = resolveDisplayChord(hub, chordsJson, byRoot, songChords);
+    nameEl.textContent = displayName;
+    updateDiagram(displayName);
   }
 
   const { setExpanded } = wireDockExpand(el, { bodyClass: 'chord-picker-expanded', moduleId: 'chords' });
-  wireDockBarToggle(el, setExpanded, '.dock-module-controls, .dock-module-strip, .dock-chip, .dock-select');
+  wireDockBarToggle(el, setExpanded, '.dock-chip, .chord-picker-collapsed');
 
-  rootSelect.addEventListener('change', refreshRootUI);
-  rootSelect.addEventListener('click', (e) => e.stopPropagation());
+  hub.subscribe(refreshUI);
+  refreshUI();
 
-  hub.subscribe(() => {
-    syncActive();
-    const layers = hub.getLayers().filter((l) => l.label !== 'manual');
-    const chordLayer = [...layers].reverse().find((l) => chordsJson[l.label]);
-    if (chordLayer) {
-      const root = resolveChordRoot(chordLayer.label, chordsJson[chordLayer.label]);
-      if (rootSelect.value !== root) {
-        rootSelect.value = root;
-        refreshRootUI();
-      }
-    }
-  });
-
-  refreshRootUI();
   return el;
 }

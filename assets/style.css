@@ -728,16 +728,12 @@ th {
     max-width: 280px;
 }
 
-.dock-module-bar--stacked {
+.dock-module-bar--chord {
     min-height: var(--dock-bar-stacked-h);
     align-items: center;
 }
 
-.dock-module-bar--root {
-    cursor: default;
-}
-
-.now-playing-info {
+.chord-picker-collapsed {
     flex: 1;
     min-width: 0;
     display: flex;
@@ -746,22 +742,48 @@ th {
     padding: 4px 0;
 }
 
-.dock-module--now-playing .now-playing-info .dock-module-title {
-    white-space: normal;
+.chord-picker-name {
+    white-space: nowrap;
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    line-height: 1.2;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 
-.dock-module--now-playing .now-playing-info .dock-module-sub {
-    white-space: normal;
+.chord-picker-meta {
+    flex: unset;
+    white-space: nowrap;
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    line-height: 1.2;
+    text-overflow: ellipsis;
+    width: 100%;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 0.65em;
+}
+
+.dock-module-bar--now-playing {
+    min-height: var(--dock-bar-stacked-h);
+    align-items: center;
+}
+
+.dock-module-bar--now-playing .dock-module-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.dock-module-bar--now-playing .dock-module-title {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.dock-module-bar--now-playing .dock-module-sub {
+    display: block;
+    flex: unset;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 
 .dock-root-strip {
@@ -780,16 +802,39 @@ th {
     padding: 2px 5px;
 }
 
-.tools-row {
+.dock-module-bar--root {
+    cursor: default;
+}
+
+.tools-panel {
+    padding: var(--space-sm);
+}
+
+.tools-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+    width: 100%;
+}
+
+.tools-block {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.tools-controls-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+}
+
+.tools-inline {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-xs);
-    margin-bottom: var(--space-xs);
-}
-
-.tools-row:last-child {
-    margin-bottom: 0;
 }
 
 .input-bpm {
@@ -991,13 +1036,6 @@ body.has-bottom-dock.tools-expanded {
     margin-bottom: var(--space-xs);
 }
 
-.chord-picker-preview {
-    font-family: Consolas, 'Courier New', monospace;
-    font-size: 0.65em;
-    letter-spacing: 0.05em;
-    max-width: 5em;
-}
-
 .chords-notes-split {
     display: flex;
     gap: var(--space-md);
@@ -1038,7 +1076,7 @@ body.has-bottom-dock.tools-expanded {
     }
 
     .fretboard-drawer-summary,
-    .chord-picker-preview {
+    .chord-picker-meta {
         display: none;
     }
 }

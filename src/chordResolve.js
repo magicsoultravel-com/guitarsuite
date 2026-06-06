@@ -1,4 +1,10 @@
 import { getChordNotes, getTheoryNotes, normalizePitch } from './music.js';
+import {
+  commitRoot,
+  commitRootFromChord,
+  getDisplayRoot,
+  inferRootFromChord,
+} from './displayRoot.js';
 
 /** @typedef {{ label: string, chordRef: string|null, variant: object|null, notes: string[], source: 'database'|'theory'|'triad', via?: string }} ResolvedChord */
 
@@ -36,6 +42,7 @@ export function getVoicedChord(variant, notesJson) {
 }
 
 export function symbolFromTheory(theoryType, root, chordsTheory) {
+  if (!root) return null;
   const data = chordsTheory?.[theoryType];
   if (!data?.short) return null;
   return root + data.short.slice(1);
@@ -56,6 +63,7 @@ export function resolveChord(opts) {
   }
 
   if (theoryType && chordsTheory?.[theoryType]) {
+    if (!root) return null;
     const sym = symbolFromTheory(theoryType, root, chordsTheory);
     if (sym && chordsJson?.[sym]?.variant1) {
       const variant = chordsJson[sym].variant1;
@@ -152,6 +160,14 @@ export function makeChordContext(chordsJson, notesJson, chordsTheory) {
 }
 
 export function pickChord(hub, ctx, playFns, opts) {
+  if (opts.chordName) {
+    commitRootFromChord(hub, opts.chordName, ctx.chordsJson);
+  } else if (opts.theoryType) {
+    commitRoot(hub, getDisplayRoot(hub));
+  } else if (opts.symbol) {
+    commitRoot(hub, inferRootFromChord(opts.symbol, ctx.chordsJson) || getDisplayRoot(hub));
+  }
+
   const root = hub.getRoot();
   const resolved = resolveChord({ root, ...ctx, ...opts });
   toggleResolvedChord(hub, resolved, { ...ctx, theoryType: opts.theoryType ?? null }, playFns);

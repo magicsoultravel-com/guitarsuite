@@ -1,3 +1,4 @@
+import { getDisplayRoot } from '../displayRoot.js';
 import {
   CHROMATIC,
   getChordNotes,
@@ -63,11 +64,11 @@ function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot, songChords) 
   const chordLayer = [...layers].reverse().find((l) => l.chordRef || chordsJson[l.label] || chordsTheory?.[l.label] || l.via);
   if (chordLayer) return chordLayer.chordRef || chordLayer.label;
 
-  const root = hub.getRoot();
-  const songAtRoot = songChords.find((c) => resolveChordRoot(c, chordsJson[c]) === root);
+  const preview = getDisplayRoot(hub);
+  const songAtRoot = songChords.find((c) => resolveChordRoot(c, chordsJson[c]) === preview);
   if (songAtRoot) return songAtRoot;
 
-  const atRoot = byRoot[root] || [];
+  const atRoot = byRoot[preview] || [];
   return atRoot[0] || null;
 }
 
@@ -86,7 +87,7 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
     return `${layer.chordRef} · ${layer.via} · ${notes || frets.join(' ')}`;
   }
   if (chordsTheory?.[name]) {
-    const root = hub.getRoot();
+    const root = getDisplayRoot(hub);
     const data = chordsTheory[name];
     const short = data.short ? root + data.short.slice(1) : name;
     const notes = getTheoryNotes(root, data.intervals).join(' · ');
@@ -189,7 +190,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
       return;
     }
     if (chordsTheory[name]) {
-      const root = hub.getRoot();
+      const root = getDisplayRoot(hub);
       const data = chordsTheory[name];
       const notes = getTheoryNotes(root, data.intervals).join(' · ');
       diagramName.textContent = data.short ? root + data.short.slice(1) : name;
@@ -212,7 +213,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
   }
 
   function refreshUI() {
-    const root = hub.getRoot();
+    const root = getDisplayRoot(hub);
     const names = byRoot[root] || [];
     rootLabel.textContent = `At ${root}`;
     renderChips(rootGrid, names);

@@ -22,7 +22,7 @@ export function renderRootModule(hub) {
   function syncRoot() {
     const root = hub.getRoot();
     el.querySelectorAll('.root-chip').forEach((chip) => {
-      const active = chip.dataset.root === root;
+      const active = root && chip.dataset.root === root;
       chip.classList.toggle('fb-active', active);
       chip.classList.toggle('is-root-active', active);
     });

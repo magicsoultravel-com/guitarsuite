@@ -1,5 +1,6 @@
 import { playPitch } from './audio.js';
 import { getVoicedChord } from './chordResolve.js';
+import { DEFAULT_DISPLAY_ROOT } from './displayRoot.js';
 import {
   getScaleNotesWithOctaves,
   getTheoryNotes,
@@ -140,7 +141,7 @@ export function playVoicedChord(variant, notesJson) {
 }
 
 export function playScale(root, steps) {
-  const entries = getScaleNotesWithOctaves(root, steps, GUITAR_OCTAVE, GUITAR_OCTAVE_HIGH);
+  const entries = getScaleNotesWithOctaves(root || DEFAULT_DISPLAY_ROOT, steps, GUITAR_OCTAVE, GUITAR_OCTAVE_HIGH);
   runPitchOctaveSequence(entries, 130);
 }
 

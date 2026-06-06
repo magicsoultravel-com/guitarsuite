@@ -6,8 +6,8 @@ function normalizedSet(notes) {
   return new Set(notes.map(normalizePitch).filter(Boolean));
 }
 
-export function createFretboardHub(initialRoot = 'C') {
-  let root = normalizePitch(initialRoot) || 'C';
+export function createFretboardHub(initialRoot = '') {
+  let root = normalizePitch(initialRoot) || '';
   /** @type {Array<object|null>} */
   let layers = [null, null, null];
   /** @type {string|null} */
@@ -167,7 +167,7 @@ export function createFretboardHub(initialRoot = 'C') {
     },
 
     setRoot(newRoot) {
-      root = normalizePitch(newRoot) || 'C';
+      root = normalizePitch(newRoot) || '';
       notify();
     },
 
@@ -223,5 +223,5 @@ export function formatLayerSummary(hub) {
   if (labels.length) return labels.join(' · ');
   const manual = hub.getLayers().find((l) => l.label === 'manual');
   if (manual) return [...manual.notes].join(', ');
-  return `Root ${hub.getRoot()}`;
+  return `Root ${hub.getRoot() || '—'}`;
 }

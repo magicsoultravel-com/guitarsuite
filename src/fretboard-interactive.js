@@ -1,3 +1,4 @@
+import { getDisplayRoot, commitRoot } from './displayRoot.js';
 import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes, getDiatonicTriads, resolveProgressionChords } from './music.js';
 import { getShapeFrets, makeChordContext, pickChord } from './chordResolve.js';
 import {
@@ -70,7 +71,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
     }
 
     fretboardTable.querySelectorAll('td.fb-cell').forEach((cell) => {
-      if (cellPitch(cell) === root) cell.classList.add('fb-root');
+      if (root && cellPitch(cell) === root) cell.classList.add('fb-root');
     });
 
     if (fretNotationDisplay) {
@@ -114,6 +115,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
     const pitch = cellPitch(cell);
     if (!pitch) return;
     hub.toggleNote(pitch);
+    if (!hub.getRoot()) commitRoot(hub, pitch);
     playFretNote(cell.dataset.string, cell.dataset.fret, pitch);
   });
 
@@ -170,10 +172,10 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
   const tbody = sectionEl.querySelector('#chords-theory-body');
   if (!tbody) return;
 
-  let lastRoot = hub.getRoot();
+  let lastDisplayRoot = getDisplayRoot(hub);
 
   function renderRows() {
-    const root = hub.getRoot();
+    const root = getDisplayRoot(hub);
     tbody.innerHTML = '';
 
     for (const [type, data] of Object.entries(chordsTheory)) {
@@ -207,9 +209,9 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
   }
 
   hub.subscribe(() => {
-    const currentRoot = hub.getRoot();
-    if (currentRoot !== lastRoot) {
-      lastRoot = currentRoot;
+    const currentRoot = getDisplayRoot(hub);
+    if (currentRoot !== lastDisplayRoot) {
+      lastDisplayRoot = currentRoot;
       renderRows();
     } else {
       updateActiveMarkers(hub);
@@ -222,6 +224,7 @@ export function wireScalesTheory(hub, scales, sectionEl) {
   sectionEl.querySelectorAll('.fb-scale-row').forEach((row) => {
     row.title = 'Click to highlight on fretboard (up to 3 layers)';
     row.addEventListener('click', () => {
+      commitRoot(hub, getDisplayRoot(hub));
       const name = row.dataset.scale;
       const steps = JSON.parse(row.dataset.steps || '[]');
       hub.toggleSelection({ label: name, resolve: (r) => getScaleNotes(r, steps), family: 'scale' });
@@ -325,7 +328,7 @@ export function wireScaleProgressions(hub, scales, sectionEl) {
   if (!rows.length) return;
 
   function render() {
-    const root = hub.getRoot();
+    const root = getDisplayRoot(hub);
     if (rootEl) rootEl.textContent = root;
 
     for (const row of rows) {
@@ -347,6 +350,7 @@ export function wireGenreTheory(hub, scales, sectionEl) {
     if (!data?.steps) return;
 
     chip.addEventListener('click', () => {
+      commitRoot(hub, getDisplayRoot(hub));
       hub.toggleSelection({
         label: name,
         resolve: (r) => getScaleNotes(r, data.steps),

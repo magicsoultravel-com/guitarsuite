@@ -68,10 +68,14 @@ export function renderSelectionPanel(hub, context = {}) {
 
   el.querySelector('.selection-reset')?.addEventListener('click', () => hub.reset());
 
-  rootEl.addEventListener('click', () => playNote(hub.getRoot()));
+  rootEl.addEventListener('click', () => {
+    const root = hub.getRoot();
+    if (root) playNote(root);
+  });
 
   function render() {
-    rootEl.textContent = `Root: ${hub.getRoot()}`;
+    const root = hub.getRoot();
+    rootEl.textContent = root ? `Root: ${root}` : 'Root: —';
     const layers = hub.getLayers();
     listEl.replaceChildren();
 

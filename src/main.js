@@ -25,7 +25,7 @@ renderFooter(document.getElementById('site-footer'));
 
 const params = new URLSearchParams(location.search);
 let songIndex = parseInt(params.get('songIndex') || '0', 10);
-const initialRoot = params.get('root') || 'C';
+const initialRoot = params.has('root') ? (params.get('root') || '') : '';
 
 try {
   const [

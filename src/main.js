@@ -1,6 +1,6 @@
 import { fetchJson, renderFooter } from './utils.js';
 import { asset } from './paths.js';
-import { renderSongBook } from './sections/songBook.js';
+import { renderNowPlaying } from './sections/songBook.js';
 import { renderChordsSheet } from './sections/chordsSheet.js';
 import { renderMusicalNotes } from './sections/musicalNotes.js';
 import { renderFretboard } from './sections/fretboard.js';
@@ -59,8 +59,7 @@ try {
 
   initFretboardSidebar();
 
-  const { section: songSection, currentSong } = renderSongBook(songs, chords, songIndex);
-  app.appendChild(songSection);
+  const { currentSong } = renderNowPlaying(songs, chords, songIndex);
   app.appendChild(renderChordsSheet(currentSong, chords));
   app.appendChild(renderMusicalNotes(currentSong, chords, notes));
 

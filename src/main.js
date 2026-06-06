@@ -13,7 +13,7 @@ import { renderGallery } from './sections/gallery.js';
 import { renderContentDock } from './sections/contentDock.js';
 import { renderSelectionFooter } from './sections/selectionFooter.js';
 import { createFretboardHub } from './fretboardHub.js';
-import { applyModulesState, collectModulesState } from './dockModule.js';
+import { applyModulesState, collectDockOrders, collectModulesState } from './dockModule.js';
 import { initSessionPersistence, restoreSession } from './sessionState.js';
 import { getUserZoom, initWorkspace } from './workspaceLayout.js';
 import {
@@ -118,7 +118,7 @@ try {
   wireGenreTheory(hub, scales, genres, document.getElementById('genre-theory-section'));
 
   restoreSession(applyModulesState);
-  initSessionPersistence(collectModulesState, getUserZoom);
+  initSessionPersistence(collectModulesState, getUserZoom, collectDockOrders);
 } catch (err) {
   document.getElementById('app').innerHTML = `<div class="section"><h2>Error</h2><p>${err.message}</p></div>`;
   console.error(err);

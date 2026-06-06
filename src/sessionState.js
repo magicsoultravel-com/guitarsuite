@@ -27,15 +27,17 @@ export function isRestoring() {
 }
 
 /** Call after the user changes layout (expand, drag, collapse all, etc.). */
-export function touchSession(modules, zoom = null) {
+export function touchSession(modules, zoom = null, dockOrders = null) {
   if (restoring) return;
   sessionActive = true;
-  writeSession({
+  const payload = {
     initialized: true,
     modules,
     zoom,
     savedAt: Date.now(),
-  });
+  };
+  if (dockOrders) payload.dockOrders = dockOrders;
+  writeSession(payload);
 }
 
 export function restoreSession(applyModules) {
@@ -45,15 +47,15 @@ export function restoreSession(applyModules) {
   sessionActive = true;
   restoring = true;
   try {
-    applyModules(data.modules, data.zoom ?? 1);
+    applyModules(data.modules, data.zoom ?? 1, data.dockOrders ?? {});
   } finally {
     restoring = false;
   }
 }
 
-export function initSessionPersistence(collectModules, getZoom = () => 1) {
+export function initSessionPersistence(collectModules, getZoom = () => 1, collectDockOrders = () => ({})) {
   window.addEventListener('beforeunload', () => {
     if (!sessionActive && !isSessionInitialized()) return;
-    touchSession(collectModules(), getZoom());
+    touchSession(collectModules(), getZoom(), collectDockOrders());
   });
 }

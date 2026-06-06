@@ -81,6 +81,13 @@ body.has-selection-footer {
     padding-bottom: calc(44px + var(--space-sm) * 3);
 }
 
+.viewport-root {
+    transform-origin: top center;
+    transition: transform 0.22s ease-out;
+    width: 100%;
+    min-height: 100vh;
+}
+
 body.focus-modules header,
 body.focus-modules .site-layout {
     visibility: hidden;
@@ -932,7 +939,6 @@ body.has-selection-footer .content-dock {
     bottom: calc(44px + var(--space-sm) * 3);
     z-index: 90;
     pointer-events: none;
-    transform-origin: top center;
     overflow: visible;
 }
 
@@ -941,8 +947,7 @@ body.has-selection-footer .content-dock {
     z-index: 1;
     margin: 0;
     flex-shrink: 0;
-    width: var(--dock-width, 268px);
-    max-height: calc(100vh - 80px);
+    min-width: 220px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -955,7 +960,24 @@ body.has-selection-footer .content-dock {
     min-height: 0;
     overflow-x: auto;
     overflow-y: auto;
-    max-height: min(520px, 72vh);
+    max-height: none;
+}
+
+.dock-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    z-index: 2;
+    background: linear-gradient(135deg, transparent 50%, var(--color-accent-dim) 50%);
+    border-bottom-right-radius: var(--radius);
+    opacity: 0.75;
+}
+
+.dock-resize-handle:hover {
+    opacity: 1;
 }
 
 .dock-module--fretboard .dock-module-panel,
@@ -966,13 +988,6 @@ body.has-selection-footer .content-dock {
 
 .dock-module--content .dock-module-panel {
     max-height: min(320px, 42vh);
-}
-
-#module-canvas .dock-module--fretboard .dock-module-panel,
-#module-canvas .dock-module--content .dock-module-panel,
-#module-canvas .dock-module--chords .dock-module-panel,
-#module-canvas .dock-module--tools .dock-module-panel {
-    max-height: min(520px, 72vh);
 }
 
 .dock-module-bar {

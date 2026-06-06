@@ -50,7 +50,7 @@ export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
     }
 
     if (!silent && el.classList.contains('is-floating')) {
-      requestAnimationFrame(() => updateWorkspaceZoom());
+      requestAnimationFrame(() => resizeCanvasToContent());
     }
     if (!silent) notifySessionChange();
   }
@@ -122,7 +122,7 @@ function floatModule(mod, dockEl) {
   canvas.appendChild(mod);
 }
 
-function expandFloatingModule(mod, { keepPosition = false, adjustZoom = true } = {}) {
+function expandFloatingModule(mod, { keepPosition = false } = {}) {
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
   setExpanded?.(true, { silent: true });
   mod.classList.remove('is-float-preview');
@@ -138,10 +138,10 @@ function expandFloatingModule(mod, { keepPosition = false, adjustZoom = true } =
   if (keepPosition && hasPosition) {
     mod.style.left = `${prevLeft}px`;
     mod.style.top = `${prevTop}px`;
-    commitModulePosition(mod, { adjustZoom });
+    commitModulePosition(mod);
   } else {
     findInitialPosition(mod);
-    commitModulePosition(mod, { adjustZoom });
+    commitModulePosition(mod);
   }
   notifySessionChange();
 }
@@ -434,14 +434,12 @@ function wireModuleDrag(mod, dockEl) {
         const dockRect = dockEl.getBoundingClientRect();
         if (e.clientX > dockRect.right + 8) {
           if (isBarOnlyModule(mod)) finalizeBarFloat();
-          else expandFloatingModule(mod, { keepPosition: true, adjustZoom: false });
-          requestAnimationFrame(() => updateWorkspaceZoom());
+          else expandFloatingModule(mod, { keepPosition: true });
         } else {
           redock(mod, dockEl);
         }
       } else {
-        commitModulePosition(mod, { adjustZoom: false });
-        requestAnimationFrame(() => updateWorkspaceZoom());
+        commitModulePosition(mod);
         notifySessionChange();
       }
     }
@@ -471,8 +469,7 @@ function isBarOnlyModule(mod) {
 
 function finalizeBarFloat(mod) {
   mod.classList.remove('is-float-preview');
-  commitModulePosition(mod, { adjustZoom: false });
-  requestAnimationFrame(() => updateWorkspaceZoom());
+  commitModulePosition(mod);
   notifySessionChange();
 }
 

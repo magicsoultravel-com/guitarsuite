@@ -4,7 +4,6 @@ const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.05;
 export const ZOOM_TRANSITION_MS = 220;
-const OVERFLOW_TOLERANCE = 8;
 
 export const MODULE_ORDER = [
   'root',
@@ -129,7 +128,6 @@ export function expandedFloatingModules() {
 
 export function pointerToCanvasLocal(canvas, clientX, clientY) {
   const scale = effectiveZoom || 1;
-  const canvasEl = canvas || ensureModuleCanvas();
   const scroll = ensureWorkspaceScroll();
   const scrollRect = scroll.getBoundingClientRect();
   return {
@@ -296,51 +294,17 @@ export function resolveOverlapForModule(mod) {
   mod.style.top = `${snap(Math.max(0, top))}px`;
 }
 
-/** Snap position and refresh canvas + zoom — never repositions other tiles. */
-export function commitModulePosition(mod, { adjustZoom = true } = {}) {
+/** Snap position and grow scroll canvas — never changes zoom. */
+export function commitModulePosition(mod) {
   mod.style.left = `${snap(Math.max(0, parseInt(mod.style.left, 10) || 0))}px`;
   mod.style.top = `${snap(Math.max(0, parseInt(mod.style.top, 10) || 0))}px`;
   resizeCanvasToContent();
-  if (adjustZoom) updateWorkspaceZoom();
 }
 
-function measureViewportOverflow() {
-  const root = ensureViewportRoot();
-  const scroll = document.getElementById('workspace-scroll');
-  let maxRight = root.clientWidth;
-  let maxBottom = root.clientHeight;
-
-  if (scroll) {
-    maxRight = Math.max(maxRight, scroll.offsetLeft + scroll.scrollWidth);
-    maxBottom = Math.max(maxBottom, scroll.offsetTop + scroll.scrollHeight);
-    for (const mod of expandedFloatingModules()) {
-      const box = moduleBox(mod);
-      maxRight = Math.max(maxRight, scroll.offsetLeft + box.right + DOCK_GAP);
-      maxBottom = Math.max(maxBottom, scroll.offsetTop + box.bottom + DOCK_GAP);
-    }
-  }
-
-  return {
-    maxRight,
-    maxBottom,
-    viewW: root.clientWidth,
-    viewH: root.clientHeight,
-  };
-}
-
-/** Auto shrink only — never zoom in above 100%. */
-function computeAutoFitZoom() {
-  const { maxRight, maxBottom, viewW, viewH } = measureViewportOverflow();
-  const overflowW = maxRight - viewW;
-  const overflowH = maxBottom - viewH;
-  if (overflowW <= OVERFLOW_TOLERANCE && overflowH <= OVERFLOW_TOLERANCE) return 1;
-  return Math.min(1, (viewW / maxRight) * 0.99, (viewH / maxBottom) * 0.99);
-}
-
+/** Apply the user's zoom level and refresh canvas size. No auto-fit. */
 export function updateWorkspaceZoom() {
   resizeCanvasToContent();
-  const autoFit = computeAutoFitZoom();
-  applyPageZoom(Math.min(userZoom, autoFit));
+  applyPageZoom(userZoom);
 }
 
 export function getDefaultDockOrder() {

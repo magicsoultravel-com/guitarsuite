@@ -1,0 +1,221 @@
+/* Universal Box-Sizing */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* --- Body (Existing) --- */
+body {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #FFF;
+}
+
+/* --- GLOBAL HEADING STYLES --- */
+h1, h2, h3, h4, h5, h6 {
+    font-family: sans-serif;
+    color: #00ff00;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: 2.8em;
+    font-weight: 300;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+h2 {
+    font-size: 1.8em;
+    font-weight: 300;
+    text-align: left;
+    letter-spacing: 2px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #00ffff;
+}
+
+/* --- GLOBAL PARAGRAPH STYLES --- */
+p {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+/* --- Header --- */
+header {
+    background-color: rgba(26, 26, 26, 0.9);
+    padding: 20px;
+    text-align: center;
+    margin: 0 auto 20px auto;
+    max-width: 1000px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid #333;
+}
+
+
+/* --- Main Container --- */
+.main-container {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 0;
+}
+
+/* --- Sections --- */
+.section {
+    background-color: rgba(26, 26, 26, 0.9);
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow-x: auto;
+}
+
+/* --- Footer --- */
+footer {
+    background-color: rgba(26, 26, 26, 0.9);
+    color: #AAA;
+    padding: 20px;
+    text-align: center;
+    margin: 20px auto 0 auto;
+    font-size: 0.9em;
+    max-width: 1000px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid #333;
+}
+
+/* --- General Link Styling for Dark Theme --- */
+a {
+    color: #87CEEB;
+    text-decoration: none;
+    transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+
+a:hover {
+    color: #4682B4;
+    text-decoration: underline;
+}
+
+a:active {
+    color: #ADD8E6;
+}
+
+a:visited {
+    color: #9370DB;
+}
+
+a:focus {
+    outline: 2px solid #00BFFF;
+    outline-offset: 2px;
+}
+
+p a {
+    text-decoration: underline;
+}
+p a:hover {
+    text-decoration: none;
+}
+
+/* --- GENERAL TABLE STYLES --- */
+/* These styles apply to ALL <table> elements */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+/* These styles apply to ALL <th> and <td> elements */
+th, td {
+    padding: 8px;
+    border: 1px solid #CCCCCC; /* light grey */
+    text-align: center;
+}
+
+/* These styles apply to ALL <th> elements specifically */
+th {
+    background-color: lightgray;
+    font-weight: bold;
+    color: #000;
+}
+
+
+
+/* Style for the currently selected cell within the fretboard table */
+#fretboard-table td.selected { /* Uses ID for high specificity */
+    background-color: #00ff00; /* Bright green for selected note */
+    color: #000; /* Black text on green background */
+    font-weight: bold;
+    border: 2px solid #00ffff; /* A more prominent border */
+    transform: scale(1.1); /* Slightly enlarge the selected cell */
+    transition: all 0.1s ease-in-out; /* Smooth transition for visual feedback */
+    z-index: 2; /* Bring it slightly to the front */
+    position: relative; /* Needed for z-index to work */
+}
+
+/* Style for cells containing the same note as the selected one within the fretboard table */
+/* NOW MATCHES .selected style */
+#fretboard-table td.highlighted { /* Uses ID for high specificity */
+    background-color: #00ff00; /* Bright green for highlighted notes */
+    color: #000; /* Black text on green background */
+    font-weight: bold;
+    border: 2px solid #00ffff; /* A more prominent border */
+    transform: scale(1.1); /* Slightly enlarge the selected cell */
+    transition: all 0.1s ease-in-out; /* Smooth transition for visual feedback */
+    z-index: 2; /* Bring it slightly to the front */
+    position: relative; /* Needed for z-index to work */
+}
+
+/* Optional: Subtle hover effect for all notes within the fretboard table */
+#fretboard-table td:hover {
+    background-color: rgba(60, 60, 60, 0.7);
+    cursor: pointer;
+}
+
+/* Ensure string column text remains visible within the fretboard table 
+#fretboard-table td strong {
+    color: inherit;
+}*/
+ .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+    /* ORIGINAL: width: 500px; */
+    /* MODIFIED: Use percentages for flexible width */
+    width: 80%; /* Takes 80% of the screen width */
+    max-width: 800px; /* But doesn't get wider than 800px on large screens */
+    /* ORIGINAL: max-width: 90%; */
+}
+
+.modal-textarea {
+    width: 100%;
+    height: 1000px; /* Or whatever height you prefer */
+    padding: 10px;
+    box-sizing: border-box;
+    min-height: 200px; /* Ensures a minimum height even if resized small */
+    /* ----- FIX HERE ----- */
+    /* If you want to resize both horizontally and vertically (default): */
+    resize: both; 
+    /* OR, if you only want to allow vertical resizing: */
+    /* resize: vertical; */
+
+    /* Make sure you DON'T have `resize: none;` or `resize: horizontal;` here. */
+}

@@ -1,0 +1,42 @@
+{
+  "Ionian": {
+    "alter": "major",
+    "steps": [2, 2, 1, 2, 2, 2, 1]
+  },
+  "Dorian": {
+    "alter": "minor",
+    "steps": [2, 1, 2, 2, 2, 1, 2]
+  },
+  "Phrygian": {
+    "alter": "minor",
+    "steps": [1, 2, 2, 2, 1, 2, 2]
+  },
+  "Lydian": {
+    "alter": "major",
+    "steps": [2, 2, 2, 1, 2, 2, 1]
+  },
+  "Mixolydian": {
+    "alter": "major",
+    "steps": [2, 2, 1, 2, 2, 1, 2]
+  },
+  "Aeolian": {
+    "alter": "minor",
+    "steps": [2, 1, 2, 2, 1, 2, 2]
+  },
+  "Locrian": {
+    "alter": "diminished",
+    "steps": [1, 2, 2, 1, 2, 2, 2]
+  },
+  "Harmonic Minor": {
+    "alter": "minor",
+    "steps": [2, 1, 2, 2, 1, 3, 1]
+  },
+  "Melodic Minor": {
+    "alter": "minor",
+    "steps": [2, 1, 2, 2, 2, 2, 1]
+  },
+  "Major Pentatonic": {
+    "alter": "major",
+    "steps": [2, 2, 3, 2, 3]
+  }
+}

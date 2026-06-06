@@ -1,0 +1,146 @@
+[
+    {
+        "id": 1,
+        "title": "The Loco-Motion",
+        "artist": "Little Eva",
+        "chords": "D Bm D Bm D Bm G Em G E D A D D G D A D Bm D Bm D Bm D Bm G Em G E D A D D G D A D Bm D Bm D Bm D Bm G Em G E D A D D G D G D G D",
+        "genre": "Rock",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 2,
+        "title": "Yesterday",
+        "artist": "The Beatles",
+        "chords": "F Em7 A7 Dm7 G7 C Cmaj7",
+        "genre": "Rock",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 3,
+        "title": "Stairway to Heaven",
+        "artist": "Led Zeppelin",
+        "chords": "Am Ammaj9 Am7 D\/F# Fmaj7 G Am Am Ammaj9 Am7 D\/F# Fmaj7 G Am C D Fmaj7 Am C G D C D Fmaj7 Am C D Fmaj7 Am Ammaj9 Am7 D\/F# Fmaj7 G Am Am Ammaj9 Am7 D\/F# Fmaj7 G Am C D\/F# Fmaj7 Am C G D C D Fmaj7 Am C D Fmaj7 Am Ammaj9 Am7 D\/F# Fmaj7 G Am Am Ammaj9 Am7 D\/F# Fmaj7 G Am Am7 D Am7 Em\/D D C\/D D Am7 D Am7 Em\/D D C\/D D C G Am C G Fmaj7 Am C G Am C G Fmaj7 Am C G Dsus4 D C Dsus4 D C C\/B A C\/G Fmaj7 Am C\/G Fmaj7 A C\/G Fmaj7 Am C\/G Fmaj7 A C\/G Fmaj7 Am C\/G Fmaj7 A C\/G Fmaj7 Am C\/G Fmaj7 A C\/G Fmaj7 Am C\/G Fmaj7 Am G F Am G F Am G F Am G F Am G F Am G F Am G F Am G F Am G F A C\/G Fmaj7 Am C\/G Fmaj7 Fmaj7",
+        "genre": "Rock",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 4,
+        "title": "Historia z\u0142ego sternika",
+        "artist": "Stara Ku\u017ania",
+        "chords": "Em D Em Em D Em Em D G D Em D Em Em D Em Em D Em Em D Em Em D G D C G Am B7 Em G D G D Em B7 Am B7 Em G D G D Em B7 Am B7 Em Em D Em",
+        "genre": "Shanty",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 6,
+        "title": "Jejku, jejku",
+        "artist": "Jerzy Por\u0119bski",
+        "chords": "Am Em Am Dm Am Em Am Am Em Am Dm Am Em Am Am Em Am Em Am Em Am Em Am Em Am Em Am Em Am Em C G7 C Dm Am Em Am Em Am Em Am Dm Am Em Am Am Em Am Dm Am Em Am",
+        "genre": "Shanty",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 7,
+        "title": "Gdzie ta keja",
+        "artist": "Jerzy Por\u0119bski",
+        "chords": "Am G Am C G7 C Gm A7 Dm A7 Dm Am G Am Am G Am C G7 C C7 Gm A7 Dm A7 Dm Am G Am",
+        "genre": "Shanty",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 8,
+        "title": "Przechy\u0142y",
+        "artist": "Szanty",
+        "chords": "Em D Em Em D Em Am D Em Am B7 Em Am D Em Am D Em Am D Em Am B7 Em",
+        "genre": "Shanty",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 9,
+        "title": "Morze Moje Morze",
+        "artist": "EKT Gdynia",
+        "chords": "Dm A Dm C F C F Gm C F Gm Dm A Dm Gm C F Gm Dm A Dm",
+        "genre": "Shanty",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 10,
+        "title": "Ch\u0142opcy \u017ali",
+        "artist": "Alosza Awdiejew",
+        "chords": "Cm Gm F7 B A Ab G Cm Gm D7 Gm D7 Gm Gm Cm F B Cm Gm A7 D7 Gm Cm F7 B A Ab Cm Gm F Fm G7 Cm Gm A7 D7 Gm D7",
+        "genre": "Folk",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 11,
+        "title": "Szkuner I'm Alone",
+        "artist": "Szanty",
+        "chords": "Em G D Am7 Em Em G D Am Em C G Am B7 C G B7 Em Am Em",
+        "genre": "Shanty",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 12,
+        "title": "We Are The Champions Chords",
+        "artist": "Queen",
+        "chords": "Cm Gm7\/C Cm Gm7\/C Cm Gm7\/C Cm Gm7\/C Eb Ab\/Eb Eb Ab\/Eb Eb Bb\/D Cm F7 Bb Ab\/Bb Bbm7b5 Bb7 C7 F Am Dm Bb C7 F Am Bb F#dim7 Gm7 C7\/G Bbm6 Bbm6\/Db Edim7 Gdim7 Ebadd9\/G Ab6 Bb Cm7add4 Fm Gm7 Fm Gm7\/F Fm Gm7\/C",
+        "genre": "Rock",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 13,
+        "title": "Biene Maja",
+        "artist": "Karel Gott",
+        "chords": "D A G D A G D A D Em A A7 D A A7 D A D Em A A7 Bm E D G E D\/A G\/A D\/A G\/A D\/A A D",
+        "genre": "TV",
+        "added_date": "2025-05-22"
+    },
+    {
+        "id": 14,
+        "title": "All For Love",
+        "artist": "Bryan Adams",
+        "chords": "D D D\/F# G D\/A A D D D\/F# G D\/A A D Dsus\/E D\/F# G Em7 D\/A A D\/F# G Bm A D\/f# G Em7 D\/F# G D\/A G D\/F# Em7 A D Bm G Em7 D\/F# D\/F# G A Bm D\/F# G A G G Em7 Em7 Dsus D Dsus D G G Em7 Em7 Asus Asus A"
+    },
+    {
+        "id": 15,
+        "title": "Can You Feel The Love Tonight",
+        "artist": "Elton John",
+        "chords": "C G\/B C G\/B C G\/B Am7 D C G\/B C G\/B C Em F D G D\/F# Em C G C A\/C# D C G\/B Em G\/D C Am G C A\/C# D G D\/F# Em C G C A\/C# D C G\/B Em G\/D C Am G C\/D C\/G G"
+    },
+    {
+        "id": 16,
+        "title": "Rosanna",
+        "artist": "Toto",
+        "chords": "G Gsus2 G Gsus4 G Gsus2 G Gsus4 G Gsus2 G Gsus4 G Gsus2 G Gsus4 G G F9 Em7 G C F F Eb Dm7 Gm Gm F\/A Bd Eb Bd F Gm F\/A Bb F Cm7 Eb Bb F Cm7 Eb Bb F Cm7 Eb Bb F Cm7 Eb Bb F"
+    },
+    {
+        "id": 17,
+        "title": "Ob-La-Di Ob-La__da",
+        "artist": "The Beatles",
+        "chords": "A E E7 A A7 D A E A A A E F#m7 A E A AE E7 A A7 D A E A A E F#m7 A E A D A Asus2 A A7 D A\/E E"
+    },
+    {
+        "id": 18,
+        "title": "M\u00f3j Przyjacielu",
+        "artist": "Krzysztof Krawczyk",
+        "chords": "Am E Am C G C F C F C E Am Am E Am C G C F C F C E Am AM G G7 C G G7 C G F C E Am G G7 C G G7 C G F C E Am Am"
+    },
+    {
+        "id": 19,
+        "title": "Soy",
+        "artist": "Gipsy Kings",
+        "chords": "E C#m A B E C#m A B D C#m B7 D C#m B13 B7 E C#m A B F# D#m B C# D E F#"
+    },
+    {
+        "id": 20,
+        "title": "Prince",
+        "artist": "Purple Rain",
+        "chords": "Bbadd9\/D Gm7add11 Fadd9 Ebadd9 Bbadd9\/D Gm7add11 F Ebadd9 Bbadd9\/D Gm7add11 F Bb Ebadd9 Bbadd9\/D Gm7add11 F Bb Bbadd9\/D Gm7add11 Fadd9 Ebadd9 Bbadd9\/D Gm7add11 F Bb Ebadd9 Bbadd9\/D Gm7add11 F Ebadd9 Bbadd9\/D Gm7add11 F Ebadd9 Bbadd9\/D Gm7add11 F Ebadd9 Bbadd9\/D Gm7add11 F Ebadd9"
+    },
+    {
+        "id": 21,
+        "title": "Hotel California",
+        "artist": "Eagles",
+        "chords": "Bm F#7 A E G D Em F#7 Bm F#7 A E G D Em F#7 G D F#7 Bm G D Em F#7"
+    }
+]

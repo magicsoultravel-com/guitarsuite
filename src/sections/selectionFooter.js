@@ -21,20 +21,22 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
   bar.setAttribute('aria-label', 'Current selection');
 
   bar.innerHTML = `
+    <div class="footer-toolbar" aria-label="Footer controls">
+      <div class="footer-layout-actions" aria-label="Layout controls">
+        <button type="button" class="dock-nav-btn footer-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+        <button type="button" class="dock-nav-btn footer-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+        <button type="button" class="dock-nav-btn footer-layout-reset" title="Reset module positions" aria-label="Reset module positions">⌂</button>
+      </div>
+      <div class="footer-selection-actions">
+        <button type="button" class="dock-nav-btn footer-sound" title="Sound on" aria-label="Toggle sound" aria-pressed="true">◉</button>
+        <button type="button" class="dock-nav-btn footer-focus" title="Focus modules" aria-label="Focus modules" aria-pressed="false">◧</button>
+        <button type="button" class="dock-nav-btn footer-reset" title="Clear selections" aria-label="Clear selections">↺</button>
+      </div>
+    </div>
     <span class="footer-selection-label">selection</span>
     <button type="button" class="footer-root" title="Play root note"></button>
     <div class="footer-layers"></div>
     <span class="footer-empty">no layers</span>
-    <div class="footer-layout-actions" aria-label="Layout controls">
-      <button type="button" class="dock-nav-btn footer-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
-      <button type="button" class="dock-nav-btn footer-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
-      <button type="button" class="dock-nav-btn footer-layout-reset" title="Reset module positions" aria-label="Reset module positions">⌂</button>
-    </div>
-    <div class="footer-selection-actions">
-      <button type="button" class="dock-nav-btn footer-sound" title="Sound on" aria-label="Toggle sound" aria-pressed="true">◉</button>
-      <button type="button" class="dock-nav-btn footer-focus" title="Focus modules" aria-label="Focus modules" aria-pressed="false">◧</button>
-      <button type="button" class="dock-nav-btn footer-reset" title="Clear selections" aria-label="Clear selections">↺</button>
-    </div>
   `;
 
   const rootEl = bar.querySelector('.footer-root');

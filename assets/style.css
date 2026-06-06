@@ -294,11 +294,13 @@ h1 {
 
 .site-tagline {
     display: none;
-    color: var(--color-brand);
 }
 
 #site-tagline {
+    font-family: inherit;
+    font-size: var(--font-xs);
     color: var(--color-brand);
+    opacity: 0.85;
 }
 
 h2 {
@@ -500,14 +502,21 @@ body.has-module-dock .site-footer-stack {
     color: var(--color-muted);
 }
 
+.footer-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+    padding-right: var(--space-sm);
+    margin-right: var(--space-xs);
+    border-right: 1px solid var(--color-border);
+}
+
 .footer-layout-actions {
     display: flex;
     align-items: center;
     gap: 2px;
     flex-shrink: 0;
-    margin-left: auto;
-    padding-left: var(--space-sm);
-    border-left: 1px solid var(--color-border);
 }
 
 .footer-layout-actions .dock-nav-btn {
@@ -1035,15 +1044,21 @@ body.has-selection-footer .module-dock {
     overflow: visible;
 }
 
-/* Bar actions: chevron, dock, drag — show on bar hover */
+/* Bar actions: chevron/dock on hover; drag handle always visible */
 .dock-module--expandable .dock-module-dock,
-.dock-module--expandable .dock-module-chevron,
-.dock-module--expandable .dock-drag-handle,
-.dock-module--draggable .dock-drag-handle {
+.dock-module--expandable .dock-module-chevron {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.12s ease, visibility 0.12s;
+}
+
+.dock-module--expandable .dock-drag-handle,
+.dock-module--draggable .dock-drag-handle {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
 
 .dock-module--expandable:not(.is-floating) .dock-module-dock {
@@ -1054,14 +1069,8 @@ body.has-selection-footer .module-dock {
 .dock-module--expandable .dock-module-bar:focus-within .dock-module-chevron,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:hover .dock-module-dock,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:focus-within .dock-module-dock,
-.dock-module--expandable .dock-module-bar:hover .dock-drag-handle,
-.dock-module--expandable .dock-module-bar:focus-within .dock-drag-handle,
-.dock-module--draggable .dock-module-bar:hover .dock-drag-handle,
-.dock-module--draggable .dock-module-bar:focus-within .dock-drag-handle,
 .dock-module--expandable .dock-module-bar.is-dragging .dock-module-chevron,
-.dock-module--expandable .dock-module-bar.is-dragging .dock-drag-handle,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-module-dock,
-.dock-module--draggable .dock-module-bar.is-dragging .dock-drag-handle,
 .dock-drag-handle.is-dragging {
     opacity: 1;
     visibility: visible;

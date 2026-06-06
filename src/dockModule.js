@@ -124,7 +124,7 @@ function floatModule(mod, dockEl) {
   canvas.appendChild(mod);
 }
 
-function expandFloatingModule(mod, { keepPosition = false } = {}) {
+function expandFloatingModule(mod, { keepPosition = false, skipResizeHandles = false } = {}) {
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
   setExpanded?.(true, { silent: true });
   mod.classList.remove('is-float-preview');
@@ -137,7 +137,7 @@ function expandFloatingModule(mod, { keepPosition = false } = {}) {
   const h = parseInt(mod.dataset.userHeight, 10)
     || snap(Math.min(measured.height, DEFAULT_FLOAT_H));
   applyModuleSizeUser(mod, w, h);
-  ensureFloatingResize(mod);
+  if (!skipResizeHandles) ensureFloatingResize(mod);
   mod.style.zIndex = String(1000 + expandedFloatingModules().length);
 
   const hasPosition = mod.style.left !== '' && mod.style.top !== '';
@@ -265,6 +265,9 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!mod.classList.contains('is-expanded')) {
+      expandFloatingModule(mod, { keepPosition: true, skipResizeHandles: true });
+    }
     active = true;
     startX = e.clientX;
     startY = e.clientY;
@@ -279,21 +282,11 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
     const scale = getEffectiveZoom() || 1;
     const dx = (e.clientX - startX) / scale;
     const dy = (e.clientY - startY) / scale;
-    const expanded = mod.classList.contains('is-expanded');
-
-    if (expanded) {
-      applyModuleSizeUser(
-        mod,
-        horizontal ? startW + dx : startW,
-        vertical ? startH + dy : startH,
-      );
-    } else if (horizontal) {
-      const w = snap(Math.max(120, startW + dx));
-      mod.style.width = `${w}px`;
-      mod.dataset.userWidth = String(w);
-      mod.style.height = '';
-      mod.style.minHeight = 'var(--dock-bar-h)';
-    }
+    applyModuleSizeUser(
+      mod,
+      horizontal ? startW + dx : startW,
+      vertical ? startH + dy : startH,
+    );
     mod.classList.add('is-resizing');
   });
 
@@ -303,6 +296,7 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
     mod.classList.remove('is-resizing');
     document.getElementById('viewport-root')?.classList.remove('is-ui-dragging');
     try { el.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+    ensureFloatingResize(mod);
     commitModulePosition(mod);
     notifySessionChange();
   };

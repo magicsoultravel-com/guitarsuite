@@ -22,7 +22,7 @@ export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
     chevron.setAttribute('aria-expanded', String(open));
     if (!silent) notifySessionChange();
     if (el.classList.contains('is-floating')) {
-      requestAnimationFrame(() => resolveFloatingLayout(findOriginDock(el)));
+      requestAnimationFrame(() => clampFloatingToViewport(el));
     }
   }
 
@@ -101,86 +101,24 @@ function floatModule(mod) {
   mod.style.top = `${snap(rect.top)}px`;
   document.body.appendChild(mod);
   mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
+  requestAnimationFrame(() => clampFloatingToViewport(mod));
 }
 
-function moduleBox(mod) {
-  const left = parseInt(mod.style.left, 10) || 0;
-  const top = parseInt(mod.style.top, 10) || 0;
-  const width = mod.offsetWidth;
-  const height = mod.offsetHeight;
-  return { left, top, right: left + width, bottom: top + height, width, height };
+function floatingBottomInset() {
+  return document.body.classList.contains('has-selection-footer')
+    ? 44 + DOCK_GAP * 3
+    : DOCK_GAP;
 }
 
-function boxesOverlap(a, b, pad = DOCK_GAP) {
-  return !(
-    a.right + pad <= b.left
-    || a.left >= b.right + pad
-    || a.bottom + pad <= b.top
-    || a.top >= b.bottom + pad
-  );
-}
-
-function dockBarRect(dockEl) {
-  if (!dockEl) return null;
-  const rect = dockEl.getBoundingClientRect();
-  return {
-    left: rect.left,
-    top: rect.top,
-    right: rect.right,
-    bottom: rect.bottom,
-    width: rect.width,
-    height: rect.height,
-  };
-}
-
-function resolveFloatingLayout(dockEl) {
-  const floating = [...document.querySelectorAll('.dock-module.is-floating')];
-  if (!floating.length) return;
-
-  floating.sort((a, b) => {
-    const za = parseInt(a.style.zIndex, 10) || 0;
-    const zb = parseInt(b.style.zIndex, 10) || 0;
-    if (za !== zb) return zb - za;
-    const ta = parseInt(a.style.top, 10) || 0;
-    const tb = parseInt(b.style.top, 10) || 0;
-    if (ta !== tb) return ta - tb;
-    return (parseInt(a.style.left, 10) || 0) - (parseInt(b.style.left, 10) || 0);
-  });
-
-  const dockRect = dockBarRect(dockEl);
-  const placed = [];
-
-  for (const mod of floating) {
-    let { left, top } = moduleBox(mod);
-    left = snap(left);
-    top = snap(top);
-
-    for (let attempt = 0; attempt < 48; attempt++) {
-      const box = { left, top, right: left + mod.offsetWidth, bottom: top + mod.offsetHeight };
-      const blockers = [...placed];
-      if (dockRect && boxesOverlap(box, dockRect)) blockers.push(dockRect);
-
-      const hit = blockers.find((b) => boxesOverlap(box, b));
-      if (!hit) break;
-
-      const tryRight = snap(hit.right + DOCK_GAP);
-      const tryDown = snap(hit.bottom + DOCK_GAP);
-
-      if (tryRight + mod.offsetWidth <= window.innerWidth - DOCK_GAP) {
-        left = tryRight;
-      } else {
-        left = snap(parseInt(mod.style.left, 10) || DOCK_GAP);
-        top = tryDown;
-      }
-    }
-
-    left = clamp(left, DOCK_GAP, window.innerWidth - mod.offsetWidth - DOCK_GAP);
-    top = clamp(top, DOCK_GAP, window.innerHeight - mod.offsetHeight - DOCK_GAP);
-
-    mod.style.left = `${left}px`;
-    mod.style.top = `${top}px`;
-    placed.push(moduleBox(mod));
-  }
+function clampFloatingToViewport(mod) {
+  if (!mod?.classList.contains('is-floating')) return;
+  const bottomInset = floatingBottomInset();
+  const maxLeft = Math.max(DOCK_GAP, window.innerWidth - mod.offsetWidth - DOCK_GAP);
+  const maxTop = Math.max(DOCK_GAP, window.innerHeight - mod.offsetHeight - bottomInset);
+  const left = clamp(parseInt(mod.style.left, 10) || DOCK_GAP, DOCK_GAP, maxLeft);
+  const top = clamp(parseInt(mod.style.top, 10) || DOCK_GAP, DOCK_GAP, maxTop);
+  mod.style.left = `${snap(left)}px`;
+  mod.style.top = `${snap(top)}px`;
 }
 
 function wireDrag(mod, dockEl) {
@@ -223,7 +161,7 @@ function wireDrag(mod, dockEl) {
     }
 
     const maxLeft = window.innerWidth - mod.offsetWidth - DOCK_GAP;
-    const maxTop = window.innerHeight - mod.offsetHeight - DOCK_GAP;
+    const maxTop = window.innerHeight - mod.offsetHeight - floatingBottomInset();
     mod.style.left = `${snap(clamp(e.clientX - offsetX, DOCK_GAP, maxLeft))}px`;
     mod.style.top = `${snap(clamp(e.clientY - offsetY, DOCK_GAP, maxTop))}px`;
   });
@@ -237,7 +175,7 @@ function wireDrag(mod, dockEl) {
 
     if (!dragging) return;
     dragging = false;
-    resolveFloatingLayout(dockEl);
+    clampFloatingToViewport(mod);
     notifySessionChange();
   };
 
@@ -250,13 +188,20 @@ function wireDrag(mod, dockEl) {
   });
 }
 
+let resizeListenerAdded = false;
+
 export function initDockModules(dockEl) {
   dockEl.querySelectorAll('.dock-module').forEach((mod) => {
     wireDrag(mod, dockEl);
   });
   orderModules(dockEl);
 
-  window.addEventListener('resize', () => resolveFloatingLayout(dockEl));
+  if (!resizeListenerAdded) {
+    resizeListenerAdded = true;
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('.dock-module.is-floating').forEach(clampFloatingToViewport);
+    });
+  }
 }
 
 export function collectModulesState() {
@@ -313,8 +258,8 @@ export function applyModulesState(modules = {}) {
     }
   }
 
-  for (const dockEl of document.querySelectorAll('.tool-dock, .content-dock')) {
-    resolveFloatingLayout(dockEl);
+  for (const mod of document.querySelectorAll('.dock-module.is-floating')) {
+    clampFloatingToViewport(mod);
   }
 }
 

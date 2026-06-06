@@ -611,7 +611,24 @@ th {
 #related-chords-display {
     margin-top: var(--space-sm);
     font-size: var(--font-sm);
-    white-space: pre-wrap;
+}
+
+.related-chords-row {
+    margin-bottom: var(--space-sm);
+}
+
+.related-chords-row:last-child {
+    margin-bottom: 0;
+}
+
+.related-chords-head {
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    margin-bottom: 4px;
+}
+
+.related-chords-chips {
+    margin-top: 2px;
 }
 
 .fretboard-toolbar {
@@ -890,6 +907,41 @@ body.has-selection-footer .content-dock {
     margin: 0;
     flex-shrink: 0;
     width: var(--dock-width, 268px);
+    max-height: calc(100vh - var(--space-sm) * 2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+body.has-selection-footer .dock-module.is-floating {
+    max-height: calc(100vh - 44px - var(--space-sm) * 4);
+}
+
+.dock-module.is-floating .dock-module-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+.dock-module--fretboard .dock-module-panel,
+.dock-module--chords .dock-module-panel,
+.dock-module--tools .dock-module-panel {
+    max-height: min(280px, 50vh);
+}
+
+.dock-module--fretboard.is-floating .dock-module-panel {
+    max-height: none;
+}
+
+.dock-module--content .dock-module-panel {
+    max-height: min(320px, 42vh);
+}
+
+.dock-module--content.is-floating .dock-module-panel,
+.dock-module--chords.is-floating .dock-module-panel,
+.dock-module--tools.is-floating .dock-module-panel {
+    max-height: none;
 }
 
 .dock-module-bar {
@@ -1496,10 +1548,12 @@ body.has-selection-footer .content-dock {
     color: var(--color-muted);
 }
 
-.fretboard-drawer #fret-notation-display,
+.fretboard-drawer #fret-notation-display {
+    white-space: pre-wrap;
+}
+
 .fretboard-drawer #related-chords-display {
     margin-top: var(--space-xs);
-    white-space: pre-wrap;
 }
 
 .chords-notes-split {

@@ -84,21 +84,46 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
   function updateRelatedChords(layerData) {
     if (!relatedChordsDisplay || !chordsData || !notesJson) return;
 
-    const parts = layerData.map(({ slot, label, chordRef, notes }) => {
-      const name = chordRef || label;
-      if (chordRef) return `[${slot}] ${chordRef}`;
-      const selected = [...notes];
-      if (!selected.length) return '';
-      const matched = [];
-      for (const [chordName, details] of Object.entries(chordsData)) {
-        const pitches = new Set(getChordNotes(details.variant1 || {}, notesJson));
-        if (selected.every((p) => pitches.has(normalizePitch(p)))) matched.push(chordName);
-      }
-      if (!matched.length) return `[${slot}] ${label}`;
-      return `[${slot}] ${label}: ${matched.sort().join(', ')}`;
-    }).filter(Boolean);
+    const ctx = chordCtxFromHub(hub, chordsData, notesJson);
+    relatedChordsDisplay.replaceChildren();
+    if (!layerData.length) return;
 
-    relatedChordsDisplay.textContent = parts.length ? parts.join('\n') : '';
+    for (const { slot, label, chordRef, notes } of layerData) {
+      const row = document.createElement('div');
+      row.className = 'related-chords-row';
+
+      const head = document.createElement('div');
+      head.className = 'related-chords-head';
+      head.textContent = `[${slot}] ${chordRef || label}`;
+      row.appendChild(head);
+
+      const names = [];
+      if (chordRef) {
+        names.push(chordRef);
+      } else {
+        const selected = [...notes].map(normalizePitch).filter(Boolean);
+        if (selected.length) {
+          for (const [chordName, details] of Object.entries(chordsData)) {
+            const pitches = new Set(getChordNotes(details.variant1 || {}, notesJson).map(normalizePitch));
+            if (selected.every((p) => pitches.has(p))) names.push(chordName);
+          }
+          names.sort();
+        }
+      }
+
+      if (names.length) {
+        const grid = document.createElement('div');
+        grid.className = 'dock-chip-grid related-chords-chips';
+        for (const name of names) {
+          grid.appendChild(createChordChip(hub, ctx, name, { extraClass: 'is-compact' }));
+        }
+        row.appendChild(grid);
+      }
+
+      relatedChordsDisplay.appendChild(row);
+    }
+
+    syncChipLayers(hub, relatedChordsDisplay);
   }
 
   hub.subscribe(updateFretboardDisplay);

@@ -28,7 +28,7 @@ export function renderFretboardDrawer(hub, notesJson) {
     moduleId: 'fretboard',
   });
 
-  wireDockBarToggle(el, setExpanded);
+  wireDockBarToggle(el, setExpanded, '.dock-chip, .fb-selectable');
 
   return el;
 }

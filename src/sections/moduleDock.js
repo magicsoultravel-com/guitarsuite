@@ -92,13 +92,13 @@ export function renderModuleDock(hub, songs, chords, notes, songIndex, contentMo
 
 function moduleLabel(id) {
   const labels = {
-    'chords-notes': 'Chords & notes',
-    'chords-theory': 'Chords theory',
-    'scales-modes': 'Scales & modes',
-    'scale-progressions': 'Scale progressions',
-    'genre-theory': 'Genre theory',
-    'useful-links': 'Useful links',
-    gallery: 'Image carousel',
+    'chords-notes': 'chords & notes',
+    'chords-theory': 'chords theory',
+    'scales-modes': 'scales & modes',
+    'scale-progressions': 'scale progressions',
+    'genre-theory': 'genre theory',
+    'useful-links': 'useful links',
+    gallery: 'image carousel',
   };
   return labels[id] || id;
 }

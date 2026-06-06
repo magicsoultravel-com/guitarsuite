@@ -16,7 +16,7 @@ export function renderFretboardDrawer(hub, notesJson) {
     </div>
   `;
 
-  ensureDockChrome(el, 'fretboard', 'Fretboard');
+  ensureDockChrome(el, 'fretboard', 'fretboard');
 
   const inner = el.querySelector('.fretboard-drawer-inner');
   const fretboard = renderFretboard(notesJson);
@@ -28,7 +28,7 @@ export function renderFretboardDrawer(hub, notesJson) {
     moduleId: 'fretboard',
   });
 
-  wireDockBarToggle(el, setExpanded, '.dock-chip, .fb-selectable');
+  wireDockBarToggle(el, setExpanded);
 
   return el;
 }

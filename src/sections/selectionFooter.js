@@ -21,17 +21,17 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
   bar.setAttribute('aria-label', 'Current selection');
 
   bar.innerHTML = `
-    <span class="footer-selection-label">Selection</span>
+    <span class="footer-selection-label">selection</span>
     <button type="button" class="footer-root" title="Play root note"></button>
     <div class="footer-layers"></div>
-    <span class="footer-empty">No layers</span>
+    <span class="footer-empty">no layers</span>
     <div class="footer-layout-actions" aria-label="Layout controls">
       <button type="button" class="dock-nav-btn footer-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
       <button type="button" class="dock-nav-btn footer-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
       <button type="button" class="dock-nav-btn footer-layout-reset" title="Reset module positions" aria-label="Reset module positions">⌂</button>
     </div>
     <div class="footer-selection-actions">
-      <button type="button" class="dock-nav-btn footer-sound" title="Sound on" aria-label="Toggle sound" aria-pressed="true">🔊</button>
+      <button type="button" class="dock-nav-btn footer-sound" title="Sound on" aria-label="Toggle sound" aria-pressed="true">◉</button>
       <button type="button" class="dock-nav-btn footer-focus" title="Focus modules" aria-label="Focus modules" aria-pressed="false">◧</button>
       <button type="button" class="dock-nav-btn footer-reset" title="Clear selections" aria-label="Clear selections">↺</button>
     </div>
@@ -45,7 +45,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
 
   function syncSoundBtn() {
     const on = isSoundEnabled();
-    soundBtn.textContent = on ? '🔊' : '🔇';
+    soundBtn.textContent = on ? '◉' : '○';
     soundBtn.classList.toggle('is-off', !on);
     soundBtn.setAttribute('aria-pressed', String(on));
   }
@@ -81,7 +81,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
   });
 
   function render() {
-    rootEl.textContent = `Root: ${formatRootsDisplay(hub)}`;
+    rootEl.textContent = `root: ${formatRootsDisplay(hub)}`;
     layersEl.replaceChildren();
     const layers = hub.getLayers();
 

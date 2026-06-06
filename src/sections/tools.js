@@ -39,13 +39,13 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
 
   el.innerHTML = `
     <div class="dock-module-bar">
-      <span class="dock-module-sub tools-bar-summary">Metronome · Tuner</span>
+      <span class="dock-module-sub tools-bar-summary">metronome · tuner</span>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
     <div class="dock-module-panel tools-panel" hidden>
       <div class="tools-stack">
         <div class="dock-section tools-block">
-          <span class="dock-section-label">Metronome</span>
+          <span class="dock-section-label">metronome</span>
           <div class="tools-controls-col">
             <div class="tools-inline">
               <button type="button" class="tools-btn bpm-step" data-delta="-1" title="Slower">−</button>
@@ -65,7 +65,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
         </div>
         <hr class="tools-rule" aria-hidden="true">
         <div class="dock-section tools-block tools-block--looper">
-          <span class="dock-section-label">Looper</span>
+          <span class="dock-section-label">looper</span>
           <div class="tools-controls-col">
             <div class="tools-inline looper-toolbar">
               <select id="looper-tracks" class="dock-select tools-select-narrow" title="Layers (each row = full bar)">
@@ -86,7 +86,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
         </div>
         <hr class="tools-rule" aria-hidden="true">
         <div class="dock-section tools-block">
-          <span class="dock-section-label">Tuner</span>
+          <span class="dock-section-label">tuner</span>
           <div class="tools-controls-col">
             <div class="tools-inline">
               <select id="tuner-note" class="dock-select">${noteOptions}</select>
@@ -107,7 +107,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
     </div>
   `;
 
-  ensureDockChrome(el, 'tools', 'Tools');
+  ensureDockChrome(el, 'tools', 'tools');
 
   const summary = el.querySelector('.tools-bar-summary');
   const tempoInput = el.querySelector('#tempo');
@@ -321,11 +321,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
     moduleId: 'tools',
   });
 
-  wireDockBarToggle(
-    el,
-    setExpanded,
-    '.tools-stack, .tools-btn, .dock-select, .input-bpm, .tools-segment-btn, .looper-slots'
-  );
+  wireDockBarToggle(el, setExpanded);
 
   updateTimeSignature();
   rebuildLooperSlots();

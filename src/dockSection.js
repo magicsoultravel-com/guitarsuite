@@ -35,7 +35,7 @@ export function wrapAsDockModule(sectionEl, { id, label } = {}) {
     bodyClass: `content-${id}-expanded`,
     moduleId: id,
   });
-  wireDockBarToggle(mod, setExpanded, '.dock-chip, a, button, input, select, .fb-selectable, .carousel-nav, .dot');
+  wireDockBarToggle(mod, setExpanded);
 
   return mod;
 }

@@ -98,7 +98,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {},
     </div>
   `;
 
-  ensureDockChrome(el, 'chords', 'Chord');
+  ensureDockChrome(el, 'chords', 'chords');
 
   const summaryEl = el.querySelector('.chord-picker-summary');
   const rootLabel = el.querySelector('.chord-picker-root-label');
@@ -171,7 +171,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, chordsTheory = {},
   }
 
   const { setExpanded } = wireDockExpand(el, { bodyClass: 'chord-picker-expanded', moduleId: 'chords' });
-  wireDockBarToggle(el, setExpanded, '.dock-chip');
+  wireDockBarToggle(el, setExpanded);
 
   hub.subscribe(refreshUI);
   refreshUI();

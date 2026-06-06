@@ -10,8 +10,8 @@ export function renderChordsTheory() {
     <table id="chords-theory-table">
       <thead>
         <tr>
-          <th>Chord Type</th><th>Short</th><th>Intervals (verbal)</th>
-          <th>Intervals (semitones)</th><th>Notes</th>
+          <th>chord type</th><th>short</th><th>intervals (verbal)</th>
+          <th>intervals (semitones)</th><th>notes</th>
         </tr>
       </thead>
       <tbody id="chords-theory-body"></tbody>

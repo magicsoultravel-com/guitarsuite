@@ -80,13 +80,13 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
       onSongChange?.(next);
     });
 
-    wireDockBarToggle(drawer, setExpanded, '.dock-nav-btn, .dock-chip, a');
+    wireDockBarToggle(drawer, setExpanded);
 
     return { setExpanded };
   }
 
   drawer.innerHTML = buildBar(songs[currentIndex]);
-  ensureDockChrome(drawer, 'now-playing', 'Now playing', { expandable: !!songs[currentIndex] });
+  ensureDockChrome(drawer, 'now-playing', 'now playing', { expandable: !!songs[currentIndex] });
   wireBar();
   hub?.subscribe(() => syncChipLayers(hub, drawer));
 
@@ -94,7 +94,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
     currentIndex = index;
     const wasExpanded = drawer.classList.contains('is-expanded');
     drawer.innerHTML = buildBar(songs[currentIndex]);
-    ensureDockChrome(drawer, 'now-playing', 'Now playing', { expandable: !!songs[currentIndex] });
+    ensureDockChrome(drawer, 'now-playing', 'now playing', { expandable: !!songs[currentIndex] });
     wireBar();
     if (wasExpanded && songs[currentIndex]) openFloatingModule(drawer);
   }

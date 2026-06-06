@@ -18,7 +18,7 @@ export function renderRootModule(hub) {
     </div>
   `;
 
-  ensureDockChrome(el, 'root', 'Root', { expandable: false });
+  ensureDockChrome(el, 'root', 'root', { expandable: false });
 
   function syncRoot() {
     const roots = hub.getRoots();

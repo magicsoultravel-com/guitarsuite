@@ -5,7 +5,7 @@ export function renderScaleProgressions(scales) {
   const rows = Object.entries(scales)
     .map(([name, data]) => {
       const semitones = getScaleSemitones(data.steps).join(' ');
-      return `<tr class="fb-scale-prog-row" data-scale="${escapeHtml(name)}">
+      return `<tr class="fb-scale-prog-row fb-selectable" data-scale="${escapeHtml(name)}" data-label="${escapeHtml(name)}">
         <td>${escapeHtml(name)}</td>
         <td><code>${escapeHtml(data.steps.join(' '))}</code></td>
         <td><code>${semitones}</code></td>
@@ -17,7 +17,7 @@ export function renderScaleProgressions(scales) {
 
   return createSection(
     'scale progressions',
-    `<p class="fb-hint scale-prog-hint">Diatonic chords and common progressions for each scale at root <strong class="scale-prog-root">E</strong>. Click a chord to highlight and hear it.</p>
+    `<p class="fb-hint scale-prog-hint">Diatonic chords and common progressions at root <strong class="scale-prog-root">E</strong>. Chord picks do not change your root — walk progressions freely.</p>
     <table id="scale-progressions-table">
       <thead>
         <tr><th>Name</th><th>Steps</th><th>Intervals (semitones)</th><th>Diatonic triads</th><th>Progressions</th></tr>

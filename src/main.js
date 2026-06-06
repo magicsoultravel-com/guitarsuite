@@ -26,7 +26,8 @@ renderFooter(document.getElementById('site-footer'));
 
 const params = new URLSearchParams(location.search);
 let songIndex = parseInt(params.get('songIndex') || '0', 10);
-const initialRoot = params.has('root') ? (params.get('root') || '') : '';
+const rootParam = params.has('root') ? (params.get('root') || '') : '';
+const initialRoots = rootParam.split(',').map((r) => r.trim()).filter(Boolean);
 
 try {
   const rawChords = await fetchJson(asset('assets/chords.json'));
@@ -56,7 +57,10 @@ try {
     fetchJson(asset('uploads/gallery/manifest.json')).catch(() => []),
   ]);
 
-  const hub = createFretboardHub(initialRoot);
+  const hub = createFretboardHub(initialRoots[0] || '');
+  for (let i = 1; i < initialRoots.length && i < 3; i += 1) {
+    hub.toggleRoot(initialRoots[i]);
+  }
   hub.setChordContext({ chordsJson: chords, notesJson: notes, chordsTheory });
 
   function mountChordsAndNotes(song) {
@@ -97,9 +101,8 @@ try {
 
   const genreSection = renderGenreTheory(genres);
   app.appendChild(genreSection);
-  wireGenreTheory(hub, scales, genreSection);
+  wireGenreTheory(hub, scales, genres, genreSection);
 
-  hub.setRoot(initialRoot);
   app.appendChild(renderUsefulLinks(usefulLinks));
   app.appendChild(renderBlogger(bloggerPosts));
   app.appendChild(renderAbout(about));

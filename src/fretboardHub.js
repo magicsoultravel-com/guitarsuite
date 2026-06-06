@@ -1,13 +1,33 @@
 import { CHROMATIC, normalizePitch } from './music.js';
 
 const MAX_LAYERS = 3;
+const MAX_ROOTS = 3;
 
 function normalizedSet(notes) {
   return new Set(notes.map(normalizePitch).filter(Boolean));
 }
 
+function rootIndex(note) {
+  return CHROMATIC.indexOf(normalizePitch(note));
+}
+
+function isConsecutiveSpan(indices) {
+  if (indices.length <= 1) return true;
+  const sorted = [...indices].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i += 1) {
+    if (sorted[i] - sorted[i - 1] !== 1) return false;
+  }
+  return true;
+}
+
+function indicesToRoots(indices) {
+  return [...indices].sort((a, b) => a - b).map((i) => CHROMATIC[i]);
+}
+
 export function createFretboardHub(initialRoot = '') {
-  let root = normalizePitch(initialRoot) || '';
+  const initial = normalizePitch(initialRoot);
+  /** @type {string[]} */
+  let roots = initial ? [initial] : [];
   /** @type {Array<object|null>} */
   let layers = [null, null, null];
   /** @type {string|null} */
@@ -15,6 +35,10 @@ export function createFretboardHub(initialRoot = '') {
   /** @type {object|null} */
   let chordContext = null;
   const listeners = new Set();
+
+  function primaryRoot() {
+    return roots[roots.length - 1] || '';
+  }
 
   function findLastActiveChordLabel() {
     for (let i = layers.length - 1; i >= 0; i -= 1) {
@@ -30,6 +54,7 @@ export function createFretboardHub(initialRoot = '') {
 
   function resolveLayerEntry(layer) {
     if (!layer) return null;
+    const root = primaryRoot();
     if (layer.resolveSelection) {
       const resolved = layer.resolveSelection(root);
       if (!resolved) return null;
@@ -97,8 +122,54 @@ export function createFretboardHub(initialRoot = '') {
       return chordContext;
     },
 
+    /** Primary (latest) root — used for transposition. */
     getRoot() {
-      return root;
+      return primaryRoot();
+    },
+
+    getRoots() {
+      return [...roots];
+    },
+
+    /** Replace with a single root (URL load, legacy API). */
+    setRoot(newRoot) {
+      const r = normalizePitch(newRoot);
+      roots = r ? [r] : [];
+      notify();
+    },
+
+    /** Toggle/extend consecutive root span (max 3). */
+    toggleRoot(note) {
+      const r = normalizePitch(note);
+      const idx = rootIndex(r);
+      if (idx < 0) return;
+
+      if (!roots.length) {
+        roots = [r];
+        notify();
+        return;
+      }
+
+      const currentIdx = roots.map(rootIndex);
+      const pos = currentIdx.indexOf(idx);
+
+      if (pos >= 0) {
+        if (roots.length === 1) {
+          roots = [];
+        } else if (pos === 0 || pos === roots.length - 1) {
+          roots.splice(pos, 1);
+        }
+        notify();
+        return;
+      }
+
+      const next = [...new Set([...currentIdx, idx])];
+      if (next.length > MAX_ROOTS || !isConsecutiveSpan(next)) {
+        roots = [r];
+      } else {
+        roots = indicesToRoots(next);
+      }
+      notify();
     },
 
     getLayers() {
@@ -153,7 +224,7 @@ export function createFretboardHub(initialRoot = '') {
 
     addDerivedChordLayer({ meta, resolveSelection }) {
       const idx = allocateSlot();
-      const resolved = resolveSelection(root);
+      const resolved = resolveSelection(primaryRoot());
       layers[idx] = {
         label: resolved?.label || meta?.theoryType || '',
         kind: 'derived',
@@ -163,11 +234,6 @@ export function createFretboardHub(initialRoot = '') {
       };
       if (resolved?.chordRef) lastChordLabel = resolved.chordRef;
       else if (resolved?.label) lastChordLabel = resolved.label;
-      notify();
-    },
-
-    setRoot(newRoot) {
-      root = normalizePitch(newRoot) || '';
       notify();
     },
 
@@ -223,5 +289,7 @@ export function formatLayerSummary(hub) {
   if (labels.length) return labels.join(' · ');
   const manual = hub.getLayers().find((l) => l.label === 'manual');
   if (manual) return [...manual.notes].join(', ');
-  return `Root ${hub.getRoot() || '—'}`;
+  const roots = hub.getRoots();
+  if (roots.length) return `Root ${roots.join(' · ')}`;
+  return 'Root —';
 }

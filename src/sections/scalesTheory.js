@@ -6,7 +6,7 @@ export function renderScalesTheory(scales) {
     .map(([name, data]) => {
       const use = data.use ? escapeHtml(data.use) : '';
       const semitones = getScaleSemitones(data.steps).join(' ');
-      return `<tr class="fb-selectable fb-scale-row" data-scale="${escapeHtml(name)}" data-steps='${JSON.stringify(data.steps)}'>
+      return `<tr class="fb-selectable fb-scale-row" data-scale="${escapeHtml(name)}" data-label="${escapeHtml(name)}" data-steps='${JSON.stringify(data.steps)}'>
         <td>${escapeHtml(name)}</td>
         <td><code>${escapeHtml(data.steps.join(' '))}</code></td>
         <td><code>${semitones}</code></td>
@@ -16,7 +16,7 @@ export function renderScalesTheory(scales) {
     .join('');
 
   return createSection('scales / modes', `
-    <p class="fb-hint">Uses the global root note. Click a row to highlight on fretboard (up to 3 layers).</p>
+    <p class="fb-hint">Set root in the dock (1–3 consecutive notes). Click a row to highlight on fretboard — syncs with genre theory and scale progressions.</p>
     <table id="scales-theory-table">
       <thead>
         <tr><th>Name</th><th>Steps</th><th>Intervals (semitones)</th><th>Typical use</th></tr>

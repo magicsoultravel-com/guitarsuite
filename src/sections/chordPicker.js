@@ -1,5 +1,5 @@
 import { THEORY_SUFFIX } from '../chordVoicings.js';
-import { getDisplayRoot } from '../displayRoot.js';
+import { getDisplayRoot, formatRootsDisplay } from '../displayRoot.js';
 import {
   CHROMATIC,
   getChordNotes,
@@ -209,7 +209,9 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
   function refreshUI() {
     const root = getDisplayRoot(hub);
     const names = byRoot[root] || [];
-    rootLabel.textContent = `At ${root}`;
+    rootLabel.textContent = hub.getRoots().length > 1
+      ? `At ${formatRootsDisplay(hub)} (primary ${hub.getRoot()})`
+      : `At ${root}`;
     renderChips(rootGrid, names);
     renderChips(songGrid, songChords);
     syncChipLayers(hub, el);

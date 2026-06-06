@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils.js';
+import { formatRootsDisplay } from './displayRoot.js';
 import {
   initPlayback,
   isFocusModules,
@@ -74,8 +75,7 @@ export function renderSelectionPanel(hub, context = {}) {
   });
 
   function render() {
-    const root = hub.getRoot();
-    rootEl.textContent = root ? `Root: ${root}` : 'Root: —';
+    rootEl.textContent = `Root: ${formatRootsDisplay(hub)}`;
     const layers = hub.getLayers();
     listEl.replaceChildren();
 

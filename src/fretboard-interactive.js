@@ -1,5 +1,5 @@
-import { getDisplayRoot, commitRoot } from './displayRoot.js';
-import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes, getDiatonicTriads, resolveProgressionChords } from './music.js';
+import { formatRootsDisplay, getDisplayRoot } from './displayRoot.js';
+import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes, getDiatonicTriads, resolveProgressionChords, numeralsToPattern } from './music.js';
 import { getShapeFrets, makeChordContext, pickChord } from './chordResolve.js';
 import {
   playVoicedChord,
@@ -36,7 +36,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
   }
 
   function updateFretboardDisplay() {
-    const root = normalizePitch(hub.getRoot());
+    const activeRoots = new Set(hub.getRoots().map(normalizePitch).filter(Boolean));
     const layerData = hub.getLayers();
 
     fretboardTable.querySelectorAll('.fb-layer-1, .fb-layer-2, .fb-layer-3, .fb-root, .fb-shape').forEach((cell) => {
@@ -71,7 +71,8 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
     }
 
     fretboardTable.querySelectorAll('td.fb-cell').forEach((cell) => {
-      if (root && cellPitch(cell) === root) cell.classList.add('fb-root');
+      const pitch = cellPitch(cell);
+      if (pitch && activeRoots.has(pitch)) cell.classList.add('fb-root');
     });
 
     if (fretNotationDisplay) {
@@ -115,7 +116,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
     const pitch = cellPitch(cell);
     if (!pitch) return;
     hub.toggleNote(pitch);
-    if (!hub.getRoot()) commitRoot(hub, pitch);
+    if (!hub.getRoots().length) hub.toggleRoot(pitch);
     playFretNote(cell.dataset.string, cell.dataset.fret, pitch);
   });
 
@@ -139,6 +140,11 @@ export function updateActiveMarkers(hub) {
     document.querySelectorAll(`[data-chord="${CSS.escape(chipKey)}"], [data-label="${CSS.escape(chipKey)}"]`).forEach((el) => {
       el.classList.add('fb-active', `fb-active-${slot}`);
     });
+    if (layer.family === 'scale') {
+      document.querySelectorAll(`[data-scale="${CSS.escape(layer.label)}"]`).forEach((el) => {
+        el.classList.add('fb-active', `fb-active-${slot}`);
+      });
+    }
     if (layer.label !== chipKey) {
       document.querySelectorAll(`[data-label="${CSS.escape(layer.label)}"]`).forEach((el) => {
         el.classList.add('fb-active', `fb-active-${slot}`);
@@ -224,7 +230,6 @@ export function wireScalesTheory(hub, scales, sectionEl) {
   sectionEl.querySelectorAll('.fb-scale-row').forEach((row) => {
     row.title = 'Click to highlight on fretboard (up to 3 layers)';
     row.addEventListener('click', () => {
-      commitRoot(hub, getDisplayRoot(hub));
       const name = row.dataset.scale;
       const steps = JSON.parse(row.dataset.steps || '[]');
       hub.toggleSelection({ label: name, resolve: (r) => getScaleNotes(r, steps), family: 'scale' });
@@ -329,7 +334,7 @@ export function wireScaleProgressions(hub, scales, sectionEl) {
 
   function render() {
     const root = getDisplayRoot(hub);
-    if (rootEl) rootEl.textContent = root;
+    if (rootEl) rootEl.textContent = formatRootsDisplay(hub);
 
     for (const row of rows) {
       const scaleName = row.dataset.scale;
@@ -343,22 +348,100 @@ export function wireScaleProgressions(hub, scales, sectionEl) {
   render();
 }
 
-export function wireGenreTheory(hub, scales, sectionEl) {
+export function wireGenreTheory(hub, scales, genres, sectionEl) {
+  const rootEl = sectionEl.querySelector('.genre-prog-root');
+
   sectionEl.querySelectorAll('.genre-scale-chip').forEach((chip) => {
     const name = chip.dataset.scale;
     const data = scales[name];
     if (!data?.steps) return;
 
     chip.addEventListener('click', () => {
-      commitRoot(hub, getDisplayRoot(hub));
       hub.toggleSelection({
         label: name,
         resolve: (r) => getScaleNotes(r, data.steps),
         family: 'scale',
       });
-      playScaleByName(name, hub.getRoot(), scales);
+      playScaleByName(name, hub.getRoot() || getDisplayRoot(hub), scales);
     });
   });
 
-  hub.subscribe(() => updateActiveMarkers(hub));
+  function pickGenreTriad(triad) {
+    const ctx = hub.getChordContext();
+    if (!ctx) return;
+    pickChord(hub, ctx, playFns(ctx.notesJson), { symbol: triad.symbol, fallbackNotes: triad.notes });
+  }
+
+  function inferGenreScale(prog, genreData) {
+    if (prog.scale && scales[prog.scale]) return prog.scale;
+    const pattern = prog.pattern || numeralsToPattern(prog.numerals);
+    const candidates = genreData?.scales || [];
+    if (/\bi\b/i.test(pattern) || pattern.includes(' i')) {
+      return candidates.find((s) => /aeolian|dorian|minor/i.test(s)) || 'Aeolian';
+    }
+    if (/\bVII\b/.test(pattern) || /bVII/i.test(prog.numerals || '')) {
+      return candidates.find((s) => s === 'Mixolydian') || 'Mixolydian';
+    }
+    return candidates.find((s) => scales[s]) || 'Ionian';
+  }
+
+  function fillGenreProgressionRow(row, prog, root) {
+    const cell = row.querySelector('.genre-prog-chords-cell');
+    if (!cell) return;
+
+    cell.replaceChildren();
+    const pattern = prog.pattern || numeralsToPattern(prog.numerals);
+    if (!pattern) {
+      cell.textContent = '—';
+      return;
+    }
+
+    const genreData = genres[row.dataset.genre];
+    const scaleKey = inferGenreScale(prog, genreData);
+    const steps = scales[scaleKey]?.steps;
+    if (!steps) {
+      cell.textContent = prog.example || '—';
+      return;
+    }
+
+    const quality = prog.quality || (row.dataset.genre === 'Blues' ? 'dom7' : '');
+    const triads = resolveProgressionChords(root, steps, pattern, { quality });
+    if (!triads.length) {
+      cell.textContent = prog.example || '—';
+      return;
+    }
+
+    const chips = document.createElement('div');
+    chips.className = 'genre-prog-chips';
+    for (const triad of triads) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'genre-prog-chip fb-selectable scale-prog-chip';
+      btn.dataset.label = triad.symbol;
+      btn.title = `${triad.roman}: ${triad.notes.join(', ')}`;
+      btn.textContent = triad.symbol;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pickGenreTriad(triad);
+      });
+      chips.appendChild(btn);
+    }
+    cell.appendChild(chips);
+  }
+
+  function render() {
+    const root = getDisplayRoot(hub);
+    if (rootEl) rootEl.textContent = formatRootsDisplay(hub);
+
+    sectionEl.querySelectorAll('.genre-prog-row').forEach((row) => {
+      const genreData = genres[row.dataset.genre];
+      const prog = genreData?.progressions?.[Number(row.dataset.progIndex)];
+      if (prog) fillGenreProgressionRow(row, prog, root);
+    });
+
+    updateActiveMarkers(hub);
+  }
+
+  hub.subscribe(render);
+  render();
 }

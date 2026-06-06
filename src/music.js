@@ -158,13 +158,39 @@ export function findTriadByRoman(triads, numeral) {
   return triads.find((t) => t.roman === numeral) || null;
 }
 
-export function resolveProgressionChords(root, steps, pattern) {
+export function resolveProgressionChords(root, steps, pattern, options = {}) {
   const triads = getDiatonicTriads(root, steps);
+  const { quality } = options;
   return pattern
     .split(/\s+/)
     .filter(Boolean)
     .map((numeral) => findTriadByRoman(triads, numeral))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((triad) => {
+      if (!quality) return triad;
+      let symbol = triad.symbol;
+      if (quality === 'dom7') {
+        symbol = symbol.endsWith('m') ? `${symbol}7` : `${symbol}7`;
+      }
+      return { ...triad, symbol };
+    });
+}
+
+/** Parse human numerals (e.g. "I – IV – V") into a pattern string. */
+export function numeralsToPattern(numerals) {
+  if (!numerals) return '';
+  return numerals
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\|/g, ' ')
+    .split(/[\s–—\-]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((token) => {
+      if (/^b?VII$/i.test(token) || token === 'bVII') return 'VII';
+      if (/^b?VI$/i.test(token) || token === 'bVI') return 'VI';
+      return token.replace(/7.*$/i, '').replace(/ø.*/i, '°').replace(/alt.*/i, '');
+    })
+    .join(' ');
 }
 
 export function buildChordTable(uniqueChords, chordsJson, getCellValue, options = {}) {

@@ -137,7 +137,7 @@ function expandFloatingModule(mod, { keepPosition = false } = {}) {
   const h = parseInt(mod.dataset.userHeight, 10)
     || snap(Math.min(measured.height, DEFAULT_FLOAT_H));
   applyModuleSizeUser(mod, w, h);
-  ensureResizeHandle(mod);
+  ensureFloatingResize(mod);
   mod.style.zIndex = String(1000 + expandedFloatingModules().length);
 
   const hasPosition = mod.style.left !== '' && mod.style.top !== '';
@@ -165,7 +165,27 @@ function beginCollapsedFloat(mod, dockEl) {
   mod.style.width = `${dockW}px`;
   mod.style.height = '';
   mod.style.minHeight = 'var(--dock-bar-h)';
-  mod.querySelector('.dock-resize-handle')?.remove();
+  removeFloatingResize(mod);
+}
+
+function removeFloatingResize(mod) {
+  mod.querySelectorAll('.dock-resize-handle, .dock-resize-edge').forEach((el) => el.remove());
+}
+
+function ensureFloatingResize(mod) {
+  if (!mod.classList.contains('is-floating')) {
+    removeFloatingResize(mod);
+    return;
+  }
+  removeFloatingResize(mod);
+  const expanded = mod.classList.contains('is-expanded');
+  wireResizeEdge(mod, 'e', { horizontal: true, vertical: false });
+  if (expanded) {
+    wireResizeEdge(mod, 's', { horizontal: false, vertical: true });
+    wireResizeEdge(mod, 'se', { horizontal: true, vertical: true });
+  } else {
+    wireResizeEdge(mod, 'se', { horizontal: true, vertical: false });
+  }
 }
 
 function clearFloatStyles(mod) {
@@ -180,7 +200,7 @@ function clearFloatStyles(mod) {
   delete mod.dataset.naturalHeight;
   delete mod.dataset.userWidth;
   delete mod.dataset.userHeight;
-  mod.querySelector('.dock-resize-handle')?.remove();
+  removeFloatingResize(mod);
 }
 
 function redock(mod, dockEl) {
@@ -230,23 +250,19 @@ export function wireDockBarToggle(el, setExpanded) {
   });
 }
 
-function ensureResizeHandle(mod) {
-  if (mod.querySelector('.dock-resize-handle')) return;
-  const grip = document.createElement('div');
-  grip.className = 'dock-resize-handle';
-  grip.title = 'Resize';
-  mod.appendChild(grip);
-  wireResize(mod, grip);
-}
+function wireResizeEdge(mod, position, { horizontal, vertical }) {
+  const el = document.createElement('div');
+  el.className = `dock-resize-edge dock-resize-edge--${position}`;
+  el.title = 'Resize';
+  mod.appendChild(el);
 
-function wireResize(mod, grip) {
   let active = false;
   let startX = 0;
   let startY = 0;
   let startW = 0;
   let startH = 0;
 
-  grip.addEventListener('pointerdown', (e) => {
+  el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     e.stopPropagation();
     active = true;
@@ -255,17 +271,29 @@ function wireResize(mod, grip) {
     startW = mod.offsetWidth;
     startH = mod.offsetHeight;
     document.getElementById('viewport-root')?.classList.add('is-ui-dragging');
-    grip.setPointerCapture(e.pointerId);
+    el.setPointerCapture(e.pointerId);
   });
 
-  grip.addEventListener('pointermove', (e) => {
+  el.addEventListener('pointermove', (e) => {
     if (!active) return;
     const scale = getEffectiveZoom() || 1;
-    applyModuleSizeUser(
-      mod,
-      startW + (e.clientX - startX) / scale,
-      startH + (e.clientY - startY) / scale,
-    );
+    const dx = (e.clientX - startX) / scale;
+    const dy = (e.clientY - startY) / scale;
+    const expanded = mod.classList.contains('is-expanded');
+
+    if (expanded) {
+      applyModuleSizeUser(
+        mod,
+        horizontal ? startW + dx : startW,
+        vertical ? startH + dy : startH,
+      );
+    } else if (horizontal) {
+      const w = snap(Math.max(120, startW + dx));
+      mod.style.width = `${w}px`;
+      mod.dataset.userWidth = String(w);
+      mod.style.height = '';
+      mod.style.minHeight = 'var(--dock-bar-h)';
+    }
     mod.classList.add('is-resizing');
   });
 
@@ -274,13 +302,13 @@ function wireResize(mod, grip) {
     active = false;
     mod.classList.remove('is-resizing');
     document.getElementById('viewport-root')?.classList.remove('is-ui-dragging');
-    try { grip.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+    try { el.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
     commitModulePosition(mod);
     notifySessionChange();
   };
 
-  grip.addEventListener('pointerup', end);
-  grip.addEventListener('pointercancel', end);
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
 }
 
 function wireModuleDrag(mod, dockEl) {
@@ -340,7 +368,7 @@ function wireModuleDrag(mod, dockEl) {
 
   function isBlockedTarget(target) {
     if (target.closest('.dock-drag-handle')) return false;
-    return !!target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle, .dock-chip, .root-chip, input, select, textarea, a');
+    return !!target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-edge, .dock-chip, .root-chip, input, select, textarea, a');
   }
 
   function onPointerDown(e, sourceEl) {
@@ -483,12 +511,12 @@ function finalizeBarFloat(mod) {
   mod.classList.remove('is-expanded');
   const panel = mod.querySelector('.dock-module-panel');
   if (panel) panel.hidden = true;
-  mod.querySelector('.dock-resize-handle')?.remove();
   if (!mod.style.width) {
     mod.style.width = `${mod.offsetWidth || 208}px`;
   }
   mod.style.height = '';
   mod.style.minHeight = 'var(--dock-bar-h)';
+  ensureFloatingResize(mod);
   commitModulePosition(mod);
   notifySessionChange();
 }
@@ -561,16 +589,16 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
             snap(Math.min(measured.height, DEFAULT_FLOAT_H)),
           );
         }
-        ensureResizeHandle(mod);
+        ensureFloatingResize(mod);
       } else {
         expandHandlers.get(id)?.(false, { silent: true });
         mod.classList.remove('is-expanded', 'is-float-preview');
         const panel = mod.querySelector('.dock-module-panel');
         if (panel) panel.hidden = true;
-        mod.querySelector('.dock-resize-handle')?.remove();
         if (state.width) mod.style.width = `${state.width}px`;
         mod.style.height = '';
         mod.style.minHeight = 'var(--dock-bar-h)';
+        ensureFloatingResize(mod);
       }
 
       if (state.left != null) mod.style.left = `${state.left}px`;

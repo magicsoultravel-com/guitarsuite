@@ -10,22 +10,24 @@
     --space-lg: 14px;
     --radius: 4px;
     --max-width: 920px;
-    --color-bg: #070b10;
-    --color-bg-panel: rgba(12, 20, 32, 0.94);
-    --color-bg-input: #0c1520;
-    --color-bg-chip: #101c2a;
-    --color-accent: #3ecfd9;
-    --color-accent-strong: #eef6fa;
-    --color-accent-dim: #3d5568;
-    --color-highlight-bg: rgba(62, 207, 217, 0.14);
-    --color-border: #2a3d4f;
-    --color-muted: #8fa3b3;
-    --layer-color-1: #22d3ee;
-    --layer-color-2: #2dd4bf;
+    --color-bg: #141414;
+    --color-bg-panel: rgba(30, 30, 32, 0.96);
+    --color-bg-input: #1c1c1e;
+    --color-bg-chip: #242426;
+    --color-accent: #a1a1aa;
+    --color-accent-strong: #e4e4e7;
+    --color-accent-dim: #52525b;
+    --color-brand: #4a6b55;
+    --color-brand-dim: #3d5848;
+    --color-highlight-bg: rgba(161, 161, 170, 0.12);
+    --color-border: #3f3f46;
+    --color-muted: #71717a;
+    --layer-color-1: #6b8f7a;
+    --layer-color-2: #8a9a94;
     --layer-color-3: #64748b;
-    --layer-bg-1: rgba(34, 211, 238, 0.22);
-    --layer-bg-2: rgba(45, 212, 191, 0.22);
-    --layer-bg-3: rgba(100, 116, 139, 0.22);
+    --layer-bg-1: rgba(107, 143, 122, 0.2);
+    --layer-bg-2: rgba(138, 154, 148, 0.2);
+    --layer-bg-3: rgba(100, 116, 139, 0.2);
     --dock-bar-h: 44px;
     --dock-width: 208px;
     --footer-stack-h: 62px;
@@ -265,12 +267,13 @@ h1 {
 
 .site-brand h1 {
     pointer-events: auto;
+    color: var(--color-brand);
 }
 
 .site-credit {
     font-family: 'Caveat', 'Segoe Script', 'Bradley Hand', cursive;
     font-size: 1.2em;
-    color: var(--color-muted);
+    color: var(--color-brand);
     margin: 0;
     line-height: 1.2;
     text-align: center;
@@ -291,6 +294,11 @@ h1 {
 
 .site-tagline {
     display: none;
+    color: var(--color-brand);
+}
+
+#site-tagline {
+    color: var(--color-brand);
 }
 
 h2 {
@@ -994,16 +1002,12 @@ body.has-selection-footer .module-dock {
     z-index: 1;
     margin: 0;
     flex-shrink: 0;
-    min-width: 200px;
+    min-width: 120px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     pointer-events: auto;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
-}
-
-#module-canvas .dock-module.is-floating .dock-drag-handle {
-    pointer-events: auto;
 }
 
 .module-dock {
@@ -1031,50 +1035,34 @@ body.has-selection-footer .module-dock {
     overflow: visible;
 }
 
-/* Bar actions: chevron/dock on hover; drag handle always visible */
+/* Bar actions: chevron, dock, drag — show on bar hover */
 .dock-module--expandable .dock-module-dock,
-.dock-module--expandable .dock-module-chevron {
+.dock-module--expandable .dock-module-chevron,
+.dock-module--expandable .dock-drag-handle,
+.dock-module--draggable .dock-drag-handle {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.12s ease, visibility 0.12s;
 }
 
-.dock-module--expandable .dock-drag-handle,
-.dock-module--draggable .dock-drag-handle {
-    display: inline-flex;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
-    position: relative;
-    z-index: 3;
-}
-
 .dock-module--expandable:not(.is-floating) .dock-module-dock {
     display: none;
 }
 
-.dock-module--expandable:not(.is-floating) .dock-module-bar:hover .dock-module-chevron,
-.dock-module--expandable:not(.is-floating) .dock-module-bar:focus-within .dock-module-chevron {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-}
-
-.dock-module--expandable .dock-module-bar:hover .dock-drag-handle,
-.dock-module--expandable .dock-module-bar.is-dragging .dock-drag-handle,
-.dock-module--expandable .dock-drag-handle.is-dragging,
-.dock-module--draggable .dock-drag-handle.is-dragging {
-    opacity: 1;
-}
-
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar:hover .dock-module-chevron,
+.dock-module--expandable .dock-module-bar:hover .dock-module-chevron,
+.dock-module--expandable .dock-module-bar:focus-within .dock-module-chevron,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:hover .dock-module-dock,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-module-chevron,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-module-dock,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:focus-within .dock-module-dock,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar:focus-within .dock-module-chevron {
+.dock-module--expandable .dock-module-bar:hover .dock-drag-handle,
+.dock-module--expandable .dock-module-bar:focus-within .dock-drag-handle,
+.dock-module--draggable .dock-module-bar:hover .dock-drag-handle,
+.dock-module--draggable .dock-module-bar:focus-within .dock-drag-handle,
+.dock-module--expandable .dock-module-bar.is-dragging .dock-module-chevron,
+.dock-module--expandable .dock-module-bar.is-dragging .dock-drag-handle,
+.dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-module-dock,
+.dock-module--draggable .dock-module-bar.is-dragging .dock-drag-handle,
+.dock-drag-handle.is-dragging {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -1084,15 +1072,8 @@ body.has-selection-footer .module-dock {
     display: inline-flex;
 }
 
-.dock-module--expandable.is-floating:not(.is-expanded) .dock-module-chevron,
 .dock-module--expandable.is-floating:not(.is-expanded) .dock-module-dock {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-}
-
-.dock-module--expandable.is-floating:not(.is-expanded) .dock-module-dock {
-    display: inline-flex;
+    display: none;
 }
 
 #module-canvas .dock-module.is-floating:not(.is-expanded) {
@@ -1115,21 +1096,43 @@ body.has-selection-footer .module-dock {
     display: none !important;
 }
 
-.dock-resize-handle {
+.dock-resize-edge {
     position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 14px;
-    height: 14px;
-    cursor: nwse-resize;
-    z-index: 2;
-    background: linear-gradient(135deg, transparent 50%, var(--color-accent-dim) 50%);
-    border-bottom-right-radius: var(--radius);
-    opacity: 0.75;
+    z-index: 4;
 }
 
-.dock-resize-handle:hover {
-    opacity: 1;
+.dock-resize-edge--e {
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    cursor: ew-resize;
+}
+
+.dock-resize-edge--s {
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.dock-resize-edge--se {
+    right: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    cursor: nwse-resize;
+}
+
+#module-canvas .dock-module.is-floating:hover .dock-resize-edge--e,
+#module-canvas .dock-module.is-floating.is-resizing .dock-resize-edge--e {
+    box-shadow: inset -1px 0 0 var(--color-accent-dim);
+}
+
+#module-canvas .dock-module.is-floating.is-expanded:hover .dock-resize-edge--s,
+#module-canvas .dock-module.is-floating.is-expanded.is-resizing .dock-resize-edge--s {
+    box-shadow: inset 0 -1px 0 var(--color-accent-dim);
 }
 
 .dock-module-bar {

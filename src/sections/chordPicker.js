@@ -7,6 +7,7 @@ import {
   normalizePitch,
   sortNotesByMusicalOrder,
 } from '../music.js';
+import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
 const STRING_KEYS = ['E1', 'A', 'D', 'G', 'B', 'E2'];
@@ -70,41 +71,42 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
   ).join('');
 
   el.innerHTML = `
-    <div class="chord-picker-bar">
-      <span class="chord-picker-label">Chord</span>
-      <select class="chord-picker-root" title="Root note">${rootOptions}</select>
-      <div class="chord-picker-strip" role="listbox" aria-label="Chords for selected root"></div>
-      <span class="chord-picker-preview" aria-live="polite"></span>
-      <span class="chord-picker-chevron" aria-hidden="true">▲</span>
+    <div class="dock-module-bar">
+      <div class="dock-module-controls">
+        <select class="dock-select chord-picker-root" title="Root note">${rootOptions}</select>
+      </div>
+      <div class="dock-module-strip chord-picker-strip" role="listbox" aria-label="Chords for selected root"></div>
+      <span class="dock-module-sub chord-picker-preview" aria-live="polite"></span>
+      <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
-    <div class="chord-picker-panel" hidden>
-      <div class="chord-picker-section chord-picker-song" ${songChords.length ? '' : 'hidden'}>
-        <span class="chord-picker-section-label">In song</span>
-        <div class="chord-picker-grid chord-picker-song-grid"></div>
+    <div class="dock-module-panel" hidden>
+      <div class="dock-section chord-picker-song" ${songChords.length ? '' : 'hidden'}>
+        <span class="dock-section-label">In song</span>
+        <div class="dock-chip-grid chord-picker-song-grid"></div>
       </div>
-      <div class="chord-picker-section">
-        <span class="chord-picker-section-label">All at root</span>
-        <div class="chord-picker-grid chord-picker-root-grid"></div>
+      <div class="dock-section">
+        <span class="dock-section-label">All at root</span>
+        <div class="dock-chip-grid chord-picker-root-grid"></div>
       </div>
-      <div class="chord-picker-diagram">
-        <div class="chord-picker-diagram-head">
-          <span class="chord-picker-diagram-name">—</span>
-          <span class="chord-picker-diagram-type"></span>
+      <div class="dock-detail chord-picker-diagram">
+        <div class="dock-detail-head">
+          <span class="dock-detail-title chord-picker-diagram-name">—</span>
+          <span class="dock-detail-sub chord-picker-diagram-type"></span>
         </div>
-        <div class="chord-picker-fretboard">
-          <span class="chord-picker-strings">${STRING_LABELS.join(' ')}</span>
-          <span class="chord-picker-frets">—</span>
+        <div class="dock-mono-block">
+          <span class="dock-mono-muted">${STRING_LABELS.join(' ')}</span>
+          <span class="dock-mono-accent chord-picker-frets">—</span>
         </div>
-        <div class="chord-picker-notes"></div>
+        <div class="dock-detail-sub chord-picker-notes"></div>
       </div>
     </div>
   `;
 
+  ensureDockChrome(el, 'chords', 'Chord');
+
   const rootSelect = el.querySelector('.chord-picker-root');
   const strip = el.querySelector('.chord-picker-strip');
   const preview = el.querySelector('.chord-picker-preview');
-  const panel = el.querySelector('.chord-picker-panel');
-  const chevron = el.querySelector('.chord-picker-chevron');
   const songGrid = el.querySelector('.chord-picker-song-grid');
   const rootGrid = el.querySelector('.chord-picker-root-grid');
   const diagramName = el.querySelector('.chord-picker-diagram-name');
@@ -117,7 +119,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = [
-      'chord-picker-chip',
+      'dock-chip',
       'fb-selectable',
       compact ? 'is-compact' : '',
       inSong ? 'is-song' : '',
@@ -152,7 +154,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
     const data = chordsJson[name];
     const { frets, notes } = renderShapePreview(data.variant1, notesJson);
     diagramName.textContent = name;
-    diagramType.textContent = data.type ? `(${data.type})` : '';
+    diagramType.textContent = data.type ? data.type : '';
     diagramFrets.textContent = frets.join(' ');
     diagramNotes.textContent = notes;
     preview.textContent = frets.join('·');
@@ -169,7 +171,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
 
   function syncActive(label) {
     const isChord = Boolean(label && chordsJson[label]);
-    el.querySelectorAll('.chord-picker-chip').forEach((chip) => {
+    el.querySelectorAll('.dock-chip').forEach((chip) => {
       const active = chip.dataset.chord === label;
       chip.classList.toggle('fb-active', active);
       chip.setAttribute('aria-selected', active ? 'true' : 'false');
@@ -177,20 +179,11 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
     updateDiagram(isChord ? label : null);
   }
 
-  function setExpanded(open) {
-    panel.hidden = !open;
-    el.classList.toggle('is-expanded', open);
-    document.body.classList.toggle('chord-picker-expanded', open);
-    chevron.textContent = open ? '▼' : '▲';
-  }
+  const { setExpanded } = wireDockExpand(el, { bodyClass: 'chord-picker-expanded' });
+  wireDockBarToggle(el, setExpanded, '.dock-module-controls, .dock-module-strip, .dock-chip, .dock-select');
 
   rootSelect.addEventListener('change', refreshRootUI);
   rootSelect.addEventListener('click', (e) => e.stopPropagation());
-
-  el.querySelector('.chord-picker-bar').addEventListener('click', (e) => {
-    if (e.target.closest('.chord-picker-root, .chord-picker-chip, .chord-picker-strip')) return;
-    setExpanded(panel.hidden);
-  });
 
   hub.subscribe(() => {
     const label = hub.getSourceLabel();

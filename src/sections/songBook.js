@@ -1,4 +1,6 @@
 import { escapeHtml } from '../utils.js';
+import { getChordNotes } from '../music.js';
+import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
 
 function songUrl(index) {
   const url = new URL(location.href);
@@ -6,14 +8,29 @@ function songUrl(index) {
   return `${url.pathname}${url.search}`;
 }
 
-export function createNowPlayingDrawer(songs, chords, songIndex) {
+function pickChord(hub, chordsJson, notesJson, name) {
+  const variant = chordsJson[name]?.variant1;
+  if (!variant) return;
+  if (hub.getSourceLabel() === name) {
+    hub.reset();
+    return;
+  }
+  hub.selectNotes(getChordNotes(variant, notesJson), name);
+}
+
+export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex) {
   const drawer = document.createElement('div');
   drawer.id = 'now-playing-drawer';
   drawer.className = 'now-playing-drawer';
 
   const currentSong = songs[songIndex];
   if (!currentSong) {
-    drawer.innerHTML = `<div class="now-playing-bar"><span class="now-playing-empty">No song selected</span></div>`;
+    drawer.innerHTML = `
+      <div class="dock-module-bar">
+        <span class="dock-module-sub">No song selected</span>
+      </div>
+    `;
+    ensureDockChrome(drawer, 'now-playing', 'Now playing');
     return drawer;
   }
 
@@ -22,42 +39,65 @@ export function createNowPlayingDrawer(songs, chords, songIndex) {
   const chordsList = currentSong.chords.split(' ').filter(Boolean);
 
   drawer.innerHTML = `
-    <div class="now-playing-bar">
-      <a href="${songUrl(prevIndex)}" class="now-playing-nav" title="Previous" aria-label="Previous song">‹</a>
-      <button type="button" class="now-playing-toggle" aria-expanded="false">
-        <span class="now-playing-title">${escapeHtml(currentSong.title)}</span>
-        <span class="now-playing-artist">${escapeHtml(currentSong.artist)}</span>
+    <div class="dock-module-bar">
+      <div class="dock-module-controls dock-nav-group">
+        <a href="${songUrl(prevIndex)}" class="dock-nav-btn" title="Previous" aria-label="Previous song">‹</a>
+        <a href="${songUrl(nextIndex)}" class="dock-nav-btn" title="Next" aria-label="Next song">›</a>
+      </div>
+      <button type="button" class="dock-module-main now-playing-toggle" aria-expanded="false">
+        <span class="dock-module-title">${escapeHtml(currentSong.title)}</span>
+        <span class="dock-module-sub">${escapeHtml(currentSong.artist)}</span>
       </button>
-      <a href="${songUrl(nextIndex)}" class="now-playing-nav" title="Next" aria-label="Next song">›</a>
-      <span class="now-playing-chevron" aria-hidden="true">▲</span>
+      <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
-    <div class="now-playing-panel" hidden>
-      <div class="now-playing-chords">${escapeHtml(chordsList.join(' '))}</div>
-      <div class="now-playing-meta">
+    <div class="dock-module-panel" hidden>
+      <div class="dock-section">
+        <span class="dock-section-label">In song</span>
+        <div class="dock-chip-grid now-playing-chords"></div>
+      </div>
+      <div class="dock-meta">
         <a href="./songs-db.html">${songs.length} songs</a>
-        <span class="meta-sep">·</span>
+        <span class="dock-meta-sep">·</span>
         <a href="./chords-db.html">${Object.keys(chords).length} chords</a>
       </div>
     </div>
   `;
 
-  const toggle = drawer.querySelector('.now-playing-toggle');
-  const panel = drawer.querySelector('.now-playing-panel');
-  const chevron = drawer.querySelector('.now-playing-chevron');
+  ensureDockChrome(drawer, 'now-playing', 'Now playing');
 
-  function setExpanded(open) {
-    panel.hidden = !open;
-    toggle.setAttribute('aria-expanded', String(open));
-    drawer.classList.toggle('is-expanded', open);
-    document.body.classList.toggle('now-playing-expanded', open);
-    chevron.textContent = open ? '▼' : '▲';
+  const toggle = drawer.querySelector('.now-playing-toggle');
+  const chipGrid = drawer.querySelector('.now-playing-chords');
+
+  for (const name of chordsList) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dock-chip fb-selectable is-song';
+    btn.dataset.chord = name;
+    btn.dataset.label = name;
+    btn.textContent = name;
+    btn.title = `Show ${name} on fretboard`;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pickChord(hub, chords, notesJson, name);
+    });
+    chipGrid.appendChild(btn);
   }
 
-  toggle.addEventListener('click', () => setExpanded(panel.hidden));
-  drawer.querySelector('.now-playing-bar').addEventListener('click', (e) => {
-    if (e.target.closest('.now-playing-nav')) return;
-    if (e.target === toggle || toggle.contains(e.target)) return;
-    setExpanded(panel.hidden);
+  const { setExpanded } = wireDockExpand(drawer, { bodyClass: 'now-playing-expanded' });
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const panel = drawer.querySelector('.dock-module-panel');
+    if (panel) setExpanded(panel.hidden);
+  });
+
+  wireDockBarToggle(drawer, setExpanded, '.dock-nav-group, .now-playing-toggle, .dock-nav-btn');
+
+  hub?.subscribe(() => {
+    const label = hub.getSourceLabel();
+    drawer.querySelectorAll('.dock-chip').forEach((chip) => {
+      chip.classList.toggle('fb-active', chip.dataset.chord === label);
+    });
   });
 
   return drawer;
@@ -65,7 +105,7 @@ export function createNowPlayingDrawer(songs, chords, songIndex) {
 
 /** @deprecated use createNowPlayingDrawer via renderBottomDock */
 export function renderNowPlaying(songs, chords, songIndex) {
-  const drawer = createNowPlayingDrawer(songs, chords, songIndex);
+  const drawer = createNowPlayingDrawer(null, songs, chords, {}, songIndex);
   document.body.appendChild(drawer);
   document.body.classList.add('has-now-playing');
   return { drawer, currentSong: songs[songIndex] ?? null };

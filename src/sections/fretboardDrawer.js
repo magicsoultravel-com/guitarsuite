@@ -1,5 +1,6 @@
 import { renderRootToolbar } from '../fretboardHub.js';
 import { renderFretboard } from './fretboard.js';
+import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
 
 const STORAGE_KEY = 'guitarsuite-fretboard-expanded';
 
@@ -9,22 +10,21 @@ export function renderFretboardDrawer(hub, notesJson) {
   el.className = 'fretboard-drawer';
 
   el.innerHTML = `
-    <div class="fretboard-drawer-bar">
-      <span class="fretboard-drawer-label">Fretboard</span>
-      <div class="fretboard-drawer-controls"></div>
-      <span class="fretboard-drawer-summary"></span>
-      <span class="fretboard-drawer-chevron" aria-hidden="true">▲</span>
+    <div class="dock-module-bar">
+      <div class="dock-module-controls fretboard-drawer-controls"></div>
+      <span class="dock-module-sub fretboard-drawer-summary"></span>
+      <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
-    <div class="fretboard-drawer-panel" hidden>
+    <div class="dock-module-panel" hidden>
       <div class="fretboard-drawer-inner"></div>
     </div>
   `;
 
+  ensureDockChrome(el, 'fretboard', 'Fretboard');
+
   const controls = el.querySelector('.fretboard-drawer-controls');
   const summary = el.querySelector('.fretboard-drawer-summary');
   const inner = el.querySelector('.fretboard-drawer-inner');
-  const panel = el.querySelector('.fretboard-drawer-panel');
-  const chevron = el.querySelector('.fretboard-drawer-chevron');
 
   renderRootToolbar(hub, { controlsEl: controls, summaryEl: summary });
 
@@ -32,30 +32,15 @@ export function renderFretboardDrawer(hub, notesJson) {
   fretboard.classList.add('fretboard-drawer-board');
   inner.appendChild(fretboard);
 
-  function setExpanded(open) {
-    panel.hidden = !open;
-    el.classList.toggle('is-expanded', open);
-    document.body.classList.toggle('fretboard-expanded', open);
-    chevron.textContent = open ? '▼' : '▲';
-    try {
-      localStorage.setItem(STORAGE_KEY, open ? '1' : '0');
-    } catch (_) { /* ignore */ }
-  }
-
-  el.querySelector('.fretboard-drawer-bar').addEventListener('click', (e) => {
-    if (e.target.closest('.fretboard-drawer-controls, .root-select, .reset-btn')) return;
-    setExpanded(panel.hidden);
+  const { setExpanded } = wireDockExpand(el, {
+    bodyClass: 'fretboard-expanded',
+    storageKey: STORAGE_KEY,
   });
+
+  wireDockBarToggle(el, setExpanded, '.fretboard-drawer-controls, .root-select, .reset-btn');
 
   controls.querySelector('.root-select')?.addEventListener('click', (e) => e.stopPropagation());
   controls.querySelector('.reset-btn')?.addEventListener('click', (e) => e.stopPropagation());
-
-  let startExpanded = false;
-  try {
-    startExpanded = localStorage.getItem(STORAGE_KEY) === '1';
-  } catch (_) { /* ignore */ }
-
-  setExpanded(startExpanded);
 
   return el;
 }

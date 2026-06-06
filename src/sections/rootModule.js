@@ -1,5 +1,6 @@
 import { CHROMATIC } from '../music.js';
 import { ensureDockChrome } from '../dockModule.js';
+import { playNote } from '../playback.js';
 
 export function renderRootModule(hub) {
   const el = document.createElement('div');
@@ -31,6 +32,7 @@ export function renderRootModule(hub) {
     chip.addEventListener('click', (e) => {
       e.stopPropagation();
       hub.setRoot(chip.dataset.root);
+      playNote(chip.dataset.root);
       const url = new URL(location.href);
       url.searchParams.set('root', chip.dataset.root);
       history.replaceState(null, '', url);

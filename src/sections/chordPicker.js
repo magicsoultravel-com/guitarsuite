@@ -7,6 +7,7 @@ import {
   sortNotesByMusicalOrder,
 } from '../music.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
+import { playChordByName } from '../playback.js';
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
 const STRING_KEYS = ['E1', 'A', 'D', 'G', 'B', 'E2'];
@@ -46,6 +47,7 @@ function pickChord(hub, chordsJson, notesJson, name) {
   const variant = chordsJson[name]?.variant1;
   if (!variant) return;
   hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson) });
+  playChordByName(name, chordsJson, notesJson);
 }
 
 function resolveDisplayChord(hub, chordsJson, byRoot, songChords) {

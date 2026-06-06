@@ -6,7 +6,7 @@ import { renderToolsDock } from './tools.js';
 import { renderSelectionPanel } from './selectionPanel.js';
 import { initDockModules } from '../dockModule.js';
 
-export function renderBottomDock(hub, songs, chords, notes, songIndex) {
+export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryContext = {}) {
   const dock = document.createElement('div');
   dock.id = 'tool-dock';
   dock.className = 'tool-dock';
@@ -21,7 +21,11 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex) {
   document.body.appendChild(dock);
   document.body.classList.add('has-tool-dock');
   initDockModules(dock);
-  renderSelectionPanel(hub);
+  renderSelectionPanel(hub, {
+    chordsJson: chords,
+    scalesJson: theoryContext.scales,
+    chordsTheory: theoryContext.chordsTheory,
+  });
 
   return { dock, currentSong };
 }

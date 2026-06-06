@@ -1,7 +1,7 @@
 import { escapeHtml } from '../utils.js';
 import { getChordNotes } from '../music.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
-import { wireDockResize } from '../dockResize.js';
+import { playChordByName } from '../playback.js';
 
 function songUrl(index) {
   const url = new URL(location.href);
@@ -13,6 +13,7 @@ function pickChord(hub, chordsJson, notesJson, name) {
   const variant = chordsJson[name]?.variant1;
   if (!variant) return;
   hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson) });
+  playChordByName(name, chordsJson, notesJson);
 }
 
 export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex) {
@@ -45,7 +46,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex)
       <a href="${songUrl(nextIndex)}" class="dock-nav-btn" title="Next" aria-label="Next song">›</a>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
-    <div class="dock-module-panel dock-panel-resizable now-playing-panel" hidden>
+    <div class="dock-module-panel now-playing-panel" hidden>
       <div class="dock-section">
         <span class="dock-section-label">In song</span>
         <div class="dock-chip-grid now-playing-chords"></div>
@@ -90,7 +91,6 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex)
   });
 
   wireDockBarToggle(drawer, setExpanded, '.dock-nav-btn, .now-playing-toggle');
-  wireDockResize(drawer, 'now-playing', 180);
 
   hub?.subscribe(() => syncChipLayers(hub, drawer));
 

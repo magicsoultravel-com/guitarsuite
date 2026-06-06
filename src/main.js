@@ -50,7 +50,10 @@ try {
 
   const hub = createFretboardHub(initialRoot);
 
-  const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex);
+  const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex, {
+    scales,
+    chordsTheory,
+  });
   app.appendChild(renderChordsAndNotes(currentSong, chords, notes));
 
   initFretboardInteractive(hub, notes, chords);

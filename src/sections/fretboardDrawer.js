@@ -1,6 +1,5 @@
 import { renderFretboard } from './fretboard.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
-import { wireDockResize } from '../dockResize.js';
 
 export function renderFretboardDrawer(hub, notesJson) {
   const el = document.createElement('div');
@@ -12,7 +11,7 @@ export function renderFretboardDrawer(hub, notesJson) {
       <span class="dock-module-sub fretboard-drawer-hint">Interactive fretboard</span>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
-    <div class="dock-module-panel dock-panel-resizable" hidden>
+    <div class="dock-module-panel" hidden>
       <div class="fretboard-drawer-inner"></div>
     </div>
   `;
@@ -30,7 +29,6 @@ export function renderFretboardDrawer(hub, notesJson) {
   });
 
   wireDockBarToggle(el, setExpanded);
-  wireDockResize(el, 'fretboard', 320);
 
   return el;
 }

@@ -1,4 +1,11 @@
 import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes } from './music.js';
+import {
+  playChordByName,
+  playFretNote,
+  playScaleByName,
+  playTheoryType,
+  playNote,
+} from './playback.js';
 
 const STRING_ORDER = ['E', 'A', 'D', 'G', 'B', 'e'];
 
@@ -81,6 +88,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
     const pitch = cellPitch(cell);
     if (!pitch) return;
     hub.toggleNote(pitch);
+    playFretNote(cell.dataset.string, cell.dataset.fret, pitch);
   });
 
   updateFretboardDisplay();
@@ -107,7 +115,16 @@ export function wireChordNoteTables(hub, chordsJson, notesJson) {
       const variant = chordsJson[chordName]?.variant1;
       if (!variant) return;
       hub.toggleSelection({ label: chordName, notes: getChordNotes(variant, notesJson) });
+      playChordByName(chordName, chordsJson, notesJson);
     });
+  });
+
+  document.querySelectorAll('.notes-table td').forEach((td) => {
+    const pitch = normalizePitch(td.textContent.trim());
+    if (!pitch) return;
+    td.classList.add('fb-note-cell');
+    td.title = `Play ${pitch}`;
+    td.addEventListener('click', () => playNote(pitch));
   });
 
   hub.subscribe(() => updateActiveMarkers(hub));
@@ -143,6 +160,7 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
       `;
       tr.addEventListener('click', () => {
         hub.toggleSelection({ label: type, resolve: (r) => getTheoryNotes(r, intervalsStr) });
+        playTheoryType(type, hub.getRoot(), chordsTheory);
       });
       tbody.appendChild(tr);
     }
@@ -169,6 +187,7 @@ export function wireScalesTheory(hub, scales, sectionEl) {
       const name = row.dataset.scale;
       const steps = JSON.parse(row.dataset.steps || '[]');
       hub.toggleSelection({ label: name, resolve: (r) => getScaleNotes(r, steps) });
+      playScaleByName(name, hub.getRoot(), scales);
     });
   });
 

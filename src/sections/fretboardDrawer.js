@@ -1,8 +1,6 @@
-import { renderRootToolbar } from '../fretboardHub.js';
 import { renderFretboard } from './fretboard.js';
+import { formatLayerSummary } from '../fretboardHub.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
-
-const STORAGE_KEY = 'guitarsuite-fretboard-expanded';
 
 export function renderFretboardDrawer(hub, notesJson) {
   const el = document.createElement('div');
@@ -11,8 +9,8 @@ export function renderFretboardDrawer(hub, notesJson) {
 
   el.innerHTML = `
     <div class="dock-module-bar">
-      <div class="dock-module-controls fretboard-drawer-controls"></div>
       <span class="dock-module-sub fretboard-drawer-summary"></span>
+      <button type="button" class="dock-nav-btn fretboard-reset" title="Clear highlights" aria-label="Clear highlights">↺</button>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
     <div class="dock-module-panel" hidden>
@@ -22,11 +20,18 @@ export function renderFretboardDrawer(hub, notesJson) {
 
   ensureDockChrome(el, 'fretboard', 'Fretboard');
 
-  const controls = el.querySelector('.fretboard-drawer-controls');
   const summary = el.querySelector('.fretboard-drawer-summary');
   const inner = el.querySelector('.fretboard-drawer-inner');
 
-  renderRootToolbar(hub, { controlsEl: controls, summaryEl: summary });
+  el.querySelector('.fretboard-reset')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hub.reset();
+  });
+
+  hub.subscribe(() => {
+    summary.textContent = formatLayerSummary(hub);
+  });
+  summary.textContent = formatLayerSummary(hub);
 
   const fretboard = renderFretboard(notesJson);
   fretboard.classList.add('fretboard-drawer-board');
@@ -34,13 +39,10 @@ export function renderFretboardDrawer(hub, notesJson) {
 
   const { setExpanded } = wireDockExpand(el, {
     bodyClass: 'fretboard-expanded',
-    storageKey: STORAGE_KEY,
+    moduleId: 'fretboard',
   });
 
-  wireDockBarToggle(el, setExpanded, '.fretboard-drawer-controls, .root-select, .reset-btn');
-
-  controls.querySelector('.root-select')?.addEventListener('click', (e) => e.stopPropagation());
-  controls.querySelector('.reset-btn')?.addEventListener('click', (e) => e.stopPropagation());
+  wireDockBarToggle(el, setExpanded, '.fretboard-reset');
 
   return el;
 }

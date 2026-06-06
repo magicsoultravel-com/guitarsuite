@@ -1,11 +1,31 @@
-const POS_KEY = 'guitarsuite-dock-positions';
+const EXPANDED_KEY = 'guitarsuite-dock-expanded';
 
-const DEFAULT_ORDER = ['fretboard', 'chords', 'now-playing'];
+const DEFAULT_ORDER = ['fretboard', 'chords', 'now-playing', 'root', 'tools'];
 
-export function wireDockExpand(el, { bodyClass, storageKey = null }) {
+function loadExpanded(id) {
+  try {
+    const all = JSON.parse(localStorage.getItem(EXPANDED_KEY) || '{}');
+    return all[id] === '1';
+  } catch (_) {
+    return false;
+  }
+}
+
+function saveExpanded(id, open) {
+  try {
+    const all = JSON.parse(localStorage.getItem(EXPANDED_KEY) || '{}');
+    all[id] = open ? '1' : '0';
+    localStorage.setItem(EXPANDED_KEY, JSON.stringify(all));
+  } catch (_) { /* ignore */ }
+}
+
+export function wireDockExpand(el, { bodyClass, moduleId = null, storageKey = null } = {}) {
   const panel = el.querySelector('.dock-module-panel');
   const chevron = el.querySelector('.dock-module-chevron');
   if (!panel || !chevron) return { setExpanded: () => {} };
+
+  const id = moduleId || el.dataset.dockId;
+  const persist = Boolean(storageKey || id);
 
   function setExpanded(open) {
     panel.hidden = !open;
@@ -13,19 +33,11 @@ export function wireDockExpand(el, { bodyClass, storageKey = null }) {
     if (bodyClass) document.body.classList.toggle(bodyClass, open);
     chevron.textContent = open ? '▼' : '▲';
     chevron.setAttribute('aria-expanded', String(open));
-    if (storageKey) {
-      try {
-        localStorage.setItem(storageKey, open ? '1' : '0');
-      } catch (_) { /* ignore */ }
-    }
+    if (persist && id) saveExpanded(id, open);
   }
 
-  if (storageKey) {
-    let startOpen = false;
-    try {
-      startOpen = localStorage.getItem(storageKey) === '1';
-    } catch (_) { /* ignore */ }
-    setExpanded(startOpen);
+  if (persist && id) {
+    setExpanded(loadExpanded(id));
   }
 
   return { setExpanded, panel };
@@ -49,23 +61,6 @@ export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
   });
 }
 
-function loadPositions() {
-  try {
-    return JSON.parse(localStorage.getItem(POS_KEY) || '{}');
-  } catch (_) {
-    return {};
-  }
-}
-
-function savePosition(id, pos) {
-  const all = loadPositions();
-  if (pos) all[id] = pos;
-  else delete all[id];
-  try {
-    localStorage.setItem(POS_KEY, JSON.stringify(all));
-  } catch (_) { /* ignore */ }
-}
-
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -86,7 +81,6 @@ function redock(mod, dockEl) {
   mod.querySelector('.dock-module-dock')?.setAttribute('hidden', '');
   dockEl.appendChild(mod);
   orderModules(dockEl);
-  savePosition(mod.dataset.dockId, null);
 }
 
 function floatModule(mod) {
@@ -136,11 +130,6 @@ function wireDrag(mod, dockEl) {
     try {
       handle.releasePointerCapture(e.pointerId);
     } catch (_) { /* ignore */ }
-    savePosition(mod.dataset.dockId, {
-      left: parseInt(mod.style.left, 10),
-      top: parseInt(mod.style.top, 10),
-      width: mod.offsetWidth,
-    });
   };
 
   handle.addEventListener('pointerup', endDrag);
@@ -153,27 +142,13 @@ function wireDrag(mod, dockEl) {
 }
 
 export function initDockModules(dockEl) {
-  const saved = loadPositions();
-
   dockEl.querySelectorAll('.dock-module').forEach((mod) => {
-    const id = mod.dataset.dockId;
     wireDrag(mod, dockEl);
-
-    const pos = saved[id];
-    if (pos?.left != null && pos?.top != null) {
-      mod.classList.add('is-floating');
-      mod.style.width = pos.width ? `${pos.width}px` : '';
-      mod.style.left = `${pos.left}px`;
-      mod.style.top = `${pos.top}px`;
-      document.body.appendChild(mod);
-      mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
-    }
   });
-
   orderModules(dockEl);
 }
 
-export function ensureDockChrome(el, id, label) {
+export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
   el.classList.add('dock-module', `dock-module--${id}`);
   el.dataset.dockId = id;
 
@@ -208,4 +183,18 @@ export function ensureDockChrome(el, id, label) {
     bar.querySelector('.dock-drag-handle')?.after(labelEl);
   }
   labelEl.textContent = label;
+
+  if (!expandable) {
+    bar.querySelector('.dock-module-chevron')?.remove();
+  }
+}
+
+export function syncChipLayers(hub, container) {
+  container.querySelectorAll('.dock-chip[data-label]').forEach((chip) => {
+    const slot = hub.getLayerSlot(chip.dataset.label);
+    chip.classList.toggle('fb-active', slot > 0);
+    chip.classList.toggle('fb-active-1', slot === 1);
+    chip.classList.toggle('fb-active-2', slot === 2);
+    chip.classList.toggle('fb-active-3', slot === 3);
+  });
 }

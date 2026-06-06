@@ -9,7 +9,6 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
 
   if (!fretboardTable) return;
 
-  const notesData = notesJson;
   const chordsData = chordsJson;
 
   function cellPitch(cell) {
@@ -17,11 +16,11 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
   }
 
   function updateFretboardDisplay() {
-    const active = hub.getActiveNotes();
     const root = normalizePitch(hub.getRoot());
+    const layerData = hub.getLayers();
 
-    fretboardTable.querySelectorAll('.selected, .fb-root').forEach((cell) => {
-      cell.classList.remove('selected', 'fb-root');
+    fretboardTable.querySelectorAll('.fb-layer-1, .fb-layer-2, .fb-layer-3, .fb-root').forEach((cell) => {
+      cell.classList.remove('fb-layer-1', 'fb-layer-2', 'fb-layer-3', 'fb-root');
     });
 
     const stringFretsMap = Object.fromEntries(STRING_ORDER.map((s) => [s, []]));
@@ -32,55 +31,46 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
       const stringName = cell.dataset.string;
       const fret = parseInt(cell.dataset.fret, 10);
 
-      if (active.has(pitch)) {
-        cell.classList.add('selected');
-        if (pitch === root) cell.classList.add('fb-root');
-        if (stringName && !Number.isNaN(fret)) {
-          stringFretsMap[stringName].push(fret);
-        }
+      for (const { slot, notes } of layerData) {
+        if (notes.has(pitch)) cell.classList.add(`fb-layer-${slot}`);
+      }
+
+      if (pitch === root) cell.classList.add('fb-root');
+
+      if (layerData.some(({ notes }) => notes.has(pitch)) && stringName && !Number.isNaN(fret)) {
+        stringFretsMap[stringName].push(fret);
       }
     });
 
     if (fretNotationDisplay) {
       const lines = STRING_ORDER
         .filter((s) => stringFretsMap[s].length)
-        .map((s) => `${s} - ${stringFretsMap[s].sort((a, b) => a - b).join(', ')}`);
+        .map((s) => `${s} - ${[...new Set(stringFretsMap[s])].sort((a, b) => a - b).join(', ')}`);
       fretNotationDisplay.textContent = lines.length
         ? `Selected frets:\n${lines.join('\n')}`
         : '';
     }
 
-    updateRelatedChords(active);
-    updateActiveMarkers();
+    updateRelatedChords(layerData);
+    updateActiveMarkers(hub);
   }
 
-  function updateRelatedChords(active) {
-    if (!relatedChordsDisplay || !chordsData || !notesData) return;
+  function updateRelatedChords(layerData) {
+    if (!relatedChordsDisplay || !chordsData || !notesJson) return;
 
-    const selected = [...active];
-    if (!selected.length) {
-      relatedChordsDisplay.textContent = '';
-      return;
-    }
+    const parts = layerData.map(({ slot, label, notes }) => {
+      const selected = [...notes];
+      if (!selected.length) return '';
+      const matched = [];
+      for (const [chordName, details] of Object.entries(chordsData)) {
+        const pitches = new Set(getChordNotes(details.variant1 || {}, notesJson));
+        if (selected.every((p) => pitches.has(normalizePitch(p)))) matched.push(chordName);
+      }
+      if (!matched.length) return '';
+      return `[${slot}] ${label}: ${matched.sort().join(', ')}`;
+    }).filter(Boolean);
 
-    const matched = [];
-    for (const [chordName, details] of Object.entries(chordsData)) {
-      const pitches = new Set(getChordNotes(details.variant1 || {}, notesData));
-      if (selected.every((p) => pitches.has(normalizePitch(p)))) matched.push(chordName);
-    }
-
-    relatedChordsDisplay.textContent = matched.length
-      ? `Related: ${matched.sort().join(', ')}`
-      : '';
-  }
-
-  function updateActiveMarkers() {
-    document.querySelectorAll('.fb-selectable.fb-active').forEach((el) => el.classList.remove('fb-active'));
-    const label = hub.getSourceLabel();
-    if (!label || label === 'root' || label === 'manual') return;
-    document.querySelectorAll('[data-label]').forEach((el) => {
-      if (el.dataset.label === label) el.classList.add('fb-active');
-    });
+    relatedChordsDisplay.textContent = parts.length ? parts.join('\n') : '';
   }
 
   hub.subscribe(updateFretboardDisplay);
@@ -96,16 +86,31 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
   updateFretboardDisplay();
 }
 
+export function updateActiveMarkers(hub) {
+  document.querySelectorAll('.fb-selectable').forEach((el) => {
+    el.classList.remove('fb-active', 'fb-active-1', 'fb-active-2', 'fb-active-3');
+  });
+
+  for (const { slot, label } of hub.getLayers()) {
+    if (label === 'manual') continue;
+    document.querySelectorAll(`[data-label="${CSS.escape(label)}"]`).forEach((el) => {
+      el.classList.add('fb-active', `fb-active-${slot}`);
+    });
+  }
+}
+
 export function wireChordNoteTables(hub, chordsJson, notesJson) {
   document.querySelectorAll('.fb-chord-col').forEach((th) => {
-    th.title = 'Click to highlight on fretboard';
+    th.title = 'Click to highlight on fretboard (up to 3 layers)';
     th.addEventListener('click', () => {
       const chordName = th.dataset.chord;
       const variant = chordsJson[chordName]?.variant1;
       if (!variant) return;
-      hub.selectNotes(getChordNotes(variant, notesJson), chordName);
+      hub.toggleSelection({ label: chordName, notes: getChordNotes(variant, notesJson) });
     });
   });
+
+  hub.subscribe(() => updateActiveMarkers(hub));
 }
 
 export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
@@ -128,7 +133,7 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
       const tr = document.createElement('tr');
       tr.className = 'fb-selectable fb-theory-row';
       tr.dataset.label = type;
-      tr.title = 'Click to highlight on fretboard';
+      tr.title = 'Click to highlight on fretboard (up to 3 layers)';
       tr.innerHTML = `
         <td>${type}</td>
         <td>${short}</td>
@@ -137,12 +142,12 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
         <td>${notes.join(', ')}</td>
       `;
       tr.addEventListener('click', () => {
-        hub.selectDerived(type, (r) => getTheoryNotes(r, intervalsStr));
+        hub.toggleSelection({ label: type, resolve: (r) => getTheoryNotes(r, intervalsStr) });
       });
       tbody.appendChild(tr);
     }
 
-    updateActiveMarkersTheory(sectionEl, hub.getSourceLabel());
+    updateActiveMarkers(hub);
   }
 
   hub.subscribe(() => {
@@ -151,37 +156,21 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
       lastRoot = currentRoot;
       renderRows();
     } else {
-      updateActiveMarkersTheory(sectionEl, hub.getSourceLabel());
+      updateActiveMarkers(hub);
     }
   });
   renderRows();
 }
 
-function updateActiveMarkersTheory(sectionEl, label) {
-  sectionEl.querySelectorAll('.fb-theory-row.fb-active').forEach((r) => r.classList.remove('fb-active'));
-  if (!label || label === 'root' || label === 'manual') return;
-  sectionEl.querySelectorAll(`.fb-theory-row[data-label="${CSS.escape(label)}"]`).forEach((r) => {
-    r.classList.add('fb-active');
-  });
-}
-
 export function wireScalesTheory(hub, scales, sectionEl) {
   sectionEl.querySelectorAll('.fb-scale-row').forEach((row) => {
-    row.title = 'Click to highlight on fretboard';
+    row.title = 'Click to highlight on fretboard (up to 3 layers)';
     row.addEventListener('click', () => {
       const name = row.dataset.scale;
       const steps = JSON.parse(row.dataset.steps || '[]');
-      hub.selectDerived(name, (r) => getScaleNotes(r, steps));
+      hub.toggleSelection({ label: name, resolve: (r) => getScaleNotes(r, steps) });
     });
   });
 
-  hub.subscribe(() => {
-    sectionEl.querySelectorAll('.fb-scale-row.fb-active').forEach((r) => r.classList.remove('fb-active'));
-    const label = hub.getSourceLabel();
-    if (label && label !== 'root' && label !== 'manual') {
-      sectionEl.querySelectorAll(`.fb-scale-row[data-scale="${CSS.escape(label)}"]`).forEach((r) => {
-        r.classList.add('fb-active');
-      });
-    }
-  });
+  hub.subscribe(() => updateActiveMarkers(hub));
 }

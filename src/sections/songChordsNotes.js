@@ -25,7 +25,7 @@ export function renderChordsAndNotes(currentSong, chordsJson, notesJson) {
   }, { interactive: true, tableClass: 'notes-table' });
 
   return createSection('chords & notes', `
-    <p class="fb-hint">Click a column header to highlight on fretboard.</p>
+    <p class="fb-hint">Click a column header to highlight on fretboard (up to 3 layers, click again to remove).</p>
     <div class="chords-notes-split">
       <div class="chords-notes-col">
         <h3 class="split-label">Chords</h3>

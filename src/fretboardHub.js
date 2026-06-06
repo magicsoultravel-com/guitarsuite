@@ -1,29 +1,44 @@
 import { CHROMATIC, normalizePitch } from './music.js';
 
+const MAX_LAYERS = 3;
+
+function normalizedSet(notes) {
+  return new Set(notes.map(normalizePitch).filter(Boolean));
+}
+
 export function createFretboardHub(initialRoot = 'C') {
   let root = normalizePitch(initialRoot) || 'C';
-  let activeNotes = new Set([root]);
-  let sourceLabel = 'root';
-  let selection = { kind: 'root', label: 'root', resolve: null };
+  /** @type {Array<{ label: string, kind: 'fixed'|'derived'|'manual', notes?: string[], resolve?: (root: string) => string[] }|null>} */
+  let layers = [null, null, null];
   const listeners = new Set();
 
   function notify() {
     listeners.forEach((fn) => fn());
   }
 
-  function normalizedSet(notes) {
-    return new Set(notes.map(normalizePitch).filter(Boolean));
+  function resolveLayer(layer) {
+    if (!layer) return new Set();
+    if (layer.kind === 'derived' && layer.resolve) return normalizedSet(layer.resolve(root));
+    if (layer.kind === 'manual' && layer.notes) return normalizedSet(layer.notes);
+    if (layer.notes) return normalizedSet(layer.notes);
+    return new Set();
   }
 
-  function applySelection() {
-    if (selection.kind === 'manual') return;
-    if (selection.resolve) {
-      activeNotes = normalizedSet(selection.resolve(root));
-      sourceLabel = selection.label;
-    } else {
-      activeNotes = new Set([root]);
-      sourceLabel = 'root';
+  function getManualLayerIndex() {
+    return layers.findIndex((l) => l?.kind === 'manual');
+  }
+
+  function ensureManualLayer() {
+    let idx = getManualLayerIndex();
+    if (idx >= 0) return idx;
+    idx = layers.findIndex((l) => !l);
+    if (idx < 0) {
+      layers.shift();
+      layers.push(null);
+      idx = 2;
     }
+    layers[idx] = { label: 'manual', kind: 'manual', notes: [] };
+    return idx;
   }
 
   return {
@@ -36,94 +51,105 @@ export function createFretboardHub(initialRoot = 'C') {
       return root;
     },
 
-    getActiveNotes() {
-      return new Set(activeNotes);
+    getLayers() {
+      return layers
+        .map((layer, i) => (layer ? { slot: i + 1, label: layer.label, notes: resolveLayer(layer) } : null))
+        .filter(Boolean);
     },
 
+    getLayerSlot(label) {
+      const idx = layers.findIndex((l) => l?.label === label);
+      return idx >= 0 ? idx + 1 : 0;
+    },
+
+    /** @deprecated use getLayers */
+    getActiveNotes() {
+      const merged = new Set();
+      for (const layer of layers) {
+        for (const n of resolveLayer(layer)) merged.add(n);
+      }
+      return merged;
+    },
+
+    /** @deprecated use getLayers */
     getSourceLabel() {
-      return sourceLabel;
+      const active = layers.filter(Boolean);
+      if (!active.length) return '';
+      if (active.length === 1) return active[0].label;
+      return active.map((l) => l.label).join(' · ');
     },
 
     setRoot(newRoot) {
       root = normalizePitch(newRoot) || 'C';
-      applySelection();
+      notify();
+    },
+
+    toggleSelection({ label, notes, resolve }) {
+      const existingIdx = layers.findIndex((l) => l?.label === label);
+      if (existingIdx >= 0) {
+        layers[existingIdx] = null;
+      } else {
+      let idx = layers.findIndex((l) => !l);
+      if (idx < 0) {
+        layers.shift();
+        layers.push(null);
+        idx = 2;
+      }
+        layers[idx] = {
+          label,
+          kind: resolve ? 'derived' : 'fixed',
+          notes: notes || [],
+          resolve,
+        };
+      }
       notify();
     },
 
     selectNotes(notes, label) {
-      selection = { kind: 'fixed', label: label || '', resolve: () => notes };
-      applySelection();
+      const existingIdx = layers.findIndex((l) => l?.label === label);
+      if (existingIdx >= 0) {
+        layers[existingIdx] = null;
+        notify();
+        return;
+      }
+      let idx = layers.findIndex((l) => !l);
+      if (idx < 0) {
+        layers.shift();
+        layers.push(null);
+        idx = 2;
+      }
+      layers[idx] = { label: label || '', kind: 'fixed', notes: [...notes] };
       notify();
     },
 
     selectDerived(label, resolveFn) {
-      selection = { kind: 'derived', label, resolve: resolveFn };
-      applySelection();
-      notify();
+      this.toggleSelection({ label, resolve: resolveFn });
     },
 
     toggleNote(note) {
       const pitch = normalizePitch(note);
       if (!pitch) return;
-      selection = { kind: 'manual', label: 'manual', resolve: null };
-      if (activeNotes.has(pitch)) activeNotes.delete(pitch);
-      else activeNotes.add(pitch);
-      sourceLabel = 'manual';
+      const idx = ensureManualLayer();
+      const manual = layers[idx];
+      const notes = new Set(manual.notes.map(normalizePitch).filter(Boolean));
+      if (notes.has(pitch)) notes.delete(pitch);
+      else notes.add(pitch);
+      if (!notes.size) layers[idx] = null;
+      else manual.notes = [...notes];
       notify();
     },
 
     reset() {
-      selection = { kind: 'root', label: 'root', resolve: null };
-      applySelection();
+      layers = [null, null, null];
       notify();
     },
   };
 }
 
-export function renderRootToolbar(hub, { controlsEl = null, summaryEl = null } = {}) {
-  const options = CHROMATIC.map(
-    (n) => `<option value="${n}"${n === hub.getRoot() ? ' selected' : ''}>${n}</option>`
-  ).join('');
-
-  const rootRow = document.createElement('div');
-  rootRow.className = 'root-row';
-  rootRow.innerHTML = `
-    <select id="global-root-select" class="root-select" title="Root note">${options}</select>
-    <button type="button" id="fretboard-reset" class="icon-btn reset-btn" title="Reset fretboard" aria-label="Reset fretboard">↺</button>
-  `;
-
-  const summary = summaryEl || document.createElement('span');
-  summary.id = 'fretboard-source';
-  summary.classList.add('fretboard-source');
-
-  let bar;
-  if (controlsEl) {
-    controlsEl.appendChild(rootRow);
-    bar = controlsEl;
-  } else {
-    bar = document.createElement('div');
-    bar.className = 'root-toolbar-panel';
-    bar.id = 'root-toolbar';
-    bar.appendChild(rootRow);
-    bar.appendChild(summary);
-  }
-
-  rootRow.querySelector('#global-root-select').addEventListener('change', (e) => {
-    hub.setRoot(e.target.value);
-    const url = new URL(location.href);
-    url.searchParams.set('root', e.target.value);
-    history.replaceState(null, '', url);
-  });
-
-  rootRow.querySelector('#fretboard-reset').addEventListener('click', () => hub.reset());
-
-  hub.subscribe(() => {
-    const select = rootRow.querySelector('#global-root-select');
-    if (select.value !== hub.getRoot()) select.value = hub.getRoot();
-    const label = hub.getSourceLabel();
-    const notes = [...hub.getActiveNotes()].join(', ');
-    summary.textContent = label && label !== 'root' ? `${label}: ${notes}` : notes;
-  });
-
-  return bar;
+export function formatLayerSummary(hub) {
+  const labels = hub.getLayers().map((l) => l.label).filter((l) => l !== 'manual');
+  if (labels.length) return labels.join(' · ');
+  const manual = hub.getLayers().find((l) => l.label === 'manual');
+  if (manual) return [...manual.notes].join(', ');
+  return `Root ${hub.getRoot()}`;
 }

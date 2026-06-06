@@ -7,7 +7,7 @@ import {
   normalizePitch,
   sortNotesByMusicalOrder,
 } from '../music.js';
-import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
+import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
 const STRING_KEYS = ['E1', 'A', 'D', 'G', 'B', 'E2'];
@@ -46,11 +46,7 @@ function renderShapePreview(variant, notesJson) {
 function pickChord(hub, chordsJson, notesJson, name) {
   const variant = chordsJson[name]?.variant1;
   if (!variant) return;
-  if (hub.getSourceLabel() === name) {
-    hub.reset();
-    return;
-  }
-  hub.selectNotes(getChordNotes(variant, notesJson), name);
+  hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson) });
 }
 
 export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
@@ -166,30 +162,28 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong) {
     renderChips(strip, names, { compact: true });
     renderChips(rootGrid, names);
     renderChips(songGrid, songChords);
-    syncActive(hub.getSourceLabel());
+    syncActive();
   }
 
-  function syncActive(label) {
-    const isChord = Boolean(label && chordsJson[label]);
-    el.querySelectorAll('.dock-chip').forEach((chip) => {
-      const active = chip.dataset.chord === label;
-      chip.classList.toggle('fb-active', active);
-      chip.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
-    updateDiagram(isChord ? label : null);
+  function syncActive() {
+    syncChipLayers(hub, el);
+    const layers = hub.getLayers().filter((l) => l.label !== 'manual');
+    const top = layers[layers.length - 1];
+    updateDiagram(top && chordsJson[top.label] ? top.label : null);
   }
 
-  const { setExpanded } = wireDockExpand(el, { bodyClass: 'chord-picker-expanded' });
+  const { setExpanded } = wireDockExpand(el, { bodyClass: 'chord-picker-expanded', moduleId: 'chords' });
   wireDockBarToggle(el, setExpanded, '.dock-module-controls, .dock-module-strip, .dock-chip, .dock-select');
 
   rootSelect.addEventListener('change', refreshRootUI);
   rootSelect.addEventListener('click', (e) => e.stopPropagation());
 
   hub.subscribe(() => {
-    const label = hub.getSourceLabel();
-    syncActive(label);
-    if (label && chordsJson[label]) {
-      const root = resolveChordRoot(label, chordsJson[label]);
+    syncActive();
+    const layers = hub.getLayers().filter((l) => l.label !== 'manual');
+    const chordLayer = [...layers].reverse().find((l) => chordsJson[l.label]);
+    if (chordLayer) {
+      const root = resolveChordRoot(chordLayer.label, chordsJson[chordLayer.label]);
       if (rootSelect.value !== root) {
         rootSelect.value = root;
         refreshRootUI();

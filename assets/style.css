@@ -18,7 +18,13 @@
     --color-border: #333;
     --color-muted: #999;
     --now-playing-bar-h: 42px;
+    --layer-color-1: #c4a574;
+    --layer-color-2: #7aab8a;
+    --layer-color-3: #8a9cc4;
+    --layer-bg-1: rgba(196, 165, 116, 0.42);
+    --layer-bg-2: rgba(122, 171, 138, 0.42);
     --dock-bar-h: 42px;
+    --dock-bar-stacked-h: 56px;
 }
 
 *,
@@ -74,7 +80,7 @@ body.has-bottom-dock.chord-picker-expanded {
 }
 
 body.has-bottom-dock.fretboard-expanded {
-    padding-bottom: calc(var(--dock-bar-h) + 420px);
+    padding-bottom: calc(var(--dock-bar-h) + 520px);
 }
 
 body.has-bottom-dock.fretboard-expanded.chord-picker-expanded {
@@ -161,8 +167,8 @@ body.has-now-playing.now-playing-expanded {
     cursor: pointer;
     line-height: 1;
     font-size: 0.58rem;
-    height: 1.45em;
-    min-height: 1.45em;
+    height: 1.85em;
+    min-height: 1.85em;
 }
 
 .fretboard-vertical .fret-head,
@@ -376,24 +382,46 @@ th {
     padding: 2px 4px;
 }
 
-#fretboard-table td.selected,
-#fretboard-table td.highlighted {
-    background-color: var(--color-accent);
+#fretboard-table td.fb-cell.fb-layer-1 {
+    background: var(--layer-bg-1);
     color: #1a1a1a;
     font-weight: 600;
-    border: 1px solid var(--color-accent-strong);
-    transform: scale(1.02);
-    transition: background-color 0.08s ease;
-    position: relative;
-    z-index: 1;
 }
 
-#fretboard-table td.selected.fb-root {
-    box-shadow: inset 0 0 0 1px var(--color-accent-strong);
+#fretboard-table td.fb-cell.fb-layer-2 {
+    background: var(--layer-bg-2);
+    color: #1a1a1a;
+    font-weight: 600;
 }
 
-#fretboard-table td:hover {
-    background-color: rgba(60, 60, 60, 0.7);
+#fretboard-table td.fb-cell.fb-layer-3 {
+    background: var(--layer-bg-3);
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+#fretboard-table td.fb-cell.fb-layer-1.fb-layer-2:not(.fb-layer-3) {
+    background: linear-gradient(135deg, var(--layer-bg-1) 50%, var(--layer-bg-2) 50%);
+}
+
+#fretboard-table td.fb-cell.fb-layer-1.fb-layer-3:not(.fb-layer-2) {
+    background: linear-gradient(135deg, var(--layer-bg-1) 50%, var(--layer-bg-3) 50%);
+}
+
+#fretboard-table td.fb-cell.fb-layer-2.fb-layer-3:not(.fb-layer-1) {
+    background: linear-gradient(135deg, var(--layer-bg-2) 50%, var(--layer-bg-3) 50%);
+}
+
+#fretboard-table td.fb-cell.fb-layer-1.fb-layer-2.fb-layer-3 {
+    background: conic-gradient(from 45deg, var(--layer-bg-1) 0 120deg, var(--layer-bg-2) 120deg 240deg, var(--layer-bg-3) 240deg 360deg);
+}
+
+#fretboard-table td.fb-cell.fb-root {
+    box-shadow: inset 0 0 0 2px var(--color-accent-strong);
+}
+
+#fretboard-table td.fb-cell:hover {
+    filter: brightness(1.15);
     cursor: pointer;
 }
 
@@ -441,6 +469,45 @@ th {
 .fb-selectable.fb-active,
 .fb-chord-col.fb-active {
     background-color: var(--color-highlight-bg) !important;
+}
+
+.fb-selectable.fb-active-1,
+.fb-chord-col.fb-active-1 {
+    outline: 2px solid var(--layer-color-1);
+    background-color: rgba(196, 165, 116, 0.18) !important;
+}
+
+.fb-selectable.fb-active-2,
+.fb-chord-col.fb-active-2 {
+    outline: 2px solid var(--layer-color-2);
+    background-color: rgba(122, 171, 138, 0.18) !important;
+}
+
+.fb-selectable.fb-active-3,
+.fb-chord-col.fb-active-3 {
+    outline: 2px solid var(--layer-color-3);
+    background-color: rgba(138, 156, 196, 0.18) !important;
+}
+
+.dock-chip.fb-active-1 {
+    border-color: var(--layer-color-1);
+    color: var(--layer-color-1);
+}
+
+.dock-chip.fb-active-2 {
+    border-color: var(--layer-color-2);
+    color: var(--layer-color-2);
+}
+
+.dock-chip.fb-active-3 {
+    border-color: var(--layer-color-3);
+    color: var(--layer-color-3);
+}
+
+.dock-chip.is-root-active {
+    background: var(--color-highlight-bg);
+    border-color: var(--color-accent);
+    color: var(--color-accent-strong);
     outline: 1px solid var(--color-accent);
 }
 
@@ -480,12 +547,6 @@ th {
 .dock-module--chords {
     width: min(320px, 42vw);
     max-width: 320px;
-}
-
-.dock-module--now-playing {
-    width: min(260px, 28vw);
-    max-width: 260px;
-    flex-shrink: 0;
 }
 
 .dock-module-bar {
@@ -642,12 +703,120 @@ th {
 }
 
 .dock-module--fretboard .dock-module-panel {
-    max-height: min(480px, 58vh);
+    max-height: min(560px, 62vh);
 }
 
 .dock-module--chords .dock-module-panel,
-.dock-module--now-playing .dock-module-panel {
-    max-height: 200px;
+.dock-module--now-playing .dock-module-panel,
+.dock-module--tools .dock-module-panel {
+    max-height: 220px;
+}
+
+.dock-module--now-playing {
+    width: min(280px, 32vw);
+    max-width: 280px;
+    flex-shrink: 0;
+}
+
+.dock-module--root {
+    width: min(360px, 42vw);
+    max-width: 360px;
+}
+
+.dock-module--tools {
+    width: min(280px, 32vw);
+    max-width: 280px;
+}
+
+.dock-module-bar--stacked {
+    min-height: var(--dock-bar-stacked-h);
+    align-items: center;
+}
+
+.dock-module-bar--root {
+    cursor: default;
+}
+
+.now-playing-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 0;
+}
+
+.dock-module--now-playing .now-playing-info .dock-module-title {
+    white-space: normal;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.2;
+}
+
+.dock-module--now-playing .now-playing-info .dock-module-sub {
+    white-space: normal;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.2;
+}
+
+.dock-root-strip {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 4px 0;
+}
+
+.dock-module--root .root-chip {
+    flex: 0 0 auto;
+    min-width: 2.1em;
+    text-align: center;
+    padding: 2px 5px;
+}
+
+.tools-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-xs);
+}
+
+.tools-row:last-child {
+    margin-bottom: 0;
+}
+
+.input-bpm {
+    width: 3.2em;
+    padding: 2px 4px;
+    font-size: var(--font-xs);
+    text-align: center;
+    background: #111;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: #fff;
+    margin: 0;
+}
+
+.input-bpm::-webkit-inner-spin-button,
+.input-bpm::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.select-wide {
+    width: auto;
+    min-width: 4.5em;
+}
+
+body.has-bottom-dock.tools-expanded {
+    padding-bottom: calc(var(--dock-bar-h) + 200px);
 }
 
 .dock-select {

@@ -13,7 +13,7 @@ export function renderScalesTheory(scales) {
     .join('');
 
   return createSection('scales / modes', `
-    <p class="fb-hint">Uses the global root note. Click a row to highlight on fretboard.</p>
+    <p class="fb-hint">Uses the global root note. Click a row to highlight on fretboard (up to 3 layers).</p>
     <table id="scales-theory-table">
       <thead>
         <tr><th>Name</th><th>Steps</th><th>Typical use</th></tr>

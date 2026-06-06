@@ -4,7 +4,6 @@ import { renderBottomDock } from './sections/bottomDock.js';
 import { renderChordsAndNotes } from './sections/songChordsNotes.js';
 import { renderChordsTheory } from './sections/chordsTheory.js';
 import { renderScalesTheory } from './sections/scalesTheory.js';
-import { renderTools } from './sections/tools.js';
 import { renderUsefulLinks } from './sections/usefulLinks.js';
 import { renderBlogger } from './sections/blogger.js';
 import { renderAbout } from './sections/about.js';
@@ -66,8 +65,6 @@ try {
   wireScalesTheory(hub, scales, scalesSection);
 
   hub.setRoot(initialRoot);
-
-  app.appendChild(renderTools());
   app.appendChild(renderUsefulLinks(usefulLinks));
   app.appendChild(renderBlogger(bloggerPosts));
   app.appendChild(renderAbout(about));

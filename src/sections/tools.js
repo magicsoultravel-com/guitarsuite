@@ -68,11 +68,11 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
           <span class="dock-section-label">Looper</span>
           <div class="tools-controls-col">
             <div class="tools-inline looper-toolbar">
-              <select id="looper-tracks" class="dock-select tools-select-narrow" title="Tracks">
-                <option value="1" selected>1 tr</option>
-                <option value="2">2 tr</option>
-                <option value="3">3 tr</option>
-                <option value="4">4 tr</option>
+              <select id="looper-tracks" class="dock-select tools-select-narrow" title="Layers (each row = full bar)">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
               </select>
               <div class="tools-segment" role="group" aria-label="Chords or notes">
                 <button type="button" class="tools-segment-btn is-active" data-looper-mode="chord">chords</button>
@@ -145,6 +145,10 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
     return looperMode === 'note' ? noteSelectOptions(value) : chordSelectOptions(value);
   }
 
+  function getTrackCount() {
+    return parseInt(looperTracksSelect.value, 10) || 1;
+  }
+
   function readSlotState() {
     const state = [];
     for (let t = 0; t < MAX_TRACKS; t += 1) {
@@ -187,18 +191,16 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
 
   function rebuildLooperSlots() {
     const saved = readSlotState();
-    const trackCount = parseInt(looperTracksSelect.value, 10);
+    const trackCount = getTrackCount();
     looperSlots.style.setProperty('--looper-beats', beatsPerMeasure);
-    looperSlots.classList.toggle('looper-slots--multi', trackCount > 1);
 
     let html = '';
     for (let t = 0; t < trackCount; t += 1) {
       const slots = Array.from({ length: beatsPerMeasure }, (_, b) => {
         const value = saved[t]?.[b] || '';
-        return `<select class="dock-select looper-slot" data-track="${t}" data-beat="${b}" title="Beat ${b + 1}">${slotOptionsHtml(value)}</select>`;
+        return `<select class="dock-select looper-slot" data-track="${t}" data-beat="${b}" title="Layer ${t + 1}, beat ${b + 1}">${slotOptionsHtml(value)}</select>`;
       }).join('');
-      const tag = trackCount > 1 ? `<span class="looper-track-tag">${t + 1}</span>` : '';
-      html += `<div class="looper-track-row">${tag}${slots}</div>`;
+      html += `<div class="looper-track-row"><span class="looper-track-tag">${t + 1}</span>${slots}</div>`;
     }
 
     looperSlots.innerHTML = html;
@@ -234,7 +236,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
     getBeatsPerMeasure,
     onBeat(beat) {
       highlightBeat(beat);
-      const trackCount = parseInt(looperTracksSelect.value, 10);
+      const trackCount = getTrackCount();
       const saved = readSlotState();
       for (let t = 0; t < trackCount; t += 1) {
         playSlotValue(saved[t]?.[beat - 1]);
@@ -326,6 +328,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   );
 
   updateTimeSignature();
+  rebuildLooperSlots();
   return el;
 }
 

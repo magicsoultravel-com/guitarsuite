@@ -39,9 +39,17 @@ body {
     font-size: var(--font-base);
     line-height: var(--line-height);
     margin: 0;
-    padding: var(--space-sm);
+    padding: 0;
     background-color: #000;
     color: #fff;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+html {
+    height: 100%;
+    overflow: hidden;
 }
 
 /* --- Page layout --- */
@@ -73,23 +81,24 @@ body {
 
 body.has-tool-dock,
 body.has-module-dock {
-    padding-left: calc(var(--dock-width) + var(--space-sm) * 2);
+    padding-left: 0;
 }
 
 body.has-content-dock {
-    padding-right: var(--space-sm);
+    padding-right: 0;
 }
 
 body.has-selection-footer {
-    padding-bottom: calc(var(--footer-stack-h) + var(--space-sm) * 2);
+    padding-bottom: 0;
 }
 
 .viewport-root {
     transform-origin: top left;
     transition: transform 0.22s ease-out;
-    width: 100%;
-    min-height: 100vh;
     position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
 }
 
 body.focus-modules .site-layout {
@@ -232,7 +241,7 @@ h1 {
 }
 
 .site-brand {
-    position: fixed;
+    position: absolute;
     top: var(--space-sm);
     left: calc(var(--dock-width) + var(--space-sm) * 2);
     right: var(--space-sm);
@@ -260,7 +269,7 @@ h1 {
 }
 
 .site-footer-stack {
-    position: fixed;
+    position: absolute;
     left: calc(var(--dock-width) + var(--space-sm) * 2);
     right: var(--space-sm);
     bottom: var(--space-sm);
@@ -399,8 +408,7 @@ body.has-module-dock .site-footer-stack {
     font-size: var(--font-xs);
     font-weight: 600;
     color: var(--color-accent-strong);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
 }
 
 .footer-root {
@@ -926,7 +934,7 @@ th {
 .tool-dock,
 .bottom-dock {
     --dock-width: 208px;
-    position: fixed;
+    position: absolute;
     left: var(--space-sm);
     top: var(--space-sm);
     bottom: var(--space-sm);
@@ -947,7 +955,7 @@ body.has-selection-footer .tool-dock {
 }
 
 #workspace-scroll {
-    position: fixed;
+    position: absolute;
     left: calc(var(--dock-width) + var(--space-sm) * 2);
     top: 3.25rem;
     right: var(--space-sm);
@@ -990,6 +998,10 @@ body.has-selection-footer .tool-dock {
     overflow: hidden;
     pointer-events: auto;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+
+#module-canvas .dock-module.is-floating.is-resizing {
+    transition: none;
 }
 
 #module-canvas .dock-module.is-floating .dock-module-panel {
@@ -1116,8 +1128,7 @@ body.has-selection-footer .tool-dock {
     font-size: var(--font-xs);
     font-weight: 600;
     color: var(--color-accent-strong);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
 }
 
 .dock-module-controls {
@@ -1238,6 +1249,50 @@ body.has-selection-footer .tool-dock {
 .fretboard-drawer-hint {
     flex: 1;
     min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dock-module-bar--now-playing {
+    cursor: default;
+}
+
+.dock-module-bar--now-playing .now-playing-summary {
+    flex: 1;
+    min-width: 0;
+}
+
+.now-playing-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.now-playing-meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+}
+
+.now-playing-title {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--color-accent-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.now-playing-artist {
+    font-size: var(--font-xs);
+    color: var(--color-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1521,8 +1576,7 @@ body.has-selection-footer .tool-dock {
 .dock-section-label {
     display: block;
     font-size: 0.65em;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.02em;
     color: var(--color-muted);
     margin-bottom: 4px;
 }
@@ -1682,8 +1736,7 @@ body.has-selection-footer .tool-dock {
     font-size: var(--font-xs);
     font-weight: 600;
     color: var(--color-accent-strong);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
 }
 
 .selection-panel-root {

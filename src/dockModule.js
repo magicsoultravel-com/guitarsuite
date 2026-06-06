@@ -2,15 +2,15 @@ import { isRestoring, touchSession } from './sessionState.js';
 import {
   MODULE_ORDER,
   applyModuleSize,
+  applyModuleSizeUser,
   ensureModuleCanvas,
   expandedFloatingModules,
   getDefaultDockOrder,
   getEffectiveZoom,
   getUserZoom,
-  layoutModuleWithPush,
   measureModuleFullSize,
   pointerToCanvasLocal,
-  positionModuleAtBar,
+  relayoutAllTiles,
   resetUserZoom,
   resizeCanvasToContent,
   setUserZoom,
@@ -130,8 +130,10 @@ function clearFloatStyles(mod) {
   mod.style.height = '';
   mod.style.zIndex = '';
   delete mod.dataset.originDock;
-  delete mod.dataset.maxWidth;
-  delete mod.dataset.maxHeight;
+  delete mod.dataset.naturalWidth;
+  delete mod.dataset.naturalHeight;
+  delete mod.dataset.userWidth;
+  delete mod.dataset.userHeight;
   mod.querySelector('.dock-resize-handle')?.remove();
 }
 
@@ -157,7 +159,7 @@ export function openFloatingModule(mod, barClientRect) {
 
   const { width, height } = measureModuleFullSize(mod);
   applyModuleSize(mod, width, height);
-  positionModuleAtBar(mod, barRect);
+  relayoutAllTiles();
 
   mod.style.zIndex = String(1000 + expandedFloatingModules().length);
   updateWorkspaceZoom();
@@ -175,7 +177,7 @@ export function closeFloatingModule(mod) {
   notifySessionChange();
 }
 
-export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
+export function wireDockBarToggle(el, setExpanded) {
   const bar = el.querySelector('.dock-module-bar');
   if (!bar) return;
 
@@ -184,14 +186,6 @@ export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
     if (isOpen) closeFloatingModule(el);
     else openFloatingModule(el, bar.getBoundingClientRect());
   };
-
-  bar.addEventListener('click', (e) => {
-    if (e.target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle')) return;
-    if (ignoreSelector && e.target.closest(ignoreSelector)) return;
-    if (bar.dataset.dragMoved === '1') return;
-    if (!el.classList.contains('dock-module--expandable')) return;
-    toggle();
-  });
 
   el.querySelector('.dock-module-chevron')?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -229,15 +223,21 @@ function wireResize(mod, grip) {
   grip.addEventListener('pointermove', (e) => {
     if (!active) return;
     const scale = getEffectiveZoom() || 1;
-    applyModuleSize(mod, startW + (e.clientX - startX) / scale, startH + (e.clientY - startY) / scale);
-    resizeCanvasToContent();
-    updateWorkspaceZoom();
+    applyModuleSizeUser(
+      mod,
+      startW + (e.clientX - startX) / scale,
+      startH + (e.clientY - startY) / scale,
+    );
+    mod.classList.add('is-resizing');
   });
 
   const end = (e) => {
     if (!active) return;
     active = false;
+    mod.classList.remove('is-resizing');
     try { grip.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+    relayoutAllTiles();
+    updateWorkspaceZoom();
     notifySessionChange();
   };
 
@@ -320,7 +320,6 @@ function wireBarDrag(mod, dockEl) {
       const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
       mod.style.left = `${snap(Math.max(0, local.x - offsetX))}px`;
       mod.style.top = `${snap(Math.max(0, local.y - offsetY))}px`;
-      resizeCanvasToContent();
     }
   });
 
@@ -329,6 +328,7 @@ function wireBarDrag(mod, dockEl) {
     bar.classList.remove('is-dragging');
     try { bar.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
     if (mode === 'float') {
+      relayoutAllTiles();
       updateWorkspaceZoom();
       notifySessionChange();
     }
@@ -407,13 +407,11 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
       expandHandlers.get(id)?.(true, { silent: true });
       measureModuleFullSize(mod);
       if (state.width && state.height) {
-        applyModuleSize(mod, state.width, state.height);
+        applyModuleSizeUser(mod, state.width, state.height);
       } else {
         const full = measureModuleFullSize(mod);
         applyModuleSize(mod, full.width, full.height);
       }
-      if (state.left != null) mod.style.left = `${state.left}px`;
-      if (state.top != null) mod.style.top = `${state.top}px`;
       if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
     } else {
       const dockEl = findOriginDock(mod);

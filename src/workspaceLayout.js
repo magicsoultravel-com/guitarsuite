@@ -76,7 +76,6 @@ function applyPageZoom(zoom) {
   root.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
   root.dataset.effectiveZoom = String(zoom);
   document.documentElement.style.setProperty('--page-zoom', String(zoom));
-  document.body.style.minHeight = zoom === 1 ? '' : `${root.offsetHeight * zoom}px`;
 }
 
 export function setUserZoom(value) {
@@ -102,7 +101,7 @@ export function initWorkspace() {
   ensureViewportRoot();
   ensureModuleCanvas();
   window.addEventListener('resize', () => {
-    resizeCanvasToContent();
+    relayoutAllTiles();
     updateWorkspaceZoom();
   });
 }
@@ -136,8 +135,8 @@ export function pointerToCanvasLocal(canvas, clientX, clientY) {
 const BAR_H = 44;
 const MIN_FLOAT_W = 200;
 const MIN_FLOAT_H = 140;
-const MAX_FLOAT_W = 480;
-const MAX_FLOAT_H = () => Math.min(window.innerHeight * 0.92, 820);
+const MAX_FLOAT_W = 720;
+const MAX_FLOAT_H = () => Math.min(window.innerHeight * 0.95, 900);
 
 export function measureModuleFullSize(mod) {
   const panel = mod.querySelector('.dock-module-panel');
@@ -167,18 +166,29 @@ export function measureModuleFullSize(mod) {
   mod.style.height = prev.height;
   panel.style.height = prev.panelHeight;
 
-  mod.dataset.maxWidth = String(width);
-  mod.dataset.maxHeight = String(height);
+  mod.dataset.naturalWidth = String(width);
+  mod.dataset.naturalHeight = String(height);
   return { width, height };
 }
 
 export function applyModuleSize(mod, width, height) {
-  const maxW = parseInt(mod.dataset.maxWidth, 10) || MAX_FLOAT_W;
-  const maxH = parseInt(mod.dataset.maxHeight, 10) || MAX_FLOAT_H();
-  const w = snap(Math.min(maxW, Math.max(MIN_FLOAT_W, width)));
-  const h = snap(Math.min(maxH, Math.max(MIN_FLOAT_H, height)));
+  const naturalW = parseInt(mod.dataset.naturalWidth, 10) || MAX_FLOAT_W;
+  const naturalH = parseInt(mod.dataset.naturalHeight, 10) || MAX_FLOAT_H();
+  const w = snap(Math.min(naturalW, Math.max(MIN_FLOAT_W, width)));
+  const h = snap(Math.min(naturalH, Math.max(MIN_FLOAT_H, height)));
   mod.style.width = `${w}px`;
   mod.style.height = `${h}px`;
+  return { width: w, height: h };
+}
+
+/** Free resize while dragging — only minimum size enforced. */
+export function applyModuleSizeUser(mod, width, height) {
+  const w = snap(Math.max(MIN_FLOAT_W, width));
+  const h = snap(Math.max(MIN_FLOAT_H, height));
+  mod.style.width = `${w}px`;
+  mod.style.height = `${h}px`;
+  mod.dataset.userWidth = String(w);
+  mod.dataset.userHeight = String(h);
   return { width: w, height: h };
 }
 
@@ -223,66 +233,85 @@ export function resizeCanvasToContent() {
   canvas.style.minHeight = `${Math.max(viewH, maxBottom)}px`;
 }
 
-/** Push layout: prefer horizontal expansion, then vertical. */
-export function layoutModuleWithPush(mod, preferredTop = 0) {
-  const others = expandedFloatingModules().filter((m) => m !== mod);
-  const w = mod.offsetWidth;
-  const h = mod.offsetHeight;
-  let left = 0;
-  let top = snap(Math.max(0, preferredTop));
+function layoutOrder(modules) {
+  return [...modules].sort((a, b) => {
+    const ta = parseInt(a.style.top, 10) || 0;
+    const tb = parseInt(b.style.top, 10) || 0;
+    if (Math.abs(ta - tb) > GRID / 2) return ta - tb;
+    return (parseInt(a.style.left, 10) || 0) - (parseInt(b.style.left, 10) || 0);
+  });
+}
 
-  for (let attempt = 0; attempt < 64; attempt++) {
-    const box = { left, top, right: left + w, bottom: top + h };
-    const hit = others.map(moduleBox).find((b) => boxesOverlap(box, b));
-    if (!hit) break;
+/** Pack tiles from top-left; wrap rows; no overlap. */
+export function relayoutAllTiles() {
+  const scroll = ensureWorkspaceScroll();
+  const viewW = scroll.clientWidth;
+  const modules = layoutOrder(expandedFloatingModules());
 
-    const tryLeft = snap(hit.right + DOCK_GAP);
-    if (!others.some((o) => o !== mod && boxesOverlap(
-      { left: tryLeft, top, right: tryLeft + w, bottom: top + h },
-      moduleBox(o),
-    ))) {
-      left = tryLeft;
-      continue;
+  let x = 0;
+  let y = 0;
+  let rowH = 0;
+
+  for (const mod of modules) {
+    const w = mod.offsetWidth;
+    const h = mod.offsetHeight;
+    if (x > 0 && x + w > viewW) {
+      x = 0;
+      y = snap(y + rowH + DOCK_GAP);
+      rowH = 0;
     }
-
-    top = snap(hit.bottom + DOCK_GAP);
-    left = 0;
+    mod.style.left = `${snap(x)}px`;
+    mod.style.top = `${snap(y)}px`;
+    x = snap(x + w + DOCK_GAP);
+    rowH = Math.max(rowH, h);
   }
 
-  mod.style.left = `${left}px`;
-  mod.style.top = `${top}px`;
   resizeCanvasToContent();
+}
+
+/** @deprecated use relayoutAllTiles */
+export function layoutModuleWithPush(mod, preferredTop = 0) {
+  relayoutAllTiles();
 }
 
 export function positionModuleAtBar(mod, barClientRect) {
-  const canvas = ensureModuleCanvas();
-  const { y: localY } = pointerToCanvasLocal(canvas, barClientRect.left, barClientRect.top);
-  layoutModuleWithPush(mod, localY);
+  relayoutAllTiles();
+}
+
+function measureViewportOverflow() {
+  const root = ensureViewportRoot();
+  const scroll = document.getElementById('workspace-scroll');
+  let maxRight = root.clientWidth;
+  let maxBottom = root.clientHeight;
+
+  if (scroll) {
+    maxRight = Math.max(maxRight, scroll.offsetLeft + scroll.scrollWidth);
+    maxBottom = Math.max(maxBottom, scroll.offsetTop + scroll.scrollHeight);
+    for (const mod of expandedFloatingModules()) {
+      const box = moduleBox(mod);
+      maxRight = Math.max(maxRight, scroll.offsetLeft + box.right + DOCK_GAP);
+      maxBottom = Math.max(maxBottom, scroll.offsetTop + box.bottom + DOCK_GAP);
+    }
+  }
+
+  return {
+    maxRight,
+    maxBottom,
+    viewW: root.clientWidth,
+    viewH: root.clientHeight,
+  };
 }
 
 function computeFitCap() {
-  const scroll = document.getElementById('workspace-scroll');
-  const modules = expandedFloatingModules();
-  if (!scroll || !modules.length) return 1;
-
-  const viewW = scroll.clientWidth;
-  const viewH = scroll.clientHeight;
-  let maxRight = 0;
-  let maxBottom = 0;
-  for (const mod of modules) {
-    const box = moduleBox(mod);
-    maxRight = Math.max(maxRight, box.right);
-    maxBottom = Math.max(maxBottom, box.bottom);
-  }
-  if (maxRight <= viewW && maxBottom <= viewH) return 1;
-  return Math.min(1, (viewW / maxRight) * 0.97, (viewH / maxBottom) * 0.97);
+  const { maxRight, maxBottom, viewW, viewH } = measureViewportOverflow();
+  if (maxRight <= viewW + 1 && maxBottom <= viewH + 1) return 1;
+  return Math.min(1, (viewW / maxRight) * 0.98, (viewH / maxBottom) * 0.98);
 }
 
 export function updateWorkspaceZoom() {
-  resizeCanvasToContent();
+  relayoutAllTiles();
   const fitCap = computeFitCap();
   applyPageZoom(Math.min(userZoom, fitCap));
-  resizeCanvasToContent();
 }
 
 export function getDefaultDockOrder() {

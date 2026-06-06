@@ -1,5 +1,5 @@
 import { escapeHtml } from '../utils.js';
-import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers, openFloatingModule, closeFloatingModule } from '../dockModule.js';
+import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers, openFloatingModule } from '../dockModule.js';
 import { appendChordChips, getChordContext } from '../chordChip.js';
 
 function renderChords(chipGrid, chordsList, hub, chordsJson, notesJson, chordsTheory) {
@@ -22,17 +22,21 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
         </div>
       `;
     }
+    const summary = `${song.title} · ${song.artist}`;
     return `
       <div class="dock-module-bar dock-module-bar--now-playing">
-        <button type="button" class="dock-nav-btn now-playing-prev" title="Previous" aria-label="Previous song">‹</button>
-        <button type="button" class="dock-module-main now-playing-toggle" aria-expanded="false">
-          <span class="dock-module-title">${escapeHtml(song.title)}</span>
-          <span class="dock-module-sub">${escapeHtml(song.artist)}</span>
-        </button>
-        <button type="button" class="dock-nav-btn now-playing-next" title="Next" aria-label="Next song">›</button>
+        <span class="dock-module-sub now-playing-summary">${escapeHtml(summary)}</span>
         <span class="dock-module-chevron" aria-hidden="true">▲</span>
       </div>
       <div class="dock-module-panel now-playing-panel" hidden>
+        <div class="now-playing-controls">
+          <button type="button" class="dock-nav-btn now-playing-prev" title="Previous song" aria-label="Previous song">‹</button>
+          <div class="now-playing-meta">
+            <span class="now-playing-title">${escapeHtml(song.title)}</span>
+            <span class="now-playing-artist">${escapeHtml(song.artist)}</span>
+          </div>
+          <button type="button" class="dock-nav-btn now-playing-next" title="Next song" aria-label="Next song">›</button>
+        </div>
         <div class="dock-section">
           <span class="dock-section-label">In song</span>
           <div class="dock-chip-grid now-playing-chords"></div>
@@ -47,10 +51,8 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
   }
 
   function wireBar() {
-    const toggle = drawer.querySelector('.now-playing-toggle');
     const prevBtn = drawer.querySelector('.now-playing-prev');
     const nextBtn = drawer.querySelector('.now-playing-next');
-    const panel = drawer.querySelector('.dock-module-panel');
     const chipGrid = drawer.querySelector('.now-playing-chords');
     const song = songs[currentIndex];
 
@@ -62,12 +64,6 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
     const { setExpanded } = wireDockExpand(drawer, {
       bodyClass: 'now-playing-expanded',
       moduleId: 'now-playing',
-    });
-
-    toggle?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (drawer.classList.contains('is-expanded')) closeFloatingModule(drawer);
-      else openFloatingModule(drawer);
     });
 
     prevBtn?.addEventListener('click', (e) => {
@@ -84,7 +80,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
       onSongChange?.(next);
     });
 
-    wireDockBarToggle(drawer, setExpanded, '.dock-nav-btn, .now-playing-toggle');
+    wireDockBarToggle(drawer, setExpanded, '.dock-nav-btn, .dock-chip, a');
 
     return { setExpanded };
   }
@@ -99,7 +95,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
     const wasExpanded = drawer.classList.contains('is-expanded');
     drawer.innerHTML = buildBar(songs[currentIndex]);
     ensureDockChrome(drawer, 'now-playing', 'Now playing', { expandable: !!songs[currentIndex] });
-    const { setExpanded } = wireBar();
+    wireBar();
     if (wasExpanded && songs[currentIndex]) openFloatingModule(drawer);
   }
 

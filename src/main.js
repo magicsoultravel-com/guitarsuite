@@ -14,6 +14,7 @@ import { createFretboardHub } from './fretboardHub.js';
 import { applyModulesState, collectDockOrders, collectModulesState } from './dockModule.js';
 import { initSessionPersistence, restoreSession } from './sessionState.js';
 import { getUserZoom, initWorkspace } from './workspaceLayout.js';
+import { APP_VERSION } from './version.js';
 import {
   initFretboardInteractive,
   wireChordNoteTables,
@@ -99,6 +100,11 @@ try {
     chordsTheory,
     notesJson: notes,
   }, footerEl);
+
+  const tagline = document.getElementById('site-tagline');
+  if (tagline) {
+    tagline.textContent = `${APP_VERSION} · © ${new Date().getFullYear()} minimal website design inc.`;
+  }
 
   initWorkspace();
   mountChordsAndNotes(moduleDock.currentSong);

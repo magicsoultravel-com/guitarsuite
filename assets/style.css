@@ -111,6 +111,10 @@ body.has-selection-footer {
     overflow: hidden;
 }
 
+.viewport-root.is-ui-dragging {
+    transition: none;
+}
+
 body.focus-modules .site-layout {
     visibility: hidden;
     pointer-events: none;

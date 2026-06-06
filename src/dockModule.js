@@ -240,6 +240,7 @@ function wireResize(mod, grip) {
     startY = e.clientY;
     startW = mod.offsetWidth;
     startH = mod.offsetHeight;
+    document.getElementById('viewport-root')?.classList.add('is-ui-dragging');
     grip.setPointerCapture(e.pointerId);
   });
 
@@ -258,6 +259,7 @@ function wireResize(mod, grip) {
     if (!active) return;
     active = false;
     mod.classList.remove('is-resizing');
+    document.getElementById('viewport-root')?.classList.remove('is-ui-dragging');
     try { grip.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
     commitModulePosition(mod);
     notifySessionChange();
@@ -280,6 +282,19 @@ function wireModuleDrag(mod, dockEl) {
   let offsetX = 0;
   let offsetY = 0;
   let captureEl = null;
+  let viewportRoot = null;
+
+  function setDragLock(on) {
+    viewportRoot = viewportRoot || document.getElementById('viewport-root');
+    viewportRoot?.classList.toggle('is-ui-dragging', on);
+  }
+
+  function syncDragOffset(clientX, clientY) {
+    const canvas = ensureModuleCanvas();
+    const local = pointerToCanvasLocal(canvas, clientX, clientY);
+    offsetX = local.x - (parseInt(mod.style.left, 10) || 0);
+    offsetY = local.y - (parseInt(mod.style.top, 10) || 0);
+  }
 
   function isBlockedTarget(target) {
     return !!target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle, .dock-chip, .root-chip, input, select, textarea, a');
@@ -301,6 +316,13 @@ function wireModuleDrag(mod, dockEl) {
     startY = e.clientY;
     captureEl = sourceEl;
     bar.dataset.dragMoved = '0';
+    if (mod.classList.contains('is-floating') && mod.style.left !== '' && mod.style.top !== '') {
+      syncDragOffset(startX, startY);
+    } else {
+      offsetX = 0;
+      offsetY = 0;
+    }
+    setDragLock(true);
     sourceEl.setPointerCapture(e.pointerId);
     bar.classList.add('is-dragging');
     handle?.classList.add('is-dragging');
@@ -332,17 +354,14 @@ function wireModuleDrag(mod, dockEl) {
       mode = 'float';
       if (!mod.classList.contains('is-floating')) {
         beginCollapsedFloat(mod, dockEl);
+        const anchor = pointerToCanvasLocal(canvas, startX, startY);
+        const grabX = Math.min(mod.offsetWidth * 0.35, 48);
+        const grabY = 16;
+        mod.style.left = `${snap(Math.max(0, anchor.x - grabX))}px`;
+        mod.style.top = `${snap(Math.max(0, anchor.y - grabY))}px`;
+        syncDragOffset(startX, startY);
       }
 
-      const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
-      const grabX = Math.min(mod.offsetWidth * 0.35, 48);
-      const grabY = 16;
-      if (!mod.style.left) {
-        mod.style.left = `${snap(Math.max(0, local.x - grabX))}px`;
-        mod.style.top = `${snap(Math.max(0, local.y - grabY))}px`;
-      }
-      offsetX = local.x - (parseInt(mod.style.left, 10) || 0);
-      offsetY = local.y - (parseInt(mod.style.top, 10) || 0);
       mod.style.zIndex = String(1000 + expandedFloatingModules().length + 1);
     }
 
@@ -362,6 +381,7 @@ function wireModuleDrag(mod, dockEl) {
     if (!active) return;
     const wasFloat = mode === 'float';
     active = false;
+    setDragLock(false);
     bar.classList.remove('is-dragging');
     handle?.classList.remove('is-dragging');
     try { captureEl?.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }

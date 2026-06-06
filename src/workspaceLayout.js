@@ -73,7 +73,15 @@ function applyPageZoom(zoom) {
   effectiveZoom = zoom;
   const root = ensureViewportRoot();
   root.style.transformOrigin = 'top left';
-  root.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+  if (zoom === 1) {
+    root.style.transform = '';
+    root.style.width = '100vw';
+    root.style.height = '100vh';
+  } else {
+    root.style.transform = `scale(${zoom})`;
+    root.style.width = `${100 / zoom}vw`;
+    root.style.height = `${100 / zoom}vh`;
+  }
   root.dataset.effectiveZoom = String(zoom);
   document.documentElement.style.setProperty('--page-zoom', String(zoom));
 }

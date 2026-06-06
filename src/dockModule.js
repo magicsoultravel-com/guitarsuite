@@ -119,11 +119,40 @@ function floatModule(mod, dockEl) {
   mod.dataset.originDock = dockEl?.id || DOCK_ID;
   mod.classList.add('is-floating');
   canvas.appendChild(mod);
+}
+
+function expandFloatingModule(mod) {
+  const setExpanded = expandHandlers.get(mod.dataset.dockId);
+  setExpanded?.(true, { silent: true });
+  mod.classList.remove('is-float-preview');
+
+  const { width, height } = measureModuleFullSize(mod);
+  applyModuleSize(mod, width, height);
   ensureResizeHandle(mod);
+  mod.style.zIndex = String(1000 + expandedFloatingModules().length);
+  relayoutAllTiles();
+  updateWorkspaceZoom();
+  notifySessionChange();
+}
+
+/** Move to canvas as a collapsed bar preview — expand on drop, not on drag start. */
+function beginCollapsedFloat(mod, dockEl) {
+  if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
+  const setExpanded = expandHandlers.get(mod.dataset.dockId);
+  setExpanded?.(false, { silent: true });
+  const panel = mod.querySelector('.dock-module-panel');
+  if (panel) panel.hidden = true;
+  mod.classList.add('is-float-preview');
+  mod.classList.remove('is-expanded');
+  const dockW = dockEl?.offsetWidth || 208;
+  mod.style.width = `${dockW}px`;
+  mod.style.height = '';
+  mod.style.minHeight = 'var(--dock-bar-h)';
+  mod.querySelector('.dock-resize-handle')?.remove();
 }
 
 function clearFloatStyles(mod) {
-  mod.classList.remove('is-floating');
+  mod.classList.remove('is-floating', 'is-float-preview');
   mod.style.left = '';
   mod.style.top = '';
   mod.style.width = '';
@@ -149,21 +178,8 @@ function redock(mod, dockEl) {
 
 export function openFloatingModule(mod, barClientRect) {
   const dockEl = findOriginDock(mod);
-  const barRect = barClientRect || mod.querySelector('.dock-module-bar')?.getBoundingClientRect();
-  if (!barRect) return;
-
   if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
-
-  const setExpanded = expandHandlers.get(mod.dataset.dockId);
-  setExpanded?.(true, { silent: true });
-
-  const { width, height } = measureModuleFullSize(mod);
-  applyModuleSize(mod, width, height);
-  relayoutAllTiles();
-
-  mod.style.zIndex = String(1000 + expandedFloatingModules().length);
-  updateWorkspaceZoom();
-  notifySessionChange();
+  expandFloatingModule(mod);
 }
 
 export function closeFloatingModule(mod) {
@@ -263,13 +279,14 @@ function wireBarDrag(mod, dockEl) {
   const bar = mod.querySelector('.dock-module-bar');
   if (!bar) return;
 
-  const DRAG_THRESHOLD = 5;
+  const DRAG_THRESHOLD = 8;
   let armed = false;
   let mode = null;
   let startX = 0;
   let startY = 0;
   let offsetX = 0;
   let offsetY = 0;
+  let startedCollapsed = false;
 
   bar.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.dock-module-dock, .dock-module-chevron, .dock-resize-handle')) return;
@@ -278,6 +295,7 @@ function wireBarDrag(mod, dockEl) {
     if (!mod.classList.contains('is-floating') && !mod.classList.contains('dock-module--expandable')) return;
     armed = true;
     mode = null;
+    startedCollapsed = !mod.classList.contains('is-floating');
     startX = e.clientX;
     startY = e.clientY;
     bar.dataset.dragMoved = '0';
@@ -295,15 +313,21 @@ function wireBarDrag(mod, dockEl) {
       if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
       bar.dataset.dragMoved = '1';
 
-      if (!mod.classList.contains('is-floating') && Math.abs(dy) > Math.abs(dx)) {
+      const dockRect = dockEl.getBoundingClientRect();
+      const inDockColumn = e.clientX < dockRect.right + 4;
+      const verticalReorder = inDockColumn && Math.abs(dy) > Math.abs(dx) * 1.15;
+
+      if (!mod.classList.contains('is-floating') && verticalReorder) {
         mode = 'reorder';
         reorderInDock(mod, dockEl, e.clientY);
         return;
       }
 
       mode = 'float';
-      if (!mod.classList.contains('is-floating')) {
-        openFloatingModule(mod, bar.getBoundingClientRect());
+      if (startedCollapsed) {
+        beginCollapsedFloat(mod, dockEl);
+      } else if (!mod.classList.contains('is-floating')) {
+        beginCollapsedFloat(mod, dockEl);
       }
       const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
       offsetX = local.x - (parseInt(mod.style.left, 10) || 0);
@@ -324,13 +348,24 @@ function wireBarDrag(mod, dockEl) {
   });
 
   const endDrag = (e) => {
+    const wasFloat = mode === 'float';
     armed = false;
     bar.classList.remove('is-dragging');
     try { bar.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-    if (mode === 'float') {
-      relayoutAllTiles();
-      updateWorkspaceZoom();
-      notifySessionChange();
+
+    if (wasFloat) {
+      if (mod.classList.contains('is-float-preview')) {
+        const dockRect = dockEl.getBoundingClientRect();
+        if (e.clientX > dockRect.right + 8) {
+          expandFloatingModule(mod);
+        } else {
+          redock(mod, dockEl);
+        }
+      } else {
+        relayoutAllTiles();
+        updateWorkspaceZoom();
+        notifySessionChange();
+      }
     }
     mode = null;
     setTimeout(() => { bar.dataset.dragMoved = '0'; }, 0);
@@ -413,6 +448,8 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
         applyModuleSize(mod, full.width, full.height);
       }
       if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
+      mod.classList.remove('is-float-preview');
+      ensureResizeHandle(mod);
     } else {
       const dockEl = findOriginDock(mod);
       if (mod.classList.contains('is-floating') && dockEl) redock(mod, dockEl);

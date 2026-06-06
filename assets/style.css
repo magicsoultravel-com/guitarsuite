@@ -1021,8 +1021,7 @@ body.has-selection-footer .tool-dock {
     overflow: visible;
 }
 
-/* Bar actions: hidden until hover; collapsed = expand only, open = drag + collapse + close */
-.dock-module--expandable .dock-drag-handle,
+/* Bar actions: chevron/dock on hover; drag handle always visible on tiles */
 .dock-module--expandable .dock-module-dock,
 .dock-module--expandable .dock-module-chevron {
     opacity: 0;
@@ -1031,25 +1030,49 @@ body.has-selection-footer .tool-dock {
     transition: opacity 0.12s ease, visibility 0.12s;
 }
 
-.dock-module--expandable:not(.is-floating) .dock-drag-handle,
+.dock-module--expandable .dock-drag-handle {
+    opacity: 0.45;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.12s ease;
+}
+
 .dock-module--expandable:not(.is-floating) .dock-module-dock {
     display: none;
 }
 
+.dock-module--expandable:not(.is-floating) .dock-drag-handle {
+    display: inline-flex;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .dock-module--expandable:not(.is-floating) .dock-module-bar:hover .dock-module-chevron,
-.dock-module--expandable:not(.is-floating) .dock-module-bar:focus-within .dock-module-chevron {
+.dock-module--expandable:not(.is-floating) .dock-module-bar:hover .dock-drag-handle,
+.dock-module--expandable:not(.is-floating) .dock-module-bar:focus-within .dock-module-chevron,
+.dock-module--expandable:not(.is-floating) .dock-module-bar:focus-within .dock-drag-handle {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
 }
 
+.dock-module--expandable.is-floating .dock-drag-handle {
+    display: inline-flex;
+    opacity: 0.5;
+    visibility: visible;
+    pointer-events: auto;
+}
+
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:hover .dock-drag-handle,
+.dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-drag-handle {
+    opacity: 1;
+}
+
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:hover .dock-module-chevron,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:hover .dock-module-dock,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-drag-handle,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-module-chevron,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-module-dock,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar:focus-within .dock-drag-handle,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:focus-within .dock-module-dock,
 .dock-module--expandable.is-floating.is-expanded .dock-module-bar:focus-within .dock-module-chevron {
     opacity: 1;
@@ -1057,9 +1080,19 @@ body.has-selection-footer .tool-dock {
     pointer-events: auto;
 }
 
-.dock-module--expandable.is-floating.is-expanded .dock-drag-handle,
 .dock-module--expandable.is-floating.is-expanded .dock-module-dock {
     display: inline-flex;
+}
+
+#module-canvas .dock-module.is-float-preview {
+    min-height: 0;
+    height: auto;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    opacity: 0.92;
+}
+
+#module-canvas .dock-module.is-float-preview .dock-module-panel {
+    display: none !important;
 }
 
 .dock-resize-handle {
@@ -1087,10 +1120,15 @@ body.has-selection-footer .tool-dock {
     min-height: var(--dock-bar-h);
     max-height: var(--dock-bar-h);
     padding: 0 4px;
-    cursor: grab;
+    cursor: default;
     user-select: none;
     overflow: hidden;
     box-sizing: border-box;
+}
+
+.dock-module-bar.is-dragging,
+.dock-module-bar:has(.dock-drag-handle:hover) {
+    cursor: grab;
 }
 
 .dock-drag-handle {

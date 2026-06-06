@@ -82,7 +82,10 @@ export function renderSelectionPanel(hub, context = {}) {
 
     emptyEl.hidden = true;
     for (const layer of layers) {
-      const { slot, label, notes } = layer;
+      const { slot, label, notes, chordRef, via } = layer;
+      const displayLabel = via
+        ? `${chordRef || label} (${via})`
+        : (chordRef || label);
       const li = document.createElement('li');
       li.className = `selection-layer selection-layer--${slot} selection-layer-playable`;
       li.title = 'Click to play';
@@ -90,7 +93,7 @@ export function renderSelectionPanel(hub, context = {}) {
       li.innerHTML = `
         <span class="selection-layer-badge">${slot}</span>
         <span class="selection-layer-body">
-          <span class="selection-layer-label">${escapeHtml(label)}</span>
+          <span class="selection-layer-label">${escapeHtml(displayLabel)}</span>
           <span class="selection-layer-notes">${escapeHtml(noteList)}</span>
         </span>
       `;

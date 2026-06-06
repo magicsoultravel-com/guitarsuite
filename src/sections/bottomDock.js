@@ -44,6 +44,7 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
     notes,
     currentIndex,
     (index) => setSongIndex(index, theoryContext.onSongChange),
+    theoryContext.chordsTheory,
   );
   dock.appendChild(nowPlaying.drawer);
   dock.appendChild(renderToolsDock());
@@ -55,6 +56,7 @@ export function renderBottomDock(hub, songs, chords, notes, songIndex, theoryCon
     chordsJson: chords,
     scalesJson: theoryContext.scales,
     chordsTheory: theoryContext.chordsTheory,
+    notesJson: notes,
   });
 
   return {

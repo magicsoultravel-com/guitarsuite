@@ -8,7 +8,13 @@ import {
   sortNotesByMusicalOrder,
 } from '../music.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
-import { playChordByName } from '../playback.js';
+import { pickChord as applyChordPick } from '../chordResolve.js';
+import { playVoicedChord, playChord } from '../playback.js';
+
+const playFns = (notesJson) => ({
+  playVoiced: (variant) => playVoicedChord(variant, notesJson),
+  playNotes: (notes) => playChord(notes),
+});
 
 const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
 const STRING_KEYS = ['E1', 'A', 'D', 'G', 'B', 'E2'];
@@ -44,20 +50,18 @@ function renderShapePreview(variant, notesJson) {
   return { frets, notes };
 }
 
-function pickChord(hub, chordsJson, notesJson, name) {
-  const variant = chordsJson[name]?.variant1;
-  if (!variant) return;
-  hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson), family: 'chord' });
-  playChordByName(name, chordsJson, notesJson);
+function pickChord(hub, chordsJson, notesJson, chordsTheory, name) {
+  const ctx = { chordsJson, notesJson, chordsTheory };
+  applyChordPick(hub, ctx, playFns(notesJson), { chordName: name });
 }
 
 function resolveDisplayChord(hub, chordsJson, chordsTheory, byRoot, songChords) {
   const last = hub.getLastChordLabel();
   if (last && (chordsJson[last] || chordsTheory?.[last])) return last;
 
-  const layers = hub.getLayers().filter((l) => l.label !== 'manual');
-  const chordLayer = [...layers].reverse().find((l) => chordsJson[l.label] || chordsTheory?.[l.label]);
-  if (chordLayer) return chordLayer.label;
+  const layers = hub.getLayers().filter((l) => l.label !== 'manual' && l.family === 'chord');
+  const chordLayer = [...layers].reverse().find((l) => l.chordRef || chordsJson[l.label] || chordsTheory?.[l.label] || l.via);
+  if (chordLayer) return chordLayer.chordRef || chordLayer.label;
 
   const root = hub.getRoot();
   const songAtRoot = songChords.find((c) => resolveChordRoot(c, chordsJson[c]) === root);
@@ -74,6 +78,12 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
     const { frets, notes } = renderShapePreview(data.variant1, notesJson);
     const type = data.type ? `${data.type} · ` : '';
     return `${name} · ${type}${notes || frets.join(' ')}`;
+  }
+  const layer = hub.getLayers().find((l) => l.chordRef === name || l.label === name);
+  if (layer?.via && chordsJson[layer.chordRef]) {
+    const data = chordsJson[layer.chordRef];
+    const { frets, notes } = renderShapePreview(data.variant1, notesJson);
+    return `${layer.chordRef} · ${layer.via} · ${notes || frets.join(' ')}`;
   }
   if (chordsTheory?.[name]) {
     const root = hub.getRoot();
@@ -148,7 +158,7 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
     btn.textContent = name;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      pickChord(hub, chordsJson, notesJson, name);
+      pickChord(hub, chordsJson, notesJson, chordsTheory, name);
     });
     return btn;
   }
@@ -168,11 +178,13 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
       diagramNotes.textContent = '';
       return;
     }
-    if (chordsJson[name]) {
-      const data = chordsJson[name];
+    const layer = hub.getLayers().find((l) => l.chordRef === name || l.label === name);
+    const dbName = chordsJson[name] ? name : layer?.chordRef;
+    if (dbName && chordsJson[dbName]) {
+      const data = chordsJson[dbName];
       const { frets, notes } = renderShapePreview(data.variant1, notesJson);
-      diagramName.textContent = name;
-      diagramType.textContent = data.type ? data.type : '';
+      diagramName.textContent = dbName;
+      diagramType.textContent = layer?.via || (data.type ? data.type : '');
       diagramFrets.textContent = frets.join(' ');
       diagramNotes.textContent = notes;
       return;
@@ -189,8 +201,8 @@ export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chord
     }
     const layer = hub.getLayers().find((l) => l.label === name);
     if (layer) {
-      diagramName.textContent = name;
-      diagramType.textContent = 'Triad';
+      diagramName.textContent = layer.chordRef || name;
+      diagramType.textContent = layer.via || 'Triad';
       diagramFrets.textContent = '—';
       diagramNotes.textContent = [...layer.notes].join(' · ');
       return;

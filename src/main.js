@@ -55,6 +55,7 @@ try {
   ]);
 
   const hub = createFretboardHub(initialRoot);
+  hub.setChordContext({ chordsJson: chords, notesJson: notes, chordsTheory });
 
   function mountChordsAndNotes(song) {
     const existing = document.getElementById('chords-notes-section');
@@ -64,7 +65,7 @@ try {
     } else {
       app.prepend(section);
     }
-    wireChordNoteTables(hub, chords, notes);
+    wireChordNoteTables(hub, chords, notes, chordsTheory);
   }
 
   const { currentSong } = renderBottomDock(hub, songs, chords, notes, songIndex, {

@@ -1,14 +1,25 @@
 import { normalizePitch, getChordNotes, getScaleNotes, getTheoryNotes, getDiatonicTriads, resolveProgressionChords } from './music.js';
+import { getShapeFrets, makeChordContext, pickChord } from './chordResolve.js';
 import {
-  playChordByName,
+  playVoicedChord,
   playFretNote,
   playScaleByName,
-  playTheoryType,
-  playTriad,
   playNote,
+  playChord,
 } from './playback.js';
 
 const STRING_ORDER = ['E', 'A', 'D', 'G', 'B', 'e'];
+
+function playFns(notesJson) {
+  return {
+    playVoiced: (variant) => playVoicedChord(variant, notesJson),
+    playNotes: (notes) => playChord(notes),
+  };
+}
+
+function chordCtxFromHub(hub, chordsJson, notesJson, chordsTheory) {
+  return hub.getChordContext() || makeChordContext(chordsJson, notesJson, chordsTheory);
+}
 
 export function initFretboardInteractive(hub, notesJson, chordsJson) {
   const fretboardTable = document.getElementById('fretboard-table');
@@ -27,27 +38,39 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
     const root = normalizePitch(hub.getRoot());
     const layerData = hub.getLayers();
 
-    fretboardTable.querySelectorAll('.fb-layer-1, .fb-layer-2, .fb-layer-3, .fb-root').forEach((cell) => {
-      cell.classList.remove('fb-layer-1', 'fb-layer-2', 'fb-layer-3', 'fb-root');
+    fretboardTable.querySelectorAll('.fb-layer-1, .fb-layer-2, .fb-layer-3, .fb-root, .fb-shape').forEach((cell) => {
+      cell.classList.remove('fb-layer-1', 'fb-layer-2', 'fb-layer-3', 'fb-root', 'fb-shape');
     });
 
     const stringFretsMap = Object.fromEntries(STRING_ORDER.map((s) => [s, []]));
 
+    for (const layer of layerData) {
+      const { slot, notes, shape } = layer;
+
+      if (shape) {
+        for (const { string, fret } of getShapeFrets(shape)) {
+          const cell = fretboardTable.querySelector(
+            `td.fb-cell[data-string="${string}"][data-fret="${fret}"]`,
+          );
+          if (cell) {
+            cell.classList.add(`fb-layer-${slot}`, 'fb-shape');
+            stringFretsMap[string].push(fret);
+          }
+        }
+      } else {
+        fretboardTable.querySelectorAll('td.fb-cell').forEach((cell) => {
+          const pitch = cellPitch(cell);
+          if (!pitch || !notes.has(pitch)) return;
+          cell.classList.add(`fb-layer-${slot}`);
+          const stringName = cell.dataset.string;
+          const fret = parseInt(cell.dataset.fret, 10);
+          if (stringName && !Number.isNaN(fret)) stringFretsMap[stringName].push(fret);
+        });
+      }
+    }
+
     fretboardTable.querySelectorAll('td.fb-cell').forEach((cell) => {
-      const pitch = cellPitch(cell);
-      if (!pitch) return;
-      const stringName = cell.dataset.string;
-      const fret = parseInt(cell.dataset.fret, 10);
-
-      for (const { slot, notes } of layerData) {
-        if (notes.has(pitch)) cell.classList.add(`fb-layer-${slot}`);
-      }
-
-      if (pitch === root) cell.classList.add('fb-root');
-
-      if (layerData.some(({ notes }) => notes.has(pitch)) && stringName && !Number.isNaN(fret)) {
-        stringFretsMap[stringName].push(fret);
-      }
+      if (cellPitch(cell) === root) cell.classList.add('fb-root');
     });
 
     if (fretNotationDisplay) {
@@ -66,7 +89,9 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
   function updateRelatedChords(layerData) {
     if (!relatedChordsDisplay || !chordsData || !notesJson) return;
 
-    const parts = layerData.map(({ slot, label, notes }) => {
+    const parts = layerData.map(({ slot, label, chordRef, notes }) => {
+      const name = chordRef || label;
+      if (chordRef) return `[${slot}] ${chordRef}`;
       const selected = [...notes];
       if (!selected.length) return '';
       const matched = [];
@@ -74,7 +99,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
         const pitches = new Set(getChordNotes(details.variant1 || {}, notesJson));
         if (selected.every((p) => pitches.has(normalizePitch(p)))) matched.push(chordName);
       }
-      if (!matched.length) return '';
+      if (!matched.length) return `[${slot}] ${label}`;
       return `[${slot}] ${label}: ${matched.sort().join(', ')}`;
     }).filter(Boolean);
 
@@ -100,23 +125,33 @@ export function updateActiveMarkers(hub) {
     el.classList.remove('fb-active', 'fb-active-1', 'fb-active-2', 'fb-active-3');
   });
 
-  for (const { slot, label } of hub.getLayers()) {
-    if (label === 'manual') continue;
-    document.querySelectorAll(`[data-label="${CSS.escape(label)}"]`).forEach((el) => {
+  for (const layer of hub.getLayers()) {
+    if (layer.label === 'manual') continue;
+    const slot = layer.slot;
+    if (layer.meta?.theoryType) {
+      document.querySelectorAll(`[data-theory-type="${CSS.escape(layer.meta.theoryType)}"]`).forEach((el) => {
+        el.classList.add('fb-active', `fb-active-${slot}`);
+      });
+    }
+    const chipKey = layer.chordRef || layer.label;
+    document.querySelectorAll(`[data-chord="${CSS.escape(chipKey)}"], [data-label="${CSS.escape(chipKey)}"]`).forEach((el) => {
       el.classList.add('fb-active', `fb-active-${slot}`);
     });
+    if (layer.label !== chipKey) {
+      document.querySelectorAll(`[data-label="${CSS.escape(layer.label)}"]`).forEach((el) => {
+        el.classList.add('fb-active', `fb-active-${slot}`);
+      });
+    }
   }
 }
 
-export function wireChordNoteTables(hub, chordsJson, notesJson) {
+export function wireChordNoteTables(hub, chordsJson, notesJson, chordsTheory = {}) {
+  const ctx = () => chordCtxFromHub(hub, chordsJson, notesJson, chordsTheory);
+
   document.querySelectorAll('.fb-chord-col').forEach((th) => {
     th.title = 'Click to highlight on fretboard (up to 3 layers)';
     th.addEventListener('click', () => {
-      const chordName = th.dataset.chord;
-      const variant = chordsJson[chordName]?.variant1;
-      if (!variant) return;
-      hub.toggleSelection({ label: chordName, notes: getChordNotes(variant, notesJson), family: 'chord' });
-      playChordByName(chordName, chordsJson, notesJson);
+      pickChord(hub, ctx(), playFns(notesJson), { chordName: th.dataset.chord });
     });
   });
 
@@ -150,6 +185,7 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
 
       const tr = document.createElement('tr');
       tr.className = 'fb-selectable fb-theory-row';
+      tr.dataset.theoryType = type;
       tr.dataset.label = type;
       tr.title = 'Click to highlight on fretboard (up to 3 layers)';
       tr.innerHTML = `
@@ -160,8 +196,9 @@ export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
         <td>${notes.join(', ')}</td>
       `;
       tr.addEventListener('click', () => {
-        hub.toggleSelection({ label: type, resolve: (r) => getTheoryNotes(r, intervalsStr), family: 'chord' });
-        playTheoryType(type, hub.getRoot(), chordsTheory);
+        const ctx = hub.getChordContext();
+        if (!ctx) return;
+        pickChord(hub, ctx, playFns(ctx.notesJson), { theoryType: type });
       });
       tbody.appendChild(tr);
     }
@@ -196,24 +233,20 @@ export function wireScalesTheory(hub, scales, sectionEl) {
 }
 
 function pickScaleTriad(hub, triad) {
-  hub.toggleSelection({ label: triad.symbol, notes: triad.notes, family: 'chord' });
-  playTriad(triad.notes);
+  const ctx = hub.getChordContext();
+  if (!ctx) return;
+  pickChord(hub, ctx, playFns(ctx.notesJson), { symbol: triad.symbol, fallbackNotes: triad.notes });
 }
 
-function fillScaleCard(card, scaleName, data, root, hub) {
-  const body = card.querySelector('.scale-prog-card-body');
-  if (!body || !data?.steps) return;
+function fillScaleProgRow(row, data, root, hub) {
+  const diatonicCell = row.querySelector('.scale-prog-diatonic-cell');
+  const progCell = row.querySelector('.scale-prog-progressions-cell');
+  if (!diatonicCell || !progCell || !data?.steps) return;
 
+  const wasOpen = progCell.querySelector('.scale-prog-details')?.open;
   const triads = getDiatonicTriads(root, data.steps);
-  body.replaceChildren();
 
-  const diatonicBlock = document.createElement('div');
-  diatonicBlock.className = 'scale-prog-block';
-  const diatonicLabel = document.createElement('span');
-  diatonicLabel.className = 'scale-prog-subhead';
-  diatonicLabel.textContent = 'Diatonic triads';
-  diatonicBlock.appendChild(diatonicLabel);
-
+  diatonicCell.replaceChildren();
   const diatonicChips = document.createElement('div');
   diatonicChips.className = 'scale-diatonic-chords';
   for (const triad of triads) {
@@ -226,27 +259,38 @@ function fillScaleCard(card, scaleName, data, root, hub) {
     btn.addEventListener('click', () => pickScaleTriad(hub, triad));
     diatonicChips.appendChild(btn);
   }
-  diatonicBlock.appendChild(diatonicChips);
-  body.appendChild(diatonicBlock);
+  diatonicCell.appendChild(diatonicChips);
 
-  const progBlock = document.createElement('div');
-  progBlock.className = 'scale-prog-block';
-  const progLabel = document.createElement('span');
-  progLabel.className = 'scale-prog-subhead';
-  progLabel.textContent = 'Progressions';
-  progBlock.appendChild(progLabel);
+  progCell.replaceChildren();
+  const progressions = data.progressions || [];
+
+  if (!progressions.length) {
+    const empty = document.createElement('span');
+    empty.className = 'scale-prog-empty';
+    empty.textContent = '—';
+    progCell.appendChild(empty);
+    return;
+  }
+
+  const details = document.createElement('details');
+  details.className = 'scale-prog-details';
+
+  const summary = document.createElement('summary');
+  summary.className = 'scale-prog-details-summary';
+  summary.textContent = `${progressions.length} progression${progressions.length === 1 ? '' : 's'}`;
+  details.appendChild(summary);
 
   const progList = document.createElement('div');
   progList.className = 'scale-progressions-list';
 
-  for (const prog of data.progressions || []) {
-    const row = document.createElement('div');
-    row.className = 'scale-prog-row';
+  for (const prog of progressions) {
+    const progRow = document.createElement('div');
+    progRow.className = 'scale-prog-row';
 
     const title = document.createElement('span');
     title.className = 'scale-prog-name';
     title.textContent = prog.name;
-    row.appendChild(title);
+    progRow.appendChild(title);
 
     const chips = document.createElement('div');
     chips.className = 'scale-prog-chips';
@@ -260,39 +304,33 @@ function fillScaleCard(card, scaleName, data, root, hub) {
       btn.addEventListener('click', () => pickScaleTriad(hub, triad));
       chips.appendChild(btn);
     }
-    row.appendChild(chips);
+    progRow.appendChild(chips);
 
     const pattern = document.createElement('code');
     pattern.className = 'scale-prog-pattern';
     pattern.textContent = prog.pattern;
-    row.appendChild(pattern);
+    progRow.appendChild(pattern);
 
-    progList.appendChild(row);
+    progList.appendChild(progRow);
   }
 
-  if (!data.progressions?.length) {
-    const empty = document.createElement('p');
-    empty.className = 'scale-prog-empty';
-    empty.textContent = 'No progressions defined.';
-    progList.appendChild(empty);
-  }
-
-  progBlock.appendChild(progList);
-  body.appendChild(progBlock);
+  details.appendChild(progList);
+  if (wasOpen) details.open = true;
+  progCell.appendChild(details);
 }
 
 export function wireScaleProgressions(hub, scales, sectionEl) {
   const rootEl = sectionEl.querySelector('.scale-prog-root');
-  const cards = sectionEl.querySelectorAll('.scale-prog-card');
-  if (!cards.length) return;
+  const rows = sectionEl.querySelectorAll('.fb-scale-prog-row');
+  if (!rows.length) return;
 
   function render() {
     const root = hub.getRoot();
     if (rootEl) rootEl.textContent = root;
 
-    for (const card of cards) {
-      const scaleName = card.dataset.scale;
-      fillScaleCard(card, scaleName, scales[scaleName], root, hub);
+    for (const row of rows) {
+      const scaleName = row.dataset.scale;
+      fillScaleProgRow(row, scales[scaleName], root, hub);
     }
 
     updateActiveMarkers(hub);

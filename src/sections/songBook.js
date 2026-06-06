@@ -1,16 +1,21 @@
 import { escapeHtml } from '../utils.js';
-import { getChordNotes } from '../music.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
-import { playChordByName } from '../playback.js';
+import { pickChord as applyChordPick } from '../chordResolve.js';
+import { playVoicedChord, playChord } from '../playback.js';
 
-function pickChord(hub, chordsJson, notesJson, name) {
-  const variant = chordsJson[name]?.variant1;
-  if (!variant) return;
-  hub.toggleSelection({ label: name, notes: getChordNotes(variant, notesJson), family: 'chord' });
-  playChordByName(name, chordsJson, notesJson);
+function pickChord(hub, chordsJson, notesJson, chordsTheory, name) {
+  applyChordPick(
+    hub,
+    { chordsJson, notesJson, chordsTheory },
+    {
+      playVoiced: (variant) => playVoicedChord(variant, notesJson),
+      playNotes: (notes) => playChord(notes),
+    },
+    { chordName: name },
+  );
 }
 
-function renderChords(chipGrid, chordsList, hub, chords, notesJson) {
+function renderChords(chipGrid, chordsList, hub, chords, notesJson, chordsTheory) {
   chipGrid.replaceChildren();
   for (const name of chordsList) {
     const btn = document.createElement('button');
@@ -22,13 +27,13 @@ function renderChords(chipGrid, chordsList, hub, chords, notesJson) {
     btn.title = `Show ${name} on fretboard`;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      pickChord(hub, chords, notesJson, name);
+      pickChord(hub, chords, notesJson, chordsTheory, name);
     });
     chipGrid.appendChild(btn);
   }
 }
 
-export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex, onSongChange) {
+export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex, onSongChange, chordsTheory = {}) {
   const drawer = document.createElement('div');
   drawer.id = 'now-playing-drawer';
   drawer.className = 'now-playing-drawer';
@@ -78,7 +83,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
     if (!song) return { setExpanded: () => {} };
 
     const chordsList = song.chords.split(' ').filter(Boolean);
-    renderChords(chipGrid, chordsList, hub, chords, notesJson);
+    renderChords(chipGrid, chordsList, hub, chords, notesJson, chordsTheory);
 
     const { setExpanded } = wireDockExpand(drawer, {
       bodyClass: 'now-playing-expanded',

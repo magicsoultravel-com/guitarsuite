@@ -282,8 +282,10 @@ export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
 }
 
 export function syncChipLayers(hub, container) {
-  container.querySelectorAll('.dock-chip[data-label]').forEach((chip) => {
-    const slot = hub.getLayerSlot(chip.dataset.label);
+  container.querySelectorAll('.dock-chip').forEach((chip) => {
+    const key = chip.dataset.chord || chip.dataset.label;
+    if (!key) return;
+    const slot = hub.getLayerSlot(key);
     chip.classList.toggle('fb-active', slot > 0);
     chip.classList.toggle('fb-active-1', slot === 1);
     chip.classList.toggle('fb-active-2', slot === 2);

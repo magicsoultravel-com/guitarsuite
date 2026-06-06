@@ -1,6 +1,6 @@
 import { playPitch } from './audio.js';
+import { getVoicedChord } from './chordResolve.js';
 import {
-  getChordNotes,
   getScaleNotesWithOctaves,
   getTheoryNotes,
   normalizePitch,
@@ -123,22 +123,47 @@ export function playChord(notes) {
   runSequence(unique, 150, GUITAR_OCTAVE);
 }
 
+/** Strum a database chord shape low → high with real fret octaves. */
+export function playVoicedChord(variant, notesJson) {
+  if (!soundEnabled || !variant || !notesJson) return;
+  const voiced = getVoicedChord(variant, notesJson);
+  if (!voiced.length) return;
+  sequenceId += 1;
+  const id = sequenceId;
+  (async () => {
+    for (const { string, fret, pitch } of voiced) {
+      if (id !== sequenceId) return;
+      playFretNote(string, fret, pitch);
+      await sleep(120);
+    }
+  })();
+}
+
 export function playScale(root, steps) {
   const entries = getScaleNotesWithOctaves(root, steps, GUITAR_OCTAVE, GUITAR_OCTAVE_HIGH);
   runPitchOctaveSequence(entries, 130);
 }
 
-export function playLayerSelection(layer, hub, { chordsJson, scalesJson, chordsTheory } = {}) {
+export function playLayerSelection(layer, hub, { chordsJson, scalesJson, chordsTheory, notesJson } = {}) {
   if (!layer) return;
-  const { label, notes } = layer;
+  const { label, notes, shape, chordRef } = layer;
   const root = hub.getRoot();
+
+  if (shape && notesJson) {
+    playVoicedChord(shape, notesJson);
+    return;
+  }
+  if (chordRef && chordsJson?.[chordRef]?.variant1 && notesJson) {
+    playVoicedChord(chordsJson[chordRef].variant1, notesJson);
+    return;
+  }
 
   if (label === 'manual') {
     playChord([...notes]);
     return;
   }
-  if (chordsJson?.[label]) {
-    playChord([...notes]);
+  if (chordsJson?.[label]?.variant1 && notesJson) {
+    playVoicedChord(chordsJson[label].variant1, notesJson);
     return;
   }
   if (scalesJson?.[label]) {
@@ -146,7 +171,9 @@ export function playLayerSelection(layer, hub, { chordsJson, scalesJson, chordsT
     return;
   }
   if (chordsTheory?.[label]) {
-    playChord(getTheoryNotes(root, chordsTheory[label].intervals));
+    const resolved = resolveChordForPlayback(root, label, chordsTheory, chordsJson, notesJson);
+    if (resolved?.variant) playVoicedChord(resolved.variant, notesJson);
+    else playChord(getTheoryNotes(root, chordsTheory[label].intervals));
     return;
   }
   if (notes.size === 1) {
@@ -156,10 +183,18 @@ export function playLayerSelection(layer, hub, { chordsJson, scalesJson, chordsT
   playChord([...notes]);
 }
 
+function resolveChordForPlayback(root, theoryType, chordsTheory, chordsJson, notesJson) {
+  const sym = chordsTheory[theoryType]?.short ? root + chordsTheory[theoryType].short.slice(1) : null;
+  if (sym && chordsJson?.[sym]?.variant1) {
+    return { variant: chordsJson[sym].variant1 };
+  }
+  return null;
+}
+
 export function playChordByName(name, chordsJson, notesJson) {
   const variant = chordsJson[name]?.variant1;
   if (!variant) return;
-  playChord(getChordNotes(variant, notesJson));
+  playVoicedChord(variant, notesJson);
 }
 
 export function playScaleByName(name, root, scalesJson) {
@@ -168,12 +203,21 @@ export function playScaleByName(name, root, scalesJson) {
   playScale(root, steps);
 }
 
-export function playTheoryType(type, root, chordsTheory) {
+export function playTheoryType(type, root, chordsTheory, chordsJson, notesJson) {
+  const sym = chordsTheory[type]?.short ? root + chordsTheory[type].short.slice(1) : null;
+  if (sym && chordsJson?.[sym]?.variant1 && notesJson) {
+    playVoicedChord(chordsJson[sym].variant1, notesJson);
+    return;
+  }
   const data = chordsTheory[type];
   if (!data) return;
   playChord(getTheoryNotes(root, data.intervals));
 }
 
-export function playTriad(notes) {
+export function playTriad(notes, symbol, chordsJson, notesJson) {
+  if (symbol && chordsJson?.[symbol]?.variant1 && notesJson) {
+    playVoicedChord(chordsJson[symbol].variant1, notesJson);
+    return;
+  }
   playChord(notes);
 }

@@ -8,16 +8,18 @@ function normalizedSet(notes) {
 
 export function createFretboardHub(initialRoot = 'C') {
   let root = normalizePitch(initialRoot) || 'C';
-  /** @type {Array<{ label: string, kind: 'fixed'|'derived'|'manual', family?: string, notes?: string[], resolve?: (root: string) => string[] }|null>} */
+  /** @type {Array<object|null>} */
   let layers = [null, null, null];
   /** @type {string|null} */
   let lastChordLabel = null;
+  /** @type {object|null} */
+  let chordContext = null;
   const listeners = new Set();
 
   function findLastActiveChordLabel() {
     for (let i = layers.length - 1; i >= 0; i -= 1) {
       const layer = layers[i];
-      if (layer?.family === 'chord') return layer.label;
+      if (layer?.family === 'chord') return layer.chordRef || layer.label;
     }
     return null;
   }
@@ -26,28 +28,58 @@ export function createFretboardHub(initialRoot = 'C') {
     listeners.forEach((fn) => fn());
   }
 
-  function resolveLayer(layer) {
-    if (!layer) return new Set();
-    if (layer.kind === 'derived' && layer.resolve) return normalizedSet(layer.resolve(root));
-    if (layer.kind === 'manual' && layer.notes) return normalizedSet(layer.notes);
-    if (layer.notes) return normalizedSet(layer.notes);
-    return new Set();
+  function resolveLayerEntry(layer) {
+    if (!layer) return null;
+    if (layer.resolveSelection) {
+      const resolved = layer.resolveSelection(root);
+      if (!resolved) return null;
+      return {
+        label: resolved.label,
+        notes: normalizedSet(resolved.notes),
+        chordRef: resolved.chordRef,
+        shape: resolved.variant,
+        via: resolved.via,
+        meta: layer.meta,
+        family: layer.family,
+      };
+    }
+    if (layer.kind === 'derived' && layer.resolve) {
+      return {
+        label: layer.label,
+        notes: normalizedSet(layer.resolve(root)),
+        chordRef: layer.chordRef,
+        shape: layer.shape,
+        via: layer.via,
+        meta: layer.meta,
+        family: layer.family,
+      };
+    }
+    return {
+      label: layer.label,
+      notes: normalizedSet(layer.notes || []),
+      chordRef: layer.chordRef,
+      shape: layer.shape,
+      via: layer.via,
+      meta: layer.meta,
+      family: layer.family,
+    };
   }
 
-  function getManualLayerIndex() {
-    return layers.findIndex((l) => l?.kind === 'manual');
-  }
-
-  function ensureManualLayer() {
-    let idx = getManualLayerIndex();
-    if (idx >= 0) return idx;
-    idx = layers.findIndex((l) => !l);
+  function allocateSlot() {
+    let idx = layers.findIndex((l) => !l);
     if (idx < 0) {
       layers.shift();
       layers.push(null);
       idx = 2;
     }
-    layers[idx] = { label: 'manual', kind: 'manual', notes: [] };
+    return idx;
+  }
+
+  function ensureManualLayer() {
+    let idx = layers.findIndex((l) => l?.kind === 'manual');
+    if (idx >= 0) return idx;
+    idx = allocateSlot();
+    layers[idx] = { label: 'manual', kind: 'manual', family: 'manual', notes: [] };
     return idx;
   }
 
@@ -57,36 +89,81 @@ export function createFretboardHub(initialRoot = 'C') {
       return () => listeners.delete(fn);
     },
 
+    setChordContext(ctx) {
+      chordContext = ctx;
+    },
+
+    getChordContext() {
+      return chordContext;
+    },
+
     getRoot() {
       return root;
     },
 
     getLayers() {
       return layers
-        .map((layer, i) => (layer ? { slot: i + 1, label: layer.label, notes: resolveLayer(layer) } : null))
+        .map((layer, i) => {
+          const entry = resolveLayerEntry(layer);
+          if (!entry) return null;
+          return { slot: i + 1, ...entry };
+        })
         .filter(Boolean);
     },
 
     getLayerSlot(label) {
-      const idx = layers.findIndex((l) => l?.label === label);
-      return idx >= 0 ? idx + 1 : 0;
+      const resolved = this.getLayers();
+      const match = resolved.find((l) => l.chordRef === label || l.label === label);
+      return match?.slot || 0;
     },
 
-    /** @deprecated use getLayers */
-    getActiveNotes() {
-      const merged = new Set();
-      for (const layer of layers) {
-        for (const n of resolveLayer(layer)) merged.add(n);
+    getLastChordLabel() {
+      return lastChordLabel;
+    },
+
+    findLayerIndex(matcher) {
+      return layers.findIndex(matcher);
+    },
+
+    removeLayerAt(idx) {
+      if (idx < 0 || !layers[idx]) return;
+      const removed = layers[idx];
+      layers[idx] = null;
+      const removedKey = removed.chordRef || removed.label;
+      if (lastChordLabel === removedKey || lastChordLabel === removed.label) {
+        lastChordLabel = findLastActiveChordLabel();
       }
-      return merged;
+      notify();
     },
 
-    /** @deprecated use getLayers */
-    getSourceLabel() {
-      const active = layers.filter(Boolean);
-      if (!active.length) return '';
-      if (active.length === 1) return active[0].label;
-      return active.map((l) => l.label).join(' · ');
+    addFixedChordLayer({ label, notes, chordRef, shape, via }) {
+      const idx = allocateSlot();
+      layers[idx] = {
+        label,
+        kind: 'fixed',
+        family: 'chord',
+        notes: [...notes],
+        chordRef: chordRef || null,
+        shape: shape || null,
+        via: via || null,
+      };
+      lastChordLabel = chordRef || label;
+      notify();
+    },
+
+    addDerivedChordLayer({ meta, resolveSelection }) {
+      const idx = allocateSlot();
+      const resolved = resolveSelection(root);
+      layers[idx] = {
+        label: resolved?.label || meta?.theoryType || '',
+        kind: 'derived',
+        family: 'chord',
+        meta,
+        resolveSelection,
+      };
+      if (resolved?.chordRef) lastChordLabel = resolved.chordRef;
+      else if (resolved?.label) lastChordLabel = resolved.label;
+      notify();
     },
 
     setRoot(newRoot) {
@@ -94,53 +171,30 @@ export function createFretboardHub(initialRoot = 'C') {
       notify();
     },
 
-    getLastChordLabel() {
-      return lastChordLabel;
-    },
-
-    toggleSelection({ label, notes, resolve, family }) {
-      const existingIdx = layers.findIndex((l) => l?.label === label);
+    toggleSelection({ label, notes, resolve, family, chordRef, shape, via, meta, resolveSelection }) {
+      const existingIdx = layers.findIndex(
+        (l) => l?.label === label || l?.chordRef === label || (meta?.theoryType && l?.meta?.theoryType === meta.theoryType),
+      );
       if (existingIdx >= 0) {
-        layers[existingIdx] = null;
-        if (lastChordLabel === label) lastChordLabel = findLastActiveChordLabel();
-      } else {
-        let idx = layers.findIndex((l) => !l);
-        if (idx < 0) {
-          layers.shift();
-          layers.push(null);
-          idx = 2;
-        }
-        layers[idx] = {
-          label,
-          kind: resolve ? 'derived' : 'fixed',
-          family,
-          notes: notes || [],
-          resolve,
-        };
-        if (family === 'chord') lastChordLabel = label;
-      }
-      notify();
-    },
-
-    selectNotes(notes, label) {
-      const existingIdx = layers.findIndex((l) => l?.label === label);
-      if (existingIdx >= 0) {
-        layers[existingIdx] = null;
-        notify();
+        this.removeLayerAt(existingIdx);
         return;
       }
-      let idx = layers.findIndex((l) => !l);
-      if (idx < 0) {
-        layers.shift();
-        layers.push(null);
-        idx = 2;
-      }
-      layers[idx] = { label: label || '', kind: 'fixed', notes: [...notes] };
-      notify();
-    },
 
-    selectDerived(label, resolveFn) {
-      this.toggleSelection({ label, resolve: resolveFn });
+      const idx = allocateSlot();
+      layers[idx] = {
+        label,
+        kind: resolveSelection || resolve ? 'derived' : 'fixed',
+        family,
+        notes: notes || [],
+        resolve,
+        resolveSelection,
+        chordRef: chordRef || null,
+        shape: shape || null,
+        via: via || null,
+        meta: meta || null,
+      };
+      if (family === 'chord') lastChordLabel = chordRef || label;
+      notify();
     },
 
     toggleNote(note) {
@@ -158,13 +212,14 @@ export function createFretboardHub(initialRoot = 'C') {
 
     reset() {
       layers = [null, null, null];
+      lastChordLabel = null;
       notify();
     },
   };
 }
 
 export function formatLayerSummary(hub) {
-  const labels = hub.getLayers().map((l) => l.label).filter((l) => l !== 'manual');
+  const labels = hub.getLayers().map((l) => l.chordRef || l.label).filter((l) => l !== 'manual');
   if (labels.length) return labels.join(' · ');
   const manual = hub.getLayers().find((l) => l.label === 'manual');
   if (manual) return [...manual.notes].join(', ');

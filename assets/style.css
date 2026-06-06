@@ -206,11 +206,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-    font-size: 1.45em;
+    font-family: 'Caveat', 'Segoe Script', 'Bradley Hand', cursive;
+    font-size: 2.4em;
     font-weight: 400;
     text-align: center;
     margin-top: 0;
     margin-bottom: 0;
+    letter-spacing: 0.02em;
 }
 
 h2 {
@@ -246,7 +248,6 @@ pre {
 }
 
 /* --- Layout panels --- */
-header,
 footer,
 .section {
     background-color: var(--color-bg-panel);
@@ -257,15 +258,20 @@ footer,
     margin-right: auto;
 }
 
-header,
-footer {
-    max-width: none;
-}
-
 header {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
     padding: var(--space-sm) var(--space-md);
     text-align: center;
     margin-bottom: var(--space-sm);
+}
+
+footer {
+    max-width: none;
 }
 
 .main-container {
@@ -868,10 +874,6 @@ body.has-selection-footer .content-dock {
     scrollbar-width: thin;
 }
 
-.dock-module--content .dock-module-panel--scroll {
-    max-height: min(320px, 42vh);
-}
-
 .dock-module {
     background: var(--color-bg-panel);
     border: 1px solid var(--color-border);
@@ -1041,31 +1043,52 @@ body.has-selection-footer .content-dock {
     color: var(--color-accent);
 }
 
+.dock-reorder {
+    flex-shrink: 0;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0;
+    margin-left: auto;
+}
+
+.dock-reorder-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 12px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: transparent;
+    color: var(--color-muted);
+    font-size: 0.55em;
+    line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.dock-reorder-btn:hover {
+    color: var(--color-accent);
+    border-color: var(--color-border);
+    background: var(--color-highlight-bg);
+}
+
 .dock-module-panel {
     border-top: 1px solid var(--color-border);
     padding: var(--space-sm);
-    overflow: auto;
-}
-
-.dock-module--fretboard .dock-module-panel {
-    max-height: min(360px, 55vh);
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 .fretboard-drawer-inner {
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 .fretboard-drawer-board .fretboard-vertical-wrap {
     margin-bottom: 0;
-}
-
-.dock-module--chords .dock-module-panel,
-.dock-module--tools .dock-module-panel {
-    max-height: min(280px, 50vh);
-}
-
-.dock-module--now-playing .now-playing-panel {
-    max-height: min(220px, 45vh);
 }
 
 .chord-picker-summary,
@@ -1891,6 +1914,5 @@ hr {
 
 /* --- DB pages scroll area --- */
 .table-scroll {
-    max-height: 70vh;
-    overflow: auto;
+    overflow-x: auto;
 }

@@ -1,4 +1,5 @@
 const EXPANDED_KEY = 'guitarsuite-dock-expanded';
+const ORDER_KEY = 'guitarsuite-dock-order';
 const GRID = 8;
 const DOCK_GAP = 8;
 
@@ -53,7 +54,7 @@ export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
   if (!bar) return;
 
   bar.addEventListener('click', (e) => {
-    if (e.target.closest('.dock-drag-handle, .dock-module-dock, .dock-module-chevron')) return;
+    if (e.target.closest('.dock-drag-handle, .dock-module-dock, .dock-module-chevron, .dock-reorder, .dock-reorder-btn')) return;
     if (ignoreSelector && e.target.closest(ignoreSelector)) return;
     const panel = el.querySelector('.dock-module-panel');
     if (panel) setExpanded(panel.hidden);
@@ -74,11 +75,78 @@ function snap(value) {
   return Math.round(value / GRID) * GRID;
 }
 
-function orderModules(dockEl) {
-  for (const id of DEFAULT_ORDER) {
-    const mod = dockEl.querySelector(`[data-dock-id="${id}"]`);
-    if (mod && !mod.classList.contains('is-floating')) dockEl.appendChild(mod);
+function defaultOrderFor(dockEl) {
+  if (dockEl.dataset.defaultOrder) {
+    return dockEl.dataset.defaultOrder.split(',').filter(Boolean);
   }
+  if (dockEl.id === 'tool-dock') return [...DEFAULT_ORDER];
+  return [...dockEl.querySelectorAll('.dock-module')]
+    .map((m) => m.dataset.dockId)
+    .filter(Boolean);
+}
+
+function dockedModuleIds(dockEl) {
+  return [...dockEl.querySelectorAll('.dock-module:not(.is-floating)')]
+    .map((m) => m.dataset.dockId)
+    .filter(Boolean);
+}
+
+function mergeOrder(preferred, current) {
+  const order = preferred.filter((id) => current.includes(id));
+  for (const id of current) {
+    if (!order.includes(id)) order.push(id);
+  }
+  return order;
+}
+
+function loadDockOrder(dockEl) {
+  const defaults = defaultOrderFor(dockEl);
+  const docked = dockedModuleIds(dockEl);
+  try {
+    const raw = localStorage.getItem(`${ORDER_KEY}:${dockEl.id}`);
+    if (!raw) return mergeOrder(defaults, docked);
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved)) return mergeOrder(defaults, docked);
+    return mergeOrder(saved, docked);
+  } catch (_) {
+    return mergeOrder(defaults, docked);
+  }
+}
+
+function saveDockOrder(dockEl, order) {
+  try {
+    localStorage.setItem(`${ORDER_KEY}:${dockEl.id}`, JSON.stringify(order));
+  } catch (_) { /* ignore */ }
+}
+
+function applyDockOrder(dockEl, order) {
+  for (const id of order) {
+    const mod = dockEl.querySelector(`[data-dock-id="${id}"]:not(.is-floating)`);
+    if (mod) dockEl.appendChild(mod);
+  }
+}
+
+function orderModules(dockEl) {
+  applyDockOrder(dockEl, loadDockOrder(dockEl));
+}
+
+function moveModuleInDock(mod, dockEl, direction) {
+  if (mod.classList.contains('is-floating')) return;
+  const order = loadDockOrder(dockEl);
+  const id = mod.dataset.dockId;
+  const idx = order.indexOf(id);
+  if (idx < 0) return;
+  const target = idx + direction;
+  if (target < 0 || target >= order.length) return;
+  order.splice(idx, 1);
+  order.splice(target, 0, id);
+  saveDockOrder(dockEl, order);
+  applyDockOrder(dockEl, order);
+}
+
+function syncReorderVisibility(mod) {
+  const reorder = mod.querySelector('.dock-reorder');
+  if (reorder) reorder.hidden = mod.classList.contains('is-floating');
 }
 
 function redock(mod, dockEl) {
@@ -90,6 +158,7 @@ function redock(mod, dockEl) {
   mod.querySelector('.dock-module-dock')?.setAttribute('hidden', '');
   dockEl.appendChild(mod);
   orderModules(dockEl);
+  syncReorderVisibility(mod);
 }
 
 function floatModule(mod) {
@@ -101,6 +170,7 @@ function floatModule(mod) {
   mod.style.top = `${snap(rect.top)}px`;
   document.body.appendChild(mod);
   mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
+  syncReorderVisibility(mod);
 }
 
 function moduleBox(mod) {
@@ -187,25 +257,41 @@ function wireDrag(mod, dockEl) {
   const handle = mod.querySelector('.dock-drag-handle');
   if (!handle) return;
 
+  const DRAG_THRESHOLD = 5;
+  let armed = false;
   let dragging = false;
+  let startX = 0;
+  let startY = 0;
   let offsetX = 0;
   let offsetY = 0;
 
   handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    floatModule(mod);
-    dragging = true;
-    const rect = mod.getBoundingClientRect();
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
-    mod.style.zIndex = String(1000 + document.querySelectorAll('.dock-module.is-floating').length);
+    armed = true;
+    dragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
     handle.setPointerCapture(e.pointerId);
-    handle.classList.add('is-dragging');
   });
 
   handle.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
+    if (!armed && !dragging) return;
+
+    if (!dragging) {
+      const dx = Math.abs(e.clientX - startX);
+      const dy = Math.abs(e.clientY - startY);
+      if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
+
+      floatModule(mod);
+      dragging = true;
+      handle.classList.add('is-dragging');
+      const rect = mod.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      mod.style.zIndex = String(1000 + document.querySelectorAll('.dock-module.is-floating').length);
+    }
+
     const maxLeft = window.innerWidth - mod.offsetWidth - DOCK_GAP;
     const maxTop = window.innerHeight - mod.offsetHeight - DOCK_GAP;
     mod.style.left = `${snap(clamp(e.clientX - offsetX, DOCK_GAP, maxLeft))}px`;
@@ -213,12 +299,14 @@ function wireDrag(mod, dockEl) {
   });
 
   const endDrag = (e) => {
-    if (!dragging) return;
-    dragging = false;
+    armed = false;
     handle.classList.remove('is-dragging');
     try {
       handle.releasePointerCapture(e.pointerId);
     } catch (_) { /* ignore */ }
+
+    if (!dragging) return;
+    dragging = false;
     resolveFloatingLayout(dockEl);
   };
 
@@ -231,9 +319,35 @@ function wireDrag(mod, dockEl) {
   });
 }
 
+function wireReorder(mod, dockEl) {
+  const bar = mod.querySelector('.dock-module-bar');
+  if (!bar || bar.querySelector('.dock-reorder')) return;
+
+  const reorder = document.createElement('span');
+  reorder.className = 'dock-reorder';
+  reorder.innerHTML = `
+    <button type="button" class="dock-reorder-btn" data-dir="-1" title="Move up in dock" aria-label="Move up">▴</button>
+    <button type="button" class="dock-reorder-btn" data-dir="1" title="Move down in dock" aria-label="Move down">▾</button>
+  `;
+
+  const chevron = bar.querySelector('.dock-module-chevron');
+  if (chevron) chevron.before(reorder);
+  else bar.appendChild(reorder);
+
+  reorder.querySelectorAll('.dock-reorder-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      moveModuleInDock(mod, dockEl, parseInt(btn.dataset.dir, 10));
+    });
+  });
+
+  syncReorderVisibility(mod);
+}
+
 export function initDockModules(dockEl) {
   dockEl.querySelectorAll('.dock-module').forEach((mod) => {
     wireDrag(mod, dockEl);
+    wireReorder(mod, dockEl);
   });
   orderModules(dockEl);
 

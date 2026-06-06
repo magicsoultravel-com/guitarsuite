@@ -22,7 +22,7 @@ export function wrapAsDockModule(sectionEl, { id, label, startExpanded = false }
       <span class="dock-module-sub"></span>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
-    <div class="dock-module-panel dock-module-panel--scroll" hidden></div>
+    <div class="dock-module-panel" hidden></div>
   `;
 
   const panel = mod.querySelector('.dock-module-panel');
@@ -35,7 +35,7 @@ export function wrapAsDockModule(sectionEl, { id, label, startExpanded = false }
     bodyClass: `content-${id}-expanded`,
     moduleId: id,
   });
-  wireDockBarToggle(mod, setExpanded, '.dock-chip, a, button, input, select, .fb-selectable, .carousel-nav, .dot');
+  wireDockBarToggle(mod, setExpanded, '.dock-chip, a, button, input, select, .fb-selectable, .carousel-nav, .dot, .dock-reorder-btn');
   if (startExpanded) setExpanded(true);
 
   return mod;

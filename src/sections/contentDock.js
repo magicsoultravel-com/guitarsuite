@@ -16,6 +16,7 @@ export function renderContentDock(modules = {}) {
   const dock = document.createElement('div');
   dock.id = 'content-dock';
   dock.className = 'content-dock';
+  dock.dataset.defaultOrder = CONTENT_DOCK_ORDER.join(',');
 
   const wrapped = {};
 

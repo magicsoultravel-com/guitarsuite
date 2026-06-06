@@ -10,7 +10,7 @@ export function renderMusicalNotes(currentSong, chordsJson, notesJson) {
   const tableHtml = buildChordTable(uniqueChords, chordsJson, (_chord, variant) => {
     const notes = sortNotesByMusicalOrder(getChordNotes(variant, notesJson));
     return notes;
-  });
+  }, { interactive: true, tableClass: 'notes-table' });
 
-  return createSection('notes', `<div>${tableHtml}</div>`);
+  return createSection('notes', `<p class="fb-hint">Click a column header to highlight those notes on fretboard.</p><div>${tableHtml}</div>`);
 }

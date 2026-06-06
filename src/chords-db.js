@@ -25,7 +25,7 @@ try {
   app.innerHTML = `
     <div class="section">
       <h2>Chords Database</h2>
-      <div style="max-height:1000px;overflow:visible;">
+      <div class="table-scroll">
         <table>
           <tr><th>Chord</th><th>Root</th><th>Type</th><th>Variant 1</th></tr>
           ${rows}

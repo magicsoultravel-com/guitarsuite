@@ -62,7 +62,7 @@ function renderTable() {
   app.innerHTML = `
     <div class="section" id="songsDbSection">
       <h2>songs db</h2>
-      <div style="max-height:1000px;overflow:visible;">
+      <div class="table-scroll">
         <table id="songsTable">
           <thead><tr>${headerCells}</tr></thead>
           <tbody id="songsTableBody">${rows}</tbody>

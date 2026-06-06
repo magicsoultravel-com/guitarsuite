@@ -1,226 +1,533 @@
-/* Universal Box-Sizing */
+/* --- Compact theme tokens --- */
+:root {
+    --font-base: 13px;
+    --font-sm: 0.85em;
+    --font-xs: 0.75em;
+    --line-height: 1.35;
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 10px;
+    --space-lg: 14px;
+    --radius: 4px;
+    --max-width: 920px;
+    --sidebar-width: 280px;
+    --color-bg-panel: rgba(26, 26, 26, 0.92);
+    --color-accent: #00ff00;
+    --color-accent-alt: #00ffff;
+    --color-border: #333;
+    --color-muted: #aaa;
+}
+
 *,
 *::before,
 *::after {
     box-sizing: border-box;
 }
 
-/* --- Body (Existing) --- */
 body {
     font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-size: 16px;
+    font-size: var(--font-base);
+    line-height: var(--line-height);
     margin: 0;
-    padding: 0;
+    padding: var(--space-sm);
     background-color: #000;
-    color: #FFF;
+    color: #fff;
 }
 
-/* --- GLOBAL HEADING STYLES --- */
+/* --- Page layout: sidebar + main --- */
+.site-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    position: relative;
+}
+
+.fretboard-sidebar {
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    position: sticky;
+    top: var(--space-sm);
+    align-self: flex-start;
+    max-height: calc(100vh - var(--space-sm) * 2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: flex-basis 0.2s ease, width 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+}
+
+.fretboard-sidebar.is-collapsed {
+    flex-basis: 0;
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    margin-right: calc(-1 * var(--space-sm));
+    border-width: 0;
+    pointer-events: none;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.sidebar-header h2 {
+    margin: 0;
+    font-size: 0.95em;
+    border-bottom: none;
+    padding: 0;
+}
+
+.sidebar-toggle {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    font-size: var(--font-xs);
+    line-height: 1.4;
+}
+
+.sidebar-inner {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-sm);
+    flex: 1;
+    min-height: 0;
+}
+
+.sidebar-panel {
+    margin-bottom: var(--space-sm);
+}
+
+.sidebar-panel:last-child {
+    margin-bottom: 0;
+}
+
+.sidebar-show-btn {
+    position: sticky;
+    top: var(--space-sm);
+    flex: 0 0 auto;
+    align-self: flex-start;
+    padding: var(--space-sm) 6px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: var(--font-xs);
+    letter-spacing: 1px;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-accent);
+    cursor: pointer;
+    z-index: 5;
+}
+
+.sidebar-show-btn:hover {
+    background: rgba(0, 255, 0, 0.1);
+}
+
+.main-column {
+    flex: 1;
+    min-width: 0;
+    max-width: var(--max-width);
+}
+
+.main-column .section {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.fretboard-table-wrap {
+    overflow-x: auto;
+    margin-bottom: var(--space-sm);
+    -webkit-overflow-scrolling: touch;
+}
+
+.fretboard-sidebar #fretboard-table {
+    font-size: 0.65rem;
+    min-width: 520px;
+}
+
+.fretboard-sidebar #fretboard-table th,
+.fretboard-sidebar #fretboard-table td {
+    padding: 1px 3px;
+}
+
+.fretboard-sidebar .fretboard-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-xs);
+    padding: 0;
+    margin-bottom: var(--space-xs);
+    background: none;
+    border: none;
+}
+
+.fretboard-sidebar .fretboard-toolbar label,
+.fretboard-sidebar .fretboard-toolbar select,
+.fretboard-sidebar .fretboard-toolbar button {
+    width: 100%;
+    margin: 0;
+}
+
+.fretboard-sidebar .fretboard-source {
+    display: block;
+    margin-top: var(--space-xs);
+    word-break: break-word;
+}
+
+.fretboard-sidebar .fb-hint {
+    margin-bottom: var(--space-xs);
+}
+
+.fretboard-sidebar #fret-notation-display,
+.fretboard-sidebar #related-chords-display {
+    font-size: var(--font-xs);
+    margin-top: var(--space-xs);
+}
+
+@media (max-width: 720px) {
+    .site-layout {
+        flex-direction: column;
+    }
+
+    .fretboard-sidebar {
+        position: relative;
+        top: auto;
+        width: 100%;
+        flex: none;
+        max-height: 55vh;
+    }
+
+    .fretboard-sidebar.is-collapsed {
+        max-height: 0;
+        padding: 0;
+        margin: 0;
+    }
+
+    .sidebar-show-btn {
+        writing-mode: horizontal-tb;
+        width: 100%;
+        text-align: center;
+        position: relative;
+    }
+
+    .main-column {
+        max-width: none;
+    }
+}
+
+/* --- Headings --- */
 h1, h2, h3, h4, h5, h6 {
     font-family: sans-serif;
-    color: #00ff00;
-    margin-top: 25px;
-    margin-bottom: 15px;
+    color: var(--color-accent);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-sm);
     line-height: 1.2;
+    letter-spacing: 1px;
 }
 
 h1 {
-    font-size: 2.8em;
-    font-weight: 300;
+    font-size: 1.45em;
+    font-weight: 400;
     text-align: center;
-    letter-spacing: 2px;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 h2 {
-    font-size: 1.8em;
-    font-weight: 300;
+    font-size: 1.05em;
+    font-weight: 500;
     text-align: left;
-    letter-spacing: 2px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #00ffff;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--color-accent-alt);
 }
 
-/* --- GLOBAL PARAGRAPH STYLES --- */
+h3 {
+    font-size: 0.95em;
+}
+
+.section h2:first-child,
+.post-item h2 {
+    margin-top: 0;
+}
+
 p {
-    margin-bottom: 10px;
-    line-height: 1.6;
+    margin: 0 0 var(--space-sm);
 }
 
-/* --- Header --- */
+pre, code {
+    font-size: var(--font-sm);
+    font-family: Consolas, 'Courier New', monospace;
+}
+
+pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* --- Layout panels --- */
+header,
+footer,
+.section {
+    background-color: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    max-width: var(--max-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+header,
+footer {
+    max-width: none;
+}
+
 header {
-    background-color: rgba(26, 26, 26, 0.9);
-    padding: 20px;
+    padding: var(--space-sm) var(--space-md);
     text-align: center;
-    margin: 0 auto 20px auto;
-    max-width: 1000px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid #333;
+    margin-bottom: var(--space-sm);
 }
 
-
-/* --- Main Container --- */
 .main-container {
-    max-width: 1000px;
-    margin: 20px auto;
+    max-width: var(--max-width);
+    margin: 0 auto;
     padding: 0;
 }
 
-/* --- Sections --- */
+/* legacy wrapper unused after sidebar layout */
+
 .section {
-    background-color: rgba(26, 26, 26, 0.9);
-    margin-bottom: 20px;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-md);
     overflow-x: auto;
 }
 
-/* --- Footer --- */
 footer {
-    background-color: rgba(26, 26, 26, 0.9);
-    color: #AAA;
-    padding: 20px;
+    color: var(--color-muted);
+    padding: var(--space-md);
     text-align: center;
-    margin: 20px auto 0 auto;
-    font-size: 0.9em;
-    max-width: 1000px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid #333;
+    margin-top: var(--space-sm);
+    font-size: var(--font-sm);
 }
 
-/* --- General Link Styling for Dark Theme --- */
+/* --- Forms & controls --- */
+input,
+select,
+button,
+textarea {
+    font: inherit;
+    font-size: var(--font-sm);
+}
+
+input,
+select,
+textarea {
+    padding: 3px 6px;
+    margin: 0 var(--space-xs) var(--space-xs) 0;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background: #111;
+    color: #fff;
+}
+
+button {
+    padding: 3px 10px;
+    margin: 0 var(--space-xs) var(--space-xs) 0;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background: #222;
+    color: #fff;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #333;
+}
+
+label {
+    font-size: var(--font-sm);
+    margin-right: var(--space-xs);
+}
+
+/* --- Links --- */
 a {
-    color: #87CEEB;
+    color: #87ceeb;
     text-decoration: none;
-    transition: color 0.3s ease, text-decoration 0.3s ease;
 }
 
 a:hover {
-    color: #4682B4;
+    color: #4682b4;
     text-decoration: underline;
 }
 
-a:active {
-    color: #ADD8E6;
-}
-
 a:visited {
-    color: #9370DB;
+    color: #9370db;
 }
 
 a:focus {
-    outline: 2px solid #00BFFF;
-    outline-offset: 2px;
+    outline: 1px solid #00bfff;
+    outline-offset: 1px;
 }
 
 p a {
     text-decoration: underline;
 }
+
 p a:hover {
     text-decoration: none;
 }
 
-/* --- GENERAL TABLE STYLES --- */
-/* These styles apply to ALL <table> elements */
+/* --- Tables --- */
 table {
     border-collapse: collapse;
     width: 100%;
+    font-size: var(--font-sm);
 }
 
-/* These styles apply to ALL <th> and <td> elements */
 th, td {
-    padding: 8px;
-    border: 1px solid #CCCCCC; /* light grey */
+    padding: 3px 5px;
+    border: 1px solid #666;
     text-align: center;
 }
 
-/* These styles apply to ALL <th> elements specifically */
 th {
-    background-color: lightgray;
-    font-weight: bold;
+    background-color: #ccc;
+    font-weight: 600;
     color: #000;
+    font-size: var(--font-xs);
+    text-transform: lowercase;
 }
 
-
-
-/* Style for the currently selected cell within the fretboard table */
-#fretboard-table td.selected { /* Uses ID for high specificity */
-    background-color: #00ff00; /* Bright green for selected note */
-    color: #000; /* Black text on green background */
-    font-weight: bold;
-    border: 2px solid #00ffff; /* A more prominent border */
-    transform: scale(1.1); /* Slightly enlarge the selected cell */
-    transition: all 0.1s ease-in-out; /* Smooth transition for visual feedback */
-    z-index: 2; /* Bring it slightly to the front */
-    position: relative; /* Needed for z-index to work */
+#fretboard-table {
+    font-size: var(--font-xs);
 }
 
-/* Style for cells containing the same note as the selected one within the fretboard table */
-/* NOW MATCHES .selected style */
-#fretboard-table td.highlighted { /* Uses ID for high specificity */
-    background-color: #00ff00; /* Bright green for highlighted notes */
-    color: #000; /* Black text on green background */
-    font-weight: bold;
-    border: 2px solid #00ffff; /* A more prominent border */
-    transform: scale(1.1); /* Slightly enlarge the selected cell */
-    transition: all 0.1s ease-in-out; /* Smooth transition for visual feedback */
-    z-index: 2; /* Bring it slightly to the front */
-    position: relative; /* Needed for z-index to work */
+#fretboard-table th,
+#fretboard-table td {
+    padding: 2px 4px;
 }
 
-/* Optional: Subtle hover effect for all notes within the fretboard table */
+#fretboard-table td.selected,
+#fretboard-table td.highlighted {
+    background-color: var(--color-accent);
+    color: #000;
+    font-weight: 600;
+    border: 1px solid var(--color-accent-alt);
+    transform: scale(1.04);
+    transition: background-color 0.08s ease;
+    position: relative;
+    z-index: 1;
+}
+
+#fretboard-table td.selected.fb-root {
+    box-shadow: inset 0 0 0 2px var(--color-accent-alt);
+}
+
 #fretboard-table td:hover {
     background-color: rgba(60, 60, 60, 0.7);
     cursor: pointer;
 }
 
-/* Ensure string column text remains visible within the fretboard table 
-#fretboard-table td strong {
-    color: inherit;
-}*/
- .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    display: none;
-    justify-content: center;
+#fret-notation-display,
+#related-chords-display {
+    margin-top: var(--space-sm);
+    font-size: var(--font-sm);
+    white-space: pre-wrap;
+}
+
+.fretboard-toolbar {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-  }
-
-.modal-content {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
-    /* ORIGINAL: width: 500px; */
-    /* MODIFIED: Use percentages for flexible width */
-    width: 80%; /* Takes 80% of the screen width */
-    max-width: 800px; /* But doesn't get wider than 800px on large screens */
-    /* ORIGINAL: max-width: 90%; */
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-sm);
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
 }
 
-.modal-textarea {
-    width: 100%;
-    height: 1000px; /* Or whatever height you prefer */
-    padding: 10px;
-    box-sizing: border-box;
-    min-height: 200px; /* Ensures a minimum height even if resized small */
-    /* ----- FIX HERE ----- */
-    /* If you want to resize both horizontally and vertically (default): */
-    resize: both; 
-    /* OR, if you only want to allow vertical resizing: */
-    /* resize: vertical; */
-
-    /* Make sure you DON'T have `resize: none;` or `resize: horizontal;` here. */
+.fretboard-source {
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    flex: 1 1 100%;
 }
 
-/* --- Blogger read-more --- */
+.fb-hint {
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    margin: 0 0 var(--space-sm);
+}
+
+.fb-selectable {
+    cursor: pointer;
+}
+
+.fb-chord-col:hover,
+.fb-theory-row:hover,
+.fb-scale-row:hover {
+    background-color: rgba(0, 255, 255, 0.12);
+}
+
+.fb-selectable.fb-active,
+.fb-chord-col.fb-active {
+    background-color: rgba(0, 255, 0, 0.25) !important;
+    outline: 1px solid var(--color-accent);
+}
+
+/* --- Song book / inline blocks --- */
+.section-title-inline {
+    display: inline-block;
+    margin: 0 var(--space-sm) 0 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.song-book-body {
+    margin-top: var(--space-xs);
+}
+
+.now-playing p {
+    margin-bottom: var(--space-xs);
+}
+
+.section .now-playing + a,
+.section a + a {
+    margin-left: var(--space-sm);
+}
+
+/* --- Blogger --- */
+.post-item {
+    position: relative;
+    margin-bottom: var(--space-md);
+}
+
+.post-item .post-date {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 0;
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+}
+
+.post-item .post-title-wrap {
+    padding-right: 90px;
+}
+
+.post-summary,
+.post-full {
+    white-space: pre-wrap;
+    font-size: var(--font-sm);
+}
+
 .post-full,
 .expanded .post-summary {
     display: none !important;
@@ -233,35 +540,72 @@ th {
 .post-summary {
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 6;
+    -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
-    white-space: pre-wrap;
 }
 
 .read-more-toggle {
     display: none;
+    font-size: var(--font-sm);
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: var(--space-sm) 0;
+}
+
+/* --- Metronome --- */
+#metronome-display {
+    display: inline-block;
+    min-width: 2.5em;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+/* --- Modal (legacy) --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: var(--space-md);
+    border-radius: var(--radius);
+    width: 80%;
+    max-width: 640px;
+}
+
+.modal-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: var(--space-sm);
+    resize: vertical;
 }
 
 /* --- Gallery carousel --- */
 .carousel-container {
     position: relative;
     width: 100%;
-    max-width: 600px;
-    margin: 20px auto;
+    max-width: 480px;
+    margin: var(--space-sm) auto;
     overflow: hidden;
-    border: 1px solid #333;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
 }
 
 .carousel-track {
     display: flex;
-    transition: transform 0.5s ease-in-out;
+    transition: transform 0.4s ease-in-out;
 }
 
 .carousel-slide {
     min-width: 100%;
-    box-sizing: border-box;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -272,46 +616,51 @@ th {
     max-width: 100%;
     height: auto;
     display: block;
-    border-radius: 8px;
 }
 
 .carousel-nav {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
+    background-color: rgba(0, 0, 0, 0.55);
+    color: #fff;
     border: none;
-    padding: 10px 15px;
+    padding: 4px 8px;
     cursor: pointer;
-    font-size: 1.5em;
-    border-radius: 4px;
+    font-size: 1em;
+    border-radius: 3px;
     z-index: 10;
 }
 
-.carousel-nav.prev { left: 10px; }
-.carousel-nav.next { right: 10px; }
+.carousel-nav.prev { left: 6px; }
+.carousel-nav.next { right: 6px; }
 
 .carousel-dots {
     text-align: center;
-    padding: 10px 0;
+    padding: 4px 0;
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 0.35);
 }
 
 .dot {
     display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin: 0 5px;
+    width: 7px;
+    height: 7px;
+    margin: 0 3px;
     background-color: #bbb;
     border-radius: 50%;
     cursor: pointer;
 }
 
 .dot.active {
-    background-color: #00ff00;
+    background-color: var(--color-accent);
+}
+
+/* --- DB pages scroll area --- */
+.table-scroll {
+    max-height: 70vh;
+    overflow: auto;
 }

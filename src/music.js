@@ -5,6 +5,22 @@ export const MUSICAL_ORDER = [
 
 export const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+const FLAT_TO_SHARP = { Db: 'C#', Eb: 'D#', Gb: 'F#', Ab: 'G#', Bb: 'A#' };
+
+export function normalizePitch(note) {
+  if (!note || note === 'N/A') return '';
+  const trimmed = String(note).trim();
+  if (FLAT_TO_SHARP[trimmed]) return FLAT_TO_SHARP[trimmed];
+  const letter = trimmed.charAt(0).toUpperCase();
+  const acc = trimmed.slice(1);
+  if (acc === 'b' && FLAT_TO_SHARP[letter + 'b']) return FLAT_TO_SHARP[letter + 'b'];
+  return letter + acc;
+}
+
+export function pitchToIndex(pitch) {
+  return CHROMATIC.indexOf(normalizePitch(pitch));
+}
+
 export function getRoot(chord) {
   const match = chord.match(/^[A-G](#|b)?/);
   return match ? match[0] : chord;
@@ -39,7 +55,7 @@ export function getChordNotes(chordShape, notesJson) {
     const stringBase = stringKey.replace(/[12]/, '').toUpperCase();
     if (fretValue !== 'x' && fretValue !== '') {
       const note = notesJson[stringBase]?.[fretValue];
-      if (note) notes.push(note);
+      if (note) notes.push(normalizePitch(note));
     }
   }
   return [...new Set(notes)];
@@ -49,7 +65,26 @@ export function getNoteName(rootNumber, interval) {
   return CHROMATIC[(rootNumber + interval) % 12];
 }
 
-export function buildChordTable(uniqueChords, chordsJson, getCellValue) {
+export function getTheoryNotes(root, intervalsStr) {
+  const rootIdx = pitchToIndex(root);
+  if (rootIdx < 0) return [];
+  return intervalsStr.split(/\s+/).map(Number).map((i) => CHROMATIC[(rootIdx + i) % 12]);
+}
+
+export function getScaleNotes(root, steps) {
+  const rootIdx = pitchToIndex(root);
+  if (rootIdx < 0 || !steps?.length) return [];
+  let cumulative = 0;
+  const semitones = [0];
+  for (const step of steps) {
+    cumulative += step;
+    semitones.push(cumulative);
+  }
+  return semitones.map((s) => CHROMATIC[(rootIdx + s) % 12]);
+}
+
+export function buildChordTable(uniqueChords, chordsJson, getCellValue, options = {}) {
+  const { tableClass = '', interactive = false } = options;
   const allData = {};
   let maxRows = 0;
 
@@ -65,9 +100,15 @@ export function buildChordTable(uniqueChords, chordsJson, getCellValue) {
   }
 
   const chordNames = Object.keys(allData);
-  let html = '<table><thead><tr>';
+  const classes = [tableClass, interactive ? 'fb-chord-table' : ''].filter(Boolean).join(' ');
+  let html = classes ? `<table class="${classes}">` : '<table>';
+  html += '<thead><tr>';
   for (const name of chordNames) {
-    html += `<th>${name}</th>`;
+    const safe = name.replace(/"/g, '&quot;');
+    const notesAttr = interactive
+      ? ` class="fb-selectable fb-chord-col" data-chord="${safe}" data-label="${safe}"`
+      : '';
+    html += `<th${notesAttr}>${name}</th>`;
   }
   html += '</tr></thead><tbody>';
 

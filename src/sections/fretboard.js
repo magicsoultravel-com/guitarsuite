@@ -10,15 +10,15 @@ function fretHeader(fret) {
 }
 
 export function renderFretboard(fretboardData) {
-  const section = document.createElement('div');
-  section.className = 'section';
-  section.innerHTML = `
-    <h2>fretboard interactive</h2>
-    <div class="table-responsive">
+  const panel = document.createElement('div');
+  panel.className = 'sidebar-panel fretboard-panel';
+  panel.innerHTML = `
+    <p class="fb-hint">Click frets to toggle. Columns/rows elsewhere update this board.</p>
+    <div class="fretboard-table-wrap">
       <table id="fretboard-table">
         <thead>
           <tr>
-            <th>string</th>
+            <th>str</th>
             ${Array.from({ length: NUM_DISPLAY_FRETS }, (_, i) => i + 1)
               .map((f) => `<th>${fretHeader(f)}</th>`)
               .join('')}
@@ -28,7 +28,7 @@ export function renderFretboard(fretboardData) {
           ${STRING_ORDER.map((string) => {
             const stringData = fretboardData[string];
             if (!stringData) {
-              return `<tr><td colspan="${1 + NUM_DISPLAY_FRETS}">Data not available for this string.</td></tr>`;
+              return `<tr><td colspan="${1 + NUM_DISPLAY_FRETS}">N/A</td></tr>`;
             }
             const cells = Array.from({ length: NUM_DISPLAY_FRETS }, (_, i) => {
               const fret = i + 1;
@@ -41,8 +41,9 @@ export function renderFretboard(fretboardData) {
         </tbody>
       </table>
     </div>
-    <div id="fret-notation-display" style="margin-top:1em;white-space:pre-wrap;"></div>
-    <div id="related-chords-display" style="margin-top:1em;white-space:pre-wrap;"></div>
+    <div id="fret-notation-display"></div>
+    <div id="related-chords-display"></div>
   `;
-  return section;
+
+  return panel;
 }

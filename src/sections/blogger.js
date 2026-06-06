@@ -13,16 +13,14 @@ export function renderBlogger(posts) {
   wrapper.innerHTML = sorted.map((post) => {
     const content = autolink(post.content);
     return `
-      <section class="post-item" data-id="${escapeHtml(post.id)}" style="position:relative;">
-        <p style="position:absolute;top:25px;right:25px;margin:0;font-size:0.9em;">
-          <small>${escapeHtml(post.date)}</small>
-        </p>
-        <div style="padding-right:120px;">
+      <section class="post-item" data-id="${escapeHtml(post.id)}">
+        <p class="post-date"><small>${escapeHtml(post.date)}</small></p>
+        <div class="post-title-wrap">
           <h2>${escapeHtml(post.title)}</h2>
         </div>
         <div class="post-content">
-          <div class="post-summary" style="white-space:pre-wrap;">${content}</div>
-          <div class="post-full" style="white-space:pre-wrap;">${content}</div>
+          <div class="post-summary">${content}</div>
+          <div class="post-full">${content}</div>
         </div>
         <p><a href="#" class="read-more-toggle">Read more...</a></p>
       </section>

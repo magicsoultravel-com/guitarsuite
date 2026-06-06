@@ -13,8 +13,8 @@ export function renderChordsSheet(currentSong, chordsJson) {
   const tableHtml = buildChordTable(uniqueChords, chordsJson, (_chord, variant) => {
     const values = Array.isArray(variant) ? variant : Object.values(variant);
     return values.map((v) => String(v));
-  });
+  }, { interactive: true, tableClass: 'chords-table' });
 
-  const section = createSection('chords', `<div>${tableHtml}<div id="tablature-display"></div></div>`);
+  const section = createSection('chords', `<p class="fb-hint">Click a column header to highlight on fretboard.</p><div>${tableHtml}</div>`);
   return section;
 }

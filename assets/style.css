@@ -69,29 +69,12 @@ body {
     line-height: 1;
 }
 
-body.has-bottom-dock {
-    padding-bottom: calc(var(--dock-bar-h) + var(--space-sm) * 2);
+body.has-tool-dock {
+    padding-left: calc(268px + var(--space-sm) * 3);
 }
 
-body.has-bottom-dock.now-playing-expanded,
-body.has-bottom-dock.chord-picker-expanded {
-    padding-bottom: calc(var(--dock-bar-h) + 140px);
-}
-
-body.has-bottom-dock.fretboard-expanded {
-    padding-bottom: calc(var(--dock-bar-h) + 520px);
-}
-
-body.has-bottom-dock.fretboard-expanded.chord-picker-expanded {
-    padding-bottom: calc(var(--dock-bar-h) + 460px);
-}
-
-body.has-bottom-dock.fretboard-expanded.now-playing-expanded {
-    padding-bottom: calc(var(--dock-bar-h) + 440px);
-}
-
-body.has-bottom-dock.fretboard-expanded.chord-picker-expanded.now-playing-expanded {
-    padding-bottom: calc(var(--dock-bar-h) + 480px);
+body.has-selection-panel {
+    padding-right: calc(220px + var(--space-sm) * 3);
 }
 
 body.has-now-playing {
@@ -510,19 +493,23 @@ th {
     outline: 1px solid var(--color-accent);
 }
 
-/* --- Bottom dock (shared module chrome) --- */
+/* --- Tool dock: vertical stack on the left --- */
+.tool-dock,
 .bottom-dock {
+    --dock-width: 268px;
     position: fixed;
     left: var(--space-sm);
+    top: var(--space-sm);
     bottom: var(--space-sm);
     z-index: 100;
+    width: var(--dock-width);
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    align-content: flex-end;
-    justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
     gap: var(--space-sm);
-    max-width: calc(100vw - var(--space-sm) * 2);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
 }
 
 .dock-module {
@@ -531,6 +518,7 @@ th {
     border-radius: var(--radius);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
     flex: 0 0 auto;
+    width: 100%;
     min-width: 0;
 }
 
@@ -539,31 +527,7 @@ th {
     z-index: 1000;
     margin: 0;
     flex-shrink: 0;
-}
-
-.dock-module--root {
-    width: min(300px, 34vw);
-    max-width: 300px;
-}
-
-.dock-module--chords {
-    width: min(300px, 36vw);
-    max-width: 300px;
-}
-
-.dock-module--fretboard {
-    width: min(220px, 28vw);
-    max-width: 220px;
-}
-
-.dock-module--now-playing {
-    width: min(240px, 28vw);
-    max-width: 240px;
-}
-
-.dock-module--tools {
-    width: min(200px, 24vw);
-    max-width: 200px;
+    width: var(--dock-width, 268px);
 }
 
 .dock-module-bar {
@@ -723,39 +687,55 @@ th {
     overflow: auto;
 }
 
+.dock-panel-resizable {
+    resize: vertical;
+    overflow: auto;
+    min-height: 72px;
+    max-height: calc(100vh - var(--space-sm) * 4);
+    box-sizing: border-box;
+}
+
 .dock-module--fretboard .dock-module-panel {
-    max-height: min(560px, 62vh);
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+}
+
+.fretboard-drawer-inner {
+    container-type: size;
+    flex: 1;
+    min-height: 100px;
+    overflow: auto;
+}
+
+.fretboard-drawer-board .fretboard-vertical-wrap {
+    height: 100%;
+    margin-bottom: 0;
+}
+
+.fretboard-drawer-board .fretboard-vertical td.fb-cell {
+    height: clamp(1em, 6cqh, 2.4em);
+    min-height: clamp(1em, 6cqh, 2.4em);
+    font-size: clamp(0.52rem, 2.8cqmin, 0.72rem);
 }
 
 .dock-module--chords .dock-module-panel,
-.dock-module--now-playing .dock-module-panel,
 .dock-module--tools .dock-module-panel {
-    max-height: 220px;
+    max-height: min(280px, 50vh);
 }
 
-.chord-picker-name {
-    flex-shrink: 0;
-    max-width: 3.5em;
-    font-size: var(--font-sm);
-    font-weight: 700;
-    color: var(--color-accent-strong);
+.dock-module--now-playing .now-playing-panel {
+    max-height: none;
+    overflow: visible;
 }
 
-.chord-picker-preview {
-    flex-shrink: 0;
-    font-family: Consolas, 'Courier New', monospace;
-    font-size: 0.65em;
-    color: var(--color-muted);
-    letter-spacing: 0.04em;
-    max-width: 4.5em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.dock-module--chords .dock-module-strip {
+.chord-picker-summary,
+.fretboard-drawer-hint {
     flex: 1;
     min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dock-module-bar--now-playing .dock-module-main {
@@ -866,10 +846,6 @@ th {
 .select-wide {
     width: auto;
     min-width: 4.5em;
-}
-
-body.has-bottom-dock.tools-expanded {
-    padding-bottom: calc(var(--dock-bar-h) + 200px);
 }
 
 .dock-select {
@@ -1023,8 +999,108 @@ body.has-bottom-dock.tools-expanded {
     margin: 0 6px;
 }
 
-.fretboard-drawer-inner {
+/* --- Selection panel (right) --- */
+.selection-panel {
+    position: fixed;
+    right: var(--space-sm);
+    top: var(--space-sm);
+    z-index: 100;
+    width: 220px;
+    max-height: calc(100vh - var(--space-sm) * 2);
+    overflow-y: auto;
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    padding: var(--space-sm);
+    scrollbar-width: thin;
+}
+
+.selection-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.selection-panel-title {
+    font-size: var(--font-xs);
+    font-weight: 600;
+    color: var(--color-accent-strong);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.selection-panel-root {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--color-accent);
+    margin-bottom: var(--space-sm);
+}
+
+.selection-layers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.selection-layer {
+    display: flex;
+    gap: var(--space-xs);
+    align-items: flex-start;
+    padding: var(--space-xs) 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.selection-layer-badge {
+    flex-shrink: 0;
+    width: 1.4em;
+    height: 1.4em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65em;
+    font-weight: 700;
+    border-radius: var(--radius);
+    color: #1a1a1a;
+}
+
+.selection-layer--1 .selection-layer-badge {
+    background: var(--layer-color-1);
+}
+
+.selection-layer--2 .selection-layer-badge {
+    background: var(--layer-color-2);
+}
+
+.selection-layer--3 .selection-layer-badge {
+    background: var(--layer-color-3);
+}
+
+.selection-layer-body {
     min-width: 0;
+    flex: 1;
+}
+
+.selection-layer-label {
+    display: block;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--color-accent-strong);
+}
+
+.selection-layer-notes {
+    display: block;
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+    word-break: break-word;
+}
+
+.selection-empty {
+    margin: 0;
+    font-size: var(--font-xs);
+    color: var(--color-muted);
 }
 
 .fretboard-drawer .fretboard-source,
@@ -1038,10 +1114,6 @@ body.has-bottom-dock.tools-expanded {
 .fretboard-drawer #related-chords-display {
     margin-top: var(--space-xs);
     white-space: pre-wrap;
-}
-
-.fretboard-drawer-board .fretboard-vertical-wrap {
-    margin-bottom: var(--space-xs);
 }
 
 .chords-notes-split {
@@ -1071,20 +1143,22 @@ body.has-bottom-dock.tools-expanded {
 }
 
 @media (max-width: 640px) {
+    body.has-tool-dock {
+        padding-left: var(--space-sm);
+    }
+
+    body.has-selection-panel {
+        padding-right: var(--space-sm);
+    }
+
+    .tool-dock,
     .bottom-dock {
-        flex-direction: column;
-        align-items: stretch;
-        right: var(--space-sm);
+        width: min(240px, 78vw);
+        --dock-width: min(240px, 78vw);
     }
 
-    .dock-module,
-    .dock-module.is-floating {
-        width: 100% !important;
-        max-width: none !important;
-    }
-
-    .chord-picker-preview {
-        max-width: 3em;
+    .selection-panel {
+        width: min(200px, 45vw);
     }
 }
 

@@ -1,3 +1,10 @@
+import {
+  findChordAliases,
+  parseChordSymbol,
+  symbolFromParsed,
+  theoryNotesForSymbol,
+} from './chordSymbols.js';
+import { buildVoicing } from './chordVoicings.js';
 import { getChordNotes, getTheoryNotes, normalizePitch } from './music.js';
 import {
   commitRoot,
@@ -51,15 +58,45 @@ export function symbolFromTheory(theoryType, root, chordsTheory) {
 export function resolveChord(opts) {
   const { root, chordsJson, notesJson, chordsTheory, chordName, theoryType, symbol, fallbackNotes } = opts;
 
-  if (chordName && chordsJson?.[chordName]?.variant1) {
-    const variant = chordsJson[chordName].variant1;
-    return {
-      label: chordName,
-      chordRef: chordName,
-      variant,
-      notes: getChordNotes(variant, notesJson),
-      source: 'database',
-    };
+  if (chordName) {
+    for (const candidate of findChordAliases(chordName)) {
+      if (chordsJson?.[candidate]?.variant1) {
+        const variant = chordsJson[candidate].variant1;
+        return {
+          label: candidate,
+          chordRef: candidate,
+          variant,
+          notes: getChordNotes(variant, notesJson),
+          source: 'database',
+        };
+      }
+    }
+    const parsed = parseChordSymbol(chordName);
+    if (parsed) {
+      const generated = buildVoicing(parsed.root, parsed.suffix);
+      if (generated) {
+        return {
+          label: chordName,
+          chordRef: symbolFromParsed(parsed, chordsTheory) || null,
+          variant: generated,
+          notes: getChordNotes(generated, notesJson),
+          source: 'database',
+          via: parsed.theoryType || undefined,
+        };
+      }
+      if (parsed.theoryType && chordsTheory?.[parsed.theoryType]) {
+        const notes = theoryNotesForSymbol(chordName, chordsTheory)
+          ?? getTheoryNotes(parsed.root, chordsTheory[parsed.theoryType].intervals);
+        return {
+          label: symbolFromParsed(parsed, chordsTheory) || chordName,
+          chordRef: null,
+          variant: null,
+          notes,
+          source: 'theory',
+          via: parsed.theoryType,
+        };
+      }
+    }
   }
 
   if (theoryType && chordsTheory?.[theoryType]) {
@@ -77,6 +114,18 @@ export function resolveChord(opts) {
       };
     }
     const notes = getTheoryNotes(root, chordsTheory[theoryType].intervals);
+    const suffix = chordsTheory[theoryType].short?.slice(1) ?? '';
+    const generated = buildVoicing(root, suffix);
+    if (generated) {
+      return {
+        label: sym || theoryType,
+        chordRef: sym || null,
+        variant: generated,
+        notes: getChordNotes(generated, notesJson),
+        source: 'database',
+        via: theoryType,
+      };
+    }
     return {
       label: sym || theoryType,
       chordRef: null,

@@ -1,3 +1,4 @@
+import { enrichChordsJson } from './chordVoicings.js';
 import { fetchJson, renderFooter } from './utils.js';
 import { asset } from './paths.js';
 import { renderBottomDock } from './sections/bottomDock.js';
@@ -28,9 +29,11 @@ let songIndex = parseInt(params.get('songIndex') || '0', 10);
 const initialRoot = params.has('root') ? (params.get('root') || '') : '';
 
 try {
+  const rawChords = await fetchJson(asset('assets/chords.json'));
+  const chords = enrichChordsJson(rawChords);
+
   const [
     songs,
-    chords,
     notes,
     chordsTheory,
     intervals,
@@ -42,7 +45,6 @@ try {
     galleryManifest,
   ] = await Promise.all([
     fetchJson(asset('assets/songs.json')),
-    fetchJson(asset('assets/chords.json')),
     fetchJson(asset('assets/notes.json')),
     fetchJson(asset('assets/chords-theory.json')),
     fetchJson(asset('assets/chords-theory-intervals.json')),

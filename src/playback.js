@@ -5,15 +5,18 @@ import {
   getScaleNotesWithOctaves,
   getTheoryNotes,
   normalizePitch,
+  pitchToIndex,
   sortNotesByMusicalOrder,
 } from './music.js';
 
 const SOUND_KEY = 'guitarsuite-sound-enabled';
 const FOCUS_KEY = 'guitarsuite-focus-modules';
 
-/** Guitar-friendly playback register (roughly frets 3–12 on middle strings). */
-export const GUITAR_OCTAVE = 3;
-export const GUITAR_OCTAVE_HIGH = 4;
+/** Comfortable chord playback register (E3–G5). */
+export const GUITAR_OCTAVE = 4;
+export const GUITAR_OCTAVE_HIGH = 5;
+const PLAY_MIN_MIDI = 52;
+const PLAY_MAX_MIDI = 79;
 
 const STRING_OCTAVES = { E: 2, A: 2, D: 3, G: 3, B: 3, e: 4 };
 
@@ -43,7 +46,7 @@ function sleep(ms) {
 }
 
 function clampGuitarOctave(octave) {
-  return Math.min(GUITAR_OCTAVE_HIGH, Math.max(GUITAR_OCTAVE, octave));
+  return Math.min(GUITAR_OCTAVE_HIGH, Math.max(GUITAR_OCTAVE - 1, octave));
 }
 
 function octaveFromFret(stringName, fret) {
@@ -51,6 +54,55 @@ function octaveFromFret(stringName, fret) {
   const base = STRING_OCTAVES[stringName] ?? GUITAR_OCTAVE;
   if (f <= 0) return base;
   return base + Math.floor(f / 12);
+}
+
+function pitchOctaveToMidi(pitch, octave) {
+  const idx = pitchToIndex(pitch);
+  if (idx < 0) return null;
+  return (octave + 1) * 12 + idx;
+}
+
+function spreadNotesInRange(pitches, minMidi = PLAY_MIN_MIDI, maxMidi = PLAY_MAX_MIDI) {
+  if (!pitches.length) return [];
+  const entries = [];
+  let lastMidi = minMidi - 1;
+  for (const pitch of pitches) {
+    let octave = GUITAR_OCTAVE;
+    let midi = pitchOctaveToMidi(pitch, octave);
+    while (midi != null && midi <= lastMidi && octave < 6) {
+      octave += 1;
+      midi = pitchOctaveToMidi(pitch, octave);
+    }
+    while (midi != null && midi < minMidi && octave < 6) {
+      octave += 1;
+      midi = pitchOctaveToMidi(pitch, octave);
+    }
+    while (midi != null && midi > maxMidi && octave > 2) {
+      octave -= 1;
+      midi = pitchOctaveToMidi(pitch, octave);
+    }
+    entries.push({ pitch, octave: octave ?? GUITAR_OCTAVE });
+    if (midi != null) lastMidi = midi;
+  }
+  return entries;
+}
+
+function normalizeVoicedForPlayback(voiced) {
+  if (!voiced.length) return [];
+  const midis = voiced.map(({ string, fret, pitch }) => ({
+    pitch,
+    midi: pitchOctaveToMidi(pitch, octaveFromFret(string, fret)),
+  })).filter((e) => e.midi != null);
+  if (!midis.length) return [];
+  let shift = 0;
+  const minMidi = Math.min(...midis.map((e) => e.midi));
+  if (minMidi < PLAY_MIN_MIDI) shift = PLAY_MIN_MIDI - minMidi;
+  const maxMidi = Math.max(...midis.map((e) => e.midi + shift));
+  if (maxMidi > PLAY_MAX_MIDI) shift -= maxMidi - PLAY_MAX_MIDI;
+  return midis.map(({ pitch, midi }) => ({
+    pitch,
+    octave: Math.floor((midi + shift) / 12) - 1,
+  }));
 }
 
 export function isSoundEnabled() {
@@ -121,20 +173,21 @@ async function runPitchOctaveSequence(entries, gapMs) {
 
 export function playChord(notes) {
   const unique = sortNotesByMusicalOrder([...new Set(notes.map(normalizePitch).filter(Boolean))]);
-  runSequence(unique, 150, GUITAR_OCTAVE);
+  runPitchOctaveSequence(spreadNotesInRange(unique), 150);
 }
 
-/** Strum a database chord shape low → high with real fret octaves. */
+/** Strum a database chord shape low → high in a consistent mid register. */
 export function playVoicedChord(variant, notesJson) {
   if (!soundEnabled || !variant || !notesJson) return;
   const voiced = getVoicedChord(variant, notesJson);
-  if (!voiced.length) return;
+  const entries = normalizeVoicedForPlayback(voiced);
+  if (!entries.length) return;
   sequenceId += 1;
   const id = sequenceId;
   (async () => {
-    for (const { string, fret, pitch } of voiced) {
+    for (const { pitch, octave } of entries) {
       if (id !== sequenceId) return;
-      playFretNote(string, fret, pitch);
+      playPitch(normalizePitch(pitch), clampGuitarOctave(octave));
       await sleep(120);
     }
   })();

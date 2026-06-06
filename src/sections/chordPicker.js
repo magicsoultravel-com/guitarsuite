@@ -1,3 +1,4 @@
+import { THEORY_SUFFIX } from '../chordVoicings.js';
 import { getDisplayRoot } from '../displayRoot.js';
 import {
   CHROMATIC,
@@ -26,16 +27,9 @@ function resolveChordRoot(name, data) {
   return normalizePitch(getRoot(name));
 }
 
-function groupChordsByRoot(chordsJson) {
-  const byRoot = Object.fromEntries(CHROMATIC.map((r) => [r, []]));
-  for (const [name, data] of Object.entries(chordsJson)) {
-    const root = resolveChordRoot(name, data);
-    if (byRoot[root]) byRoot[root].push(name);
-  }
-  for (const root of CHROMATIC) {
-    byRoot[root].sort(musicalSort);
-  }
-  return byRoot;
+function theoryChordsAtRoot(root, chordsJson) {
+  const names = Object.values(THEORY_SUFFIX).map((suffix) => root + suffix);
+  return names.filter((name) => chordsJson[name]);
 }
 
 function formatFret(value) {
@@ -100,7 +94,7 @@ function formatCollapsedSummary(name, chordsJson, chordsTheory, notesJson, hub) 
 }
 
 export function renderChordPicker(hub, chordsJson, notesJson, currentSong, chordsTheory = {}) {
-  const byRoot = groupChordsByRoot(chordsJson);
+  const byRoot = Object.fromEntries(CHROMATIC.map((r) => [r, theoryChordsAtRoot(r, chordsJson)]));
   let songChords = [...new Set((currentSong?.chords || '').split(/\s+/).filter(Boolean))].sort(musicalSort);
   let songSet = new Set(songChords);
 

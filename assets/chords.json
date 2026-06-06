@@ -132,7 +132,7 @@
         }
     },
     "Cmaj7": {
-        "root": "7",
+        "root": "C",
         "type": "major7",
         "variant1": {
             "E1": "0",

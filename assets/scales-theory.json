@@ -48,5 +48,10 @@
     "alter": "major",
     "steps": [2, 2, 3, 2, 3],
     "use": "Simple major — country, rock hooks, easy soloing"
+  },
+  "Minor Pentatonic": {
+    "alter": "minor",
+    "steps": [3, 2, 2, 3, 2],
+    "use": "Blues & rock soloing — omits 2nd and 6th degrees"
   }
 }

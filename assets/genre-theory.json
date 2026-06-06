@@ -1,0 +1,258 @@
+{
+  "Country": {
+    "summary": "Story-driven songs built on simple harmony, open chords, and a strong backbeat or shuffle. Nashville and outlaw traditions share the same I–IV–V backbone but differ in production and lyric tone.",
+    "tropes": [
+      "Three- and four-chord loops in major keys",
+      "Mixolydian colour on the V chord (dominant 7th)",
+      "Pedal steel, fiddle, and telecaster twang",
+      "Lyrics about roads, heartbreak, small towns, and work"
+    ],
+    "scales": ["Mixolydian", "Major Pentatonic", "Ionian"],
+    "progressions": [
+      {
+        "name": "Honky-tonk backbone",
+        "numerals": "I – IV – V – I",
+        "example": "G – C – D – G",
+        "notes": "The default country turnaround; add 7ths on IV and V for extra grease."
+      },
+      {
+        "name": "Nashville pop lift",
+        "numerals": "I – V – vi – IV",
+        "example": "G – D – Em – C",
+        "notes": "Borrowed from pop; huge in modern country radio."
+      },
+      {
+        "name": "Two-step waltz",
+        "numerals": "I – vi – IV – V",
+        "example": "C – Am – F – G",
+        "notes": "3/4 or 6/8 feel; common in ballads and dance-floor waltzes."
+      }
+    ],
+    "rhythm": "Straight 4/4 or shuffle 12/8; train-beat snare on 2 and 4",
+    "instruments": "Acoustic guitar, telecaster, pedal steel, fiddle, upright or electric bass"
+  },
+  "Bluegrass": {
+    "summary": "High-energy acoustic music from Appalachia. Fast picking, close vocal harmony, and chord changes that move quickly but stay diatonic.",
+    "tropes": [
+      "Flatpicking and crosspicking on acoustic guitar",
+      "Mandolin chop on beats 2 and 4",
+      "G, C, D, and A major keys dominate",
+      "Instrumental breaks traded between banjo, fiddle, and mandolin"
+    ],
+    "scales": ["Major Pentatonic", "Mixolydian", "Ionian"],
+    "progressions": [
+      {
+        "name": "Bluegrass I–IV–V",
+        "numerals": "I – IV – V – I",
+        "example": "G – C – D – G",
+        "notes": "Often played with quick bass runs between changes."
+      },
+      {
+        "name": "Circle fragment",
+        "numerals": "I – vi – ii – V",
+        "example": "G – Em – Am – D",
+        "notes": "Jazzier than it sounds at tempo; common in gospel-tinged bluegrass."
+      },
+      {
+        "name": "Modal tag",
+        "numerals": "I – bVII – IV – I",
+        "example": "G – F – C – G",
+        "notes": "Mixolydian colour; the bVII adds a mountain-folk edge."
+      }
+    ],
+    "rhythm": "Fast 2/4 or cut-time feel; driving off-beat chop",
+    "instruments": "Banjo (5-string), mandolin, fiddle, acoustic guitar, upright bass"
+  },
+  "Blues": {
+    "summary": "African-American roots music built on the 12-bar form, bent notes, and call-and-response. Major and minor blues scales colour melodies over dominant 7th harmony.",
+    "tropes": [
+      "12-bar blues with I, IV, and V7 chords",
+      "Blue notes: b3, b5, b7 against major-key harmony",
+      "Shuffle or slow 4/4 groove",
+      "Question-and-answer phrasing between vocal and instrument"
+    ],
+    "scales": ["Mixolydian", "Minor Pentatonic", "Major Pentatonic"],
+    "progressions": [
+      {
+        "name": "12-bar quick change",
+        "numerals": "I – IV – I – I | IV – IV – I – I | V – IV – I – V",
+        "example": "A7 – D7 – A7 – A7 | D7 – D7 – A7 – A7 | E7 – D7 – A7 – E7",
+        "notes": "Quick change hits IV in bar 2; the most common blues form."
+      },
+      {
+        "name": "8-bar blues",
+        "numerals": "I – V | IV – V | I – V",
+        "example": "C – G | F – G | C – G",
+        "notes": "Shorter form; heard in early jazz-blues and some Chicago styles."
+      },
+      {
+        "name": "Minor blues",
+        "numerals": "i – iv – i | iv – iv – i | V – iv – i – V",
+        "example": "Am – Dm – Am | Dm – Dm – Am | E7 – Dm – Am – E7",
+        "notes": "Natural minor or Dorian flavour; darker mood."
+      }
+    ],
+    "rhythm": "Shuffle 12/8 or straight 4/4 with swung eighths",
+    "instruments": "Electric guitar, harmonica, piano, drums, electric bass"
+  },
+  "Rock": {
+    "summary": "Blues and country DNA amplified and distorted. Power chords, strong riffs, and verse–chorus song structures define most subgenres from classic rock to punk.",
+    "tropes": [
+      "Power chords (root + 5th) on guitar",
+      "Distortion, overdrive, and palm-muted riffs",
+      "I–bVII–IV (Mixolydian) and I–V–vi–IV progressions",
+      "Anthemic choruses with repeated hooks"
+    ],
+    "scales": ["Minor Pentatonic", "Mixolydian", "Aeolian"],
+    "progressions": [
+      {
+        "name": "Classic rock three-chord",
+        "numerals": "I – IV – V",
+        "example": "E – A – B",
+        "notes": "Louder, simpler, faster than the blues form it came from."
+      },
+      {
+        "name": "Mixolydian rock",
+        "numerals": "I – bVII – IV – I",
+        "example": "A – G – D – A",
+        "notes": "The bVII is a rock hallmark — think Allman Brothers, AC/DC."
+      },
+      {
+        "name": "Arena anthem",
+        "numerals": "vi – IV – I – V",
+        "example": "Am – F – C – G",
+        "notes": "Emotional minor start resolving to major; huge chorus energy."
+      }
+    ],
+    "rhythm": "Straight 4/4; backbeat on 2 and 4; half-time for ballads",
+    "instruments": "Electric guitar, bass, drums; keyboards in prog and arena rock"
+  },
+  "Jazz": {
+    "summary": "Harmony-forward music with extended chords, syncopation, and improvisation. Standards draw from show tunes, blues, and Latin rhythms.",
+    "tropes": [
+      "ii–V–I cadences in major and minor",
+      "7th, 9th, 11th, and 13th chords",
+      "Swing feel and syncopated rhythms",
+      "Improvisation over chord changes (not just a single scale)"
+    ],
+    "scales": ["Dorian", "Mixolydian", "Melodic Minor"],
+    "progressions": [
+      {
+        "name": "ii–V–I (major)",
+        "numerals": "ii – V – I",
+        "example": "Dm7 – G7 – Cmaj7",
+        "notes": "The core jazz cadence; practice in every key."
+      },
+      {
+        "name": "Rhythm changes (A section)",
+        "numerals": "I – vi – ii – V",
+        "example": "Bb – Gm – Cm – F7",
+        "notes": "From Gershwin's I Got Rhythm; bebop proving ground."
+      },
+      {
+        "name": "Minor ii–V–I",
+        "numerals": "iiø – V7alt – i",
+        "example": "Dm7b5 – G7 – Cm",
+        "notes": "Half-diminished to altered dominant; darker jazz colour."
+      }
+    ],
+    "rhythm": "Swing 4/4; bossa nova and Latin subdivisions in other styles",
+    "instruments": "Piano, upright bass, drums, saxophone, trumpet, guitar"
+  },
+  "African": {
+    "summary": "A vast family of traditions — not one sound. West African highlife, East African benga, and Southern African mbira music share interlocking rhythms, cyclical forms, and call-and-response.",
+    "tropes": [
+      "Interlocking rhythmic patterns (polyrhythm)",
+      "Pentatonic and hexatonic melodies",
+      "Cyclical song forms rather than Western verse–chorus",
+      "Call-and-response between lead vocal and chorus"
+    ],
+    "scales": ["Major Pentatonic", "Minor Pentatonic"],
+    "progressions": [
+      {
+        "name": "Highlife loop",
+        "numerals": "I – IV – I – V",
+        "example": "G – C – G – D",
+        "notes": "Ghanaian highlife; horns and guitars layer over a steady groove."
+      },
+      {
+        "name": "Afrobeat ostinato",
+        "numerals": "i – IV (modal vamp)",
+        "example": "Am – D",
+        "notes": "Fela Kuti-style vamps; harmony stays put while rhythm section drives."
+      },
+      {
+        "name": "Pentatonic drone",
+        "numerals": "I – I (tonic pedal)",
+        "example": "E – E",
+        "notes": "Melody moves on pentatonic degrees over a fixed tonic — common in mbira and griot traditions."
+      }
+    ],
+    "rhythm": "Complex layered percussion; 12/8 bell patterns (son clave variants)",
+    "instruments": "Kora, balafon, djembe, talking drum, electric guitar (in modern hybrids)"
+  },
+  "Mali Blues": {
+    "summary": "Desert blues from the Sahel — Ali Farka Touré, Tinariwen, and successors blend traditional Songhai and Tuareg music with electric guitar and blues-like phrasing.",
+    "tropes": [
+      "Hypnotic modal vamps on one or two chords",
+      "Pentatonic melodies with blues-inflected bends",
+      "Assouf — longing, exile, and desert imagery in lyrics",
+      "Camel-gait rhythm feel (loping, steady pulse)"
+    ],
+    "scales": ["Minor Pentatonic", "Major Pentatonic", "Mixolydian"],
+    "progressions": [
+      {
+        "name": "Desert vamp",
+        "numerals": "i – IV",
+        "example": "Am – D",
+        "notes": "Tinariwen staple; guitar and vocals weave over the same two chords."
+      },
+      {
+        "name": "Ali Farka turn",
+        "numerals": "I – IV – I – V",
+        "example": "G – C – G – D",
+        "notes": "Simpler harmonic motion; the interest is in the picking pattern and timbre."
+      },
+      {
+        "name": "Modal drone",
+        "numerals": "i – bVII – i",
+        "example": "Em – D – Em",
+        "notes": "Mixolydian minor flavour; open strings and ringing overtones."
+      }
+    ],
+    "rhythm": "Steady 4/4 or 6/8 lope; handclaps and percussion mark the pulse",
+    "instruments": "Electric guitar (often fingerpicked), calabash, tehardent (ngoni), handclaps"
+  },
+  "Folk": {
+    "summary": "Acoustic storytelling music passed through communities. Anglo-American folk favours open chords and diatonic melody; Celtic folk adds modes and dance rhythms.",
+    "tropes": [
+      "Fingerpicked or strummed acoustic guitar",
+      "Diatonic melodies in major or modal minor",
+      "Narrative lyrics — work songs, protest, love ballads",
+      "Simple arrangements; voice is the focus"
+    ],
+    "scales": ["Ionian", "Aeolian", "Dorian"],
+    "progressions": [
+      {
+        "name": "Campfire classic",
+        "numerals": "I – V – vi – IV",
+        "example": "C – G – Am – F",
+        "notes": "The same pop progression, played quietly on acoustic."
+      },
+      {
+        "name": "Celtic modal",
+        "numerals": "i – bVII – i",
+        "example": "Am – G – Am",
+        "notes": "Dorian or Aeolian feel; no strong dominant pull."
+      },
+      {
+        "name": "American primitivism",
+        "numerals": "I – IV – I – V",
+        "example": "G – C – G – D",
+        "notes": "Carter Family and early country-folk; two-chord sections common."
+      }
+    ],
+    "rhythm": "Straight or lightly swung; jig (6/8) and reel (4/4) in Celtic traditions",
+    "instruments": "Acoustic guitar, banjo, mandolin, fiddle, voice"
+  }
+}

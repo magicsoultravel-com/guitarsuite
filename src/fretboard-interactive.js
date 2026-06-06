@@ -193,3 +193,22 @@ export function wireScalesTheory(hub, scales, sectionEl) {
 
   hub.subscribe(() => updateActiveMarkers(hub));
 }
+
+export function wireGenreTheory(hub, scales, sectionEl) {
+  sectionEl.querySelectorAll('.genre-scale-chip').forEach((chip) => {
+    const name = chip.dataset.scale;
+    const data = scales[name];
+    if (!data?.steps) return;
+
+    chip.addEventListener('click', () => {
+      hub.toggleSelection({
+        label: name,
+        resolve: (r) => getScaleNotes(r, data.steps),
+        family: 'scale',
+      });
+      playScaleByName(name, hub.getRoot(), scales);
+    });
+  });
+
+  hub.subscribe(() => updateActiveMarkers(hub));
+}

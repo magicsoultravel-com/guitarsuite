@@ -4,6 +4,7 @@ import { renderBottomDock } from './sections/bottomDock.js';
 import { renderChordsAndNotes } from './sections/songChordsNotes.js';
 import { renderChordsTheory } from './sections/chordsTheory.js';
 import { renderScalesTheory } from './sections/scalesTheory.js';
+import { renderGenreTheory } from './sections/genreTheory.js';
 import { renderUsefulLinks } from './sections/usefulLinks.js';
 import { renderBlogger } from './sections/blogger.js';
 import { renderAbout } from './sections/about.js';
@@ -14,6 +15,7 @@ import {
   wireChordNoteTables,
   wireChordsTheory,
   wireScalesTheory,
+  wireGenreTheory,
 } from './fretboard-interactive.js';
 
 const app = document.getElementById('app');
@@ -31,6 +33,7 @@ try {
     chordsTheory,
     intervals,
     scales,
+    genres,
     usefulLinks,
     bloggerPosts,
     about,
@@ -42,6 +45,7 @@ try {
     fetchJson(asset('assets/chords-theory.json')),
     fetchJson(asset('assets/chords-theory-intervals.json')),
     fetchJson(asset('assets/scales-theory.json')),
+    fetchJson(asset('assets/genre-theory.json')),
     fetchJson(asset('content/useful-links.json')),
     fetchJson(asset('data/developer-blogger.json')),
     fetchJson(asset('content/about.json')),
@@ -81,6 +85,10 @@ try {
   const scalesSection = renderScalesTheory(scales);
   app.appendChild(scalesSection);
   wireScalesTheory(hub, scales, scalesSection);
+
+  const genreSection = renderGenreTheory(genres);
+  app.appendChild(genreSection);
+  wireGenreTheory(hub, scales, genreSection);
 
   hub.setRoot(initialRoot);
   app.appendChild(renderUsefulLinks(usefulLinks));

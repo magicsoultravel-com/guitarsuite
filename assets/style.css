@@ -465,6 +465,109 @@ th {
     background-color: var(--color-highlight-bg);
 }
 
+/* --- Genre theory --- */
+.genre-theory-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.genre-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.genre-card-title {
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-accent-strong);
+    list-style: none;
+}
+
+.genre-card-title::-webkit-details-marker {
+    display: none;
+}
+
+.genre-card-title::before {
+    content: '▸ ';
+    color: var(--color-accent);
+}
+
+.genre-card[open] .genre-card-title::before {
+    content: '▾ ';
+}
+
+.genre-card-body {
+    padding: 0 var(--space-md) var(--space-md);
+}
+
+.genre-summary {
+    margin: 0 0 var(--space-sm);
+    color: #ddd;
+}
+
+.genre-meta {
+    margin: 0 0 var(--space-sm);
+    font-size: var(--font-xs);
+    color: var(--color-muted);
+}
+
+.genre-subhead {
+    margin: var(--space-md) 0 var(--space-xs);
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.genre-tropes {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: var(--font-sm);
+}
+
+.genre-tropes li {
+    margin-bottom: var(--space-xs);
+}
+
+.genre-scales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.genre-scale-chip {
+    padding: 2px 8px;
+    font-size: var(--font-xs);
+    font-family: inherit;
+    color: var(--color-accent);
+    background: rgba(196, 165, 116, 0.12);
+    border: 1px solid var(--color-accent-dim);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.genre-scale-chip:hover {
+    background: var(--color-highlight-bg);
+}
+
+.genre-progressions-table {
+    width: 100%;
+    font-size: var(--font-sm);
+}
+
+.genre-progressions-table th,
+.genre-progressions-table td {
+    padding: var(--space-xs) var(--space-sm);
+    vertical-align: top;
+}
+
+.genre-prog-notes {
+    color: var(--color-muted);
+    font-size: var(--font-xs);
+}
+
 .fb-selectable.fb-active,
 .fb-chord-col.fb-active {
     background-color: var(--color-highlight-bg) !important;

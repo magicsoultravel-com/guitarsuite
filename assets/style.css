@@ -10,19 +10,22 @@
     --space-lg: 14px;
     --radius: 4px;
     --max-width: 920px;
-    --color-bg-panel: rgba(26, 26, 26, 0.92);
-    --color-accent: #c4a574;
-    --color-accent-strong: #dcc9a3;
-    --color-accent-dim: #6b5f4a;
-    --color-highlight-bg: rgba(196, 165, 116, 0.22);
-    --color-border: #333;
-    --color-muted: #999;
-    --layer-color-1: #c4a574;
-    --layer-color-2: #7aab8a;
-    --layer-color-3: #8a9cc4;
-    --layer-bg-1: rgba(196, 165, 116, 0.42);
-    --layer-bg-2: rgba(122, 171, 138, 0.42);
-    --layer-bg-3: rgba(138, 156, 196, 0.42);
+    --color-bg: #070b10;
+    --color-bg-panel: rgba(12, 20, 32, 0.94);
+    --color-bg-input: #0c1520;
+    --color-bg-chip: #101c2a;
+    --color-accent: #3ecfd9;
+    --color-accent-strong: #eef6fa;
+    --color-accent-dim: #3d5568;
+    --color-highlight-bg: rgba(62, 207, 217, 0.14);
+    --color-border: #2a3d4f;
+    --color-muted: #8fa3b3;
+    --layer-color-1: #22d3ee;
+    --layer-color-2: #2dd4bf;
+    --layer-color-3: #64748b;
+    --layer-bg-1: rgba(34, 211, 238, 0.22);
+    --layer-bg-2: rgba(45, 212, 191, 0.22);
+    --layer-bg-3: rgba(100, 116, 139, 0.22);
     --dock-bar-h: 44px;
     --dock-width: 208px;
     --footer-stack-h: 62px;
@@ -43,8 +46,8 @@ body {
     line-height: var(--line-height);
     margin: 0;
     padding: 0;
-    background-color: #000;
-    color: #fff;
+    background-color: var(--color-bg);
+    color: var(--color-accent-strong);
     overflow: hidden;
     width: 100%;
     height: 100%;
@@ -229,7 +232,7 @@ body.focus-modules .site-footer-stack {
 /* --- Headings --- */
 h1, h2, h3, h4, h5, h6 {
     font-family: sans-serif;
-    color: var(--color-accent);
+    color: var(--color-accent-strong);
     margin-top: var(--space-md);
     margin-bottom: var(--space-sm);
     line-height: 1.2;
@@ -563,8 +566,8 @@ textarea {
     margin: 0 var(--space-xs) var(--space-xs) 0;
     border: 1px solid #555;
     border-radius: 3px;
-    background: #111;
-    color: #fff;
+    background: var(--color-bg-input);
+    color: var(--color-accent-strong);
 }
 
 button {
@@ -826,7 +829,7 @@ th {
     font-size: var(--font-xs);
     font-family: inherit;
     color: var(--color-accent);
-    background: rgba(196, 165, 116, 0.12);
+    background: var(--color-highlight-bg);
     border: 1px solid var(--color-accent-dim);
     border-radius: var(--radius);
     cursor: pointer;
@@ -860,19 +863,19 @@ th {
 .fb-selectable.fb-active-1,
 .fb-chord-col.fb-active-1 {
     outline: 2px solid var(--layer-color-1);
-    background-color: rgba(196, 165, 116, 0.18) !important;
+    background-color: var(--layer-bg-1) !important;
 }
 
 .fb-selectable.fb-active-2,
 .fb-chord-col.fb-active-2 {
     outline: 2px solid var(--layer-color-2);
-    background-color: rgba(122, 171, 138, 0.18) !important;
+    background-color: var(--layer-bg-2) !important;
 }
 
 .fb-selectable.fb-active-3,
 .fb-chord-col.fb-active-3 {
     outline: 2px solid var(--layer-color-3);
-    background-color: rgba(138, 156, 196, 0.18) !important;
+    background-color: var(--layer-bg-3) !important;
 }
 
 .dock-chip.fb-active-1 {
@@ -922,7 +925,7 @@ th {
     font-size: var(--font-xs);
     padding: 2px 6px;
     border-radius: var(--radius);
-    background: rgba(196, 165, 116, 0.12);
+    background: var(--color-highlight-bg);
     border: 1px solid var(--color-accent-dim);
     cursor: pointer;
 }
@@ -1079,6 +1082,26 @@ body.has-selection-footer .module-dock {
 
 .dock-module--expandable.is-floating.is-expanded .dock-module-dock {
     display: inline-flex;
+}
+
+.dock-module--expandable.is-floating:not(.is-expanded) .dock-module-chevron,
+.dock-module--expandable.is-floating:not(.is-expanded) .dock-module-dock {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.dock-module--expandable.is-floating:not(.is-expanded) .dock-module-dock {
+    display: inline-flex;
+}
+
+#module-canvas .dock-module.is-floating:not(.is-expanded) {
+    min-height: var(--dock-bar-h);
+    height: auto;
+}
+
+#module-canvas .dock-module.is-floating:not(.is-expanded) .dock-module-panel {
+    display: none !important;
 }
 
 #module-canvas .dock-module.is-float-preview {
@@ -1444,7 +1467,7 @@ body.has-selection-footer .module-dock {
     color: var(--color-accent);
     border: 1px solid var(--color-border);
     border-radius: 2px;
-    background: #1a1a1a;
+    background: var(--color-bg-chip);
     cursor: pointer;
 }
 
@@ -1494,7 +1517,7 @@ body.has-selection-footer .module-dock {
     height: 18px;
     padding: 0 5px;
     border: none;
-    background: #1a1a1a;
+    background: var(--color-bg-chip);
     color: var(--color-muted);
     font-size: 0.58em;
     letter-spacing: 0.01em;
@@ -1604,7 +1627,7 @@ body.has-selection-footer .module-dock {
     text-decoration: none;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    background: #1a1a1a;
+    background: var(--color-bg-chip);
 }
 
 .dock-nav-btn:hover {
@@ -1655,10 +1678,10 @@ body.has-selection-footer .module-dock {
     font-weight: 600;
     font-family: inherit;
     line-height: 1.4;
-    background: #1a1a1a;
+    background: var(--color-bg-chip);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    color: #ddd;
+    color: var(--color-accent-strong);
     cursor: pointer;
     white-space: nowrap;
     margin: 0;
@@ -1670,7 +1693,7 @@ body.has-selection-footer .module-dock {
 
 .dock-chip.is-song {
     border-color: var(--color-accent-dim);
-    box-shadow: inset 0 0 0 1px rgba(196, 165, 116, 0.12);
+    box-shadow: inset 0 0 0 1px var(--color-highlight-bg);
 }
 
 .dock-chip:hover {

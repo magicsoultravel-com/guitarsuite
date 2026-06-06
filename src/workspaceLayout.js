@@ -136,6 +136,9 @@ export function pointerToCanvasLocal(canvas, clientX, clientY) {
   };
 }
 
+export const DEFAULT_FLOAT_W = 280;
+export const DEFAULT_FLOAT_H = 200;
+
 const BAR_H = 44;
 const MIN_FLOAT_W = 200;
 const MIN_FLOAT_H = 140;

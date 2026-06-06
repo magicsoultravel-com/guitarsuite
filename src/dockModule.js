@@ -4,6 +4,8 @@ import {
   applyModuleSize,
   applyModuleSizeUser,
   commitModulePosition,
+  DEFAULT_FLOAT_H,
+  DEFAULT_FLOAT_W,
   ensureModuleCanvas,
   expandedFloatingModules,
   findInitialPosition,
@@ -129,8 +131,12 @@ function expandFloatingModule(mod, { keepPosition = false } = {}) {
 
   const prevTop = parseInt(mod.style.top, 10) || 0;
   const prevLeft = parseInt(mod.style.left, 10) || 0;
-  const { width, height } = measureModuleFullSize(mod);
-  applyModuleSize(mod, width, height);
+  const measured = measureModuleFullSize(mod);
+  const w = parseInt(mod.dataset.userWidth, 10)
+    || snap(Math.min(measured.width, DEFAULT_FLOAT_W));
+  const h = parseInt(mod.dataset.userHeight, 10)
+    || snap(Math.min(measured.height, DEFAULT_FLOAT_H));
+  applyModuleSizeUser(mod, w, h);
   ensureResizeHandle(mod);
   mod.style.zIndex = String(1000 + expandedFloatingModules().length);
 
@@ -146,7 +152,7 @@ function expandFloatingModule(mod, { keepPosition = false } = {}) {
   notifySessionChange();
 }
 
-/** Move to canvas as a collapsed bar preview — expand on drop, not on drag start. */
+/** Move to canvas as a collapsed bar — expand only via chevron, not on drop. */
 function beginCollapsedFloat(mod, dockEl) {
   if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
@@ -189,6 +195,10 @@ function redock(mod, dockEl) {
 
 export function openFloatingModule(mod, barClientRect) {
   const dockEl = findOriginDock(mod);
+  if (mod.classList.contains('is-floating') && !mod.classList.contains('is-expanded')) {
+    expandFloatingModule(mod, { keepPosition: true });
+    return;
+  }
   if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
   expandFloatingModule(mod);
 }
@@ -433,8 +443,7 @@ function wireModuleDrag(mod, dockEl) {
       if (mod.classList.contains('is-float-preview')) {
         const dockRect = dockEl.getBoundingClientRect();
         if (e.clientX > dockRect.right + 8) {
-          if (isBarOnlyModule(mod)) finalizeBarFloat();
-          else expandFloatingModule(mod, { keepPosition: true });
+          finalizeBarFloat(mod);
         } else {
           redock(mod, dockEl);
         }
@@ -469,6 +478,17 @@ function isBarOnlyModule(mod) {
 
 function finalizeBarFloat(mod) {
   mod.classList.remove('is-float-preview');
+  const setExpanded = expandHandlers.get(mod.dataset.dockId);
+  setExpanded?.(false, { silent: true });
+  mod.classList.remove('is-expanded');
+  const panel = mod.querySelector('.dock-module-panel');
+  if (panel) panel.hidden = true;
+  mod.querySelector('.dock-resize-handle')?.remove();
+  if (!mod.style.width) {
+    mod.style.width = `${mod.offsetWidth || 208}px`;
+  }
+  mod.style.height = '';
+  mod.style.minHeight = 'var(--dock-bar-h)';
   commitModulePosition(mod);
   notifySessionChange();
 }
@@ -502,16 +522,14 @@ export function collectModulesState() {
     if (!id) return;
     const floating = mod.classList.contains('is-floating');
     const expanded = mod.classList.contains('is-expanded');
-    const barOnly = floating && isBarOnlyModule(mod);
-    const showFloating = floating && (expanded || barOnly);
     modules[id] = {
-      expanded: showFloating,
-      floating: showFloating,
-      barOnly,
+      expanded: floating && expanded,
+      floating,
+      barOnly: floating && isBarOnlyModule(mod),
       left: floating ? parseInt(mod.style.left, 10) || 0 : null,
       top: floating ? parseInt(mod.style.top, 10) || 0 : null,
       width: floating ? mod.offsetWidth : null,
-      height: floating ? mod.offsetHeight : null,
+      height: floating && expanded ? mod.offsetHeight : null,
       zIndex: floating ? (parseInt(mod.style.zIndex, 10) || null) : null,
     };
   });
@@ -526,32 +544,38 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
     const mod = document.querySelector(`[data-dock-id="${id}"]`);
     if (!mod) continue;
 
-    if (state.floating && state.expanded) {
+    if (state.floating) {
       const dockEl = findOriginDock(mod);
       if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
 
-      if (state.barOnly || isBarOnlyModule(mod)) {
-        if (state.width) mod.style.width = `${state.width}px`;
-        if (state.height) mod.style.height = `${state.height}px`;
-        if (state.left != null) mod.style.left = `${state.left}px`;
-        if (state.top != null) mod.style.top = `${state.top}px`;
-        if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
-        mod.classList.remove('is-float-preview');
-      } else {
+      if (state.expanded) {
         expandHandlers.get(id)?.(true, { silent: true });
-        measureModuleFullSize(mod);
+        mod.classList.remove('is-float-preview');
         if (state.width && state.height) {
           applyModuleSizeUser(mod, state.width, state.height);
         } else {
-          const full = measureModuleFullSize(mod);
-          applyModuleSize(mod, full.width, full.height);
+          const measured = measureModuleFullSize(mod);
+          applyModuleSizeUser(
+            mod,
+            snap(Math.min(measured.width, DEFAULT_FLOAT_W)),
+            snap(Math.min(measured.height, DEFAULT_FLOAT_H)),
+          );
         }
-        if (state.left != null) mod.style.left = `${state.left}px`;
-        if (state.top != null) mod.style.top = `${state.top}px`;
-        if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
-        mod.classList.remove('is-float-preview');
         ensureResizeHandle(mod);
+      } else {
+        expandHandlers.get(id)?.(false, { silent: true });
+        mod.classList.remove('is-expanded', 'is-float-preview');
+        const panel = mod.querySelector('.dock-module-panel');
+        if (panel) panel.hidden = true;
+        mod.querySelector('.dock-resize-handle')?.remove();
+        if (state.width) mod.style.width = `${state.width}px`;
+        mod.style.height = '';
+        mod.style.minHeight = 'var(--dock-bar-h)';
       }
+
+      if (state.left != null) mod.style.left = `${state.left}px`;
+      if (state.top != null) mod.style.top = `${state.top}px`;
+      if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
     } else {
       const dockEl = findOriginDock(mod);
       if (mod.classList.contains('is-floating') && dockEl) redock(mod, dockEl);

@@ -8,4 +8,4 @@ export function bumpVersionLetter(version) {
   return `${prefix}${letter === letter.toUpperCase() ? next.toUpperCase() : next}`;
 }
 
-export const APP_VERSION = '0.1c';
+export const APP_VERSION = '0.1d';

@@ -1,6 +1,7 @@
 import { escapeHtml } from '../utils.js';
 import { formatRootsDisplay } from '../displayRoot.js';
-import { collapseAllModules } from '../dockModule.js';
+import { resetBlockPositions, persistModuleSession } from '../dockModule.js';
+import { zoomIn, zoomOut } from '../workspaceLayout.js';
 import {
   initPlayback,
   isFocusModules,
@@ -24,10 +25,14 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
     <button type="button" class="footer-root" title="Play root note"></button>
     <div class="footer-layers"></div>
     <span class="footer-empty">No layers</span>
+    <div class="footer-layout-actions" aria-label="Layout controls">
+      <button type="button" class="dock-nav-btn footer-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+      <button type="button" class="dock-nav-btn footer-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+      <button type="button" class="dock-nav-btn footer-layout-reset" title="Reset module positions" aria-label="Reset module positions">⌂</button>
+    </div>
     <div class="footer-selection-actions">
       <button type="button" class="dock-nav-btn footer-sound" title="Sound on" aria-label="Toggle sound" aria-pressed="true">🔊</button>
       <button type="button" class="dock-nav-btn footer-focus" title="Focus modules" aria-label="Focus modules" aria-pressed="false">◧</button>
-      <button type="button" class="dock-nav-btn footer-collapse" title="Collapse all modules" aria-label="Collapse all modules">⊟</button>
       <button type="button" class="dock-nav-btn footer-reset" title="Clear selections" aria-label="Clear selections">↺</button>
     </div>
   `;
@@ -60,7 +65,15 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
   syncSoundBtn();
   syncFocusBtn();
 
-  bar.querySelector('.footer-collapse')?.addEventListener('click', () => collapseAllModules());
+  bar.querySelector('.footer-zoom-out')?.addEventListener('click', () => {
+    zoomOut();
+    persistModuleSession();
+  });
+  bar.querySelector('.footer-zoom-in')?.addEventListener('click', () => {
+    zoomIn();
+    persistModuleSession();
+  });
+  bar.querySelector('.footer-layout-reset')?.addEventListener('click', () => resetBlockPositions());
   bar.querySelector('.footer-reset')?.addEventListener('click', () => hub.reset());
   rootEl.addEventListener('click', () => {
     const root = hub.getRoot();

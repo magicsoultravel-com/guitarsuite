@@ -422,6 +422,23 @@ body.has-content-dock #site-footer {
     color: var(--color-muted);
 }
 
+.footer-layout-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: var(--space-sm);
+    border-left: 1px solid var(--color-border);
+}
+
+.footer-layout-actions .dock-nav-btn {
+    min-width: 26px;
+    font-size: 1em;
+    font-weight: 600;
+    line-height: 1;
+}
+
 .footer-selection-actions {
     display: flex;
     align-items: center;
@@ -901,27 +918,44 @@ body.has-selection-footer .content-dock {
     min-width: 0;
 }
 
-.dock-module.is-floating {
+/* Sidebars: title bars only — panels open in the workspace canvas */
+.tool-dock .dock-module:not(.is-floating) .dock-module-panel,
+.content-dock .dock-module:not(.is-floating) .dock-module-panel {
+    display: none !important;
+}
+
+#module-canvas {
     position: fixed;
-    z-index: 1000;
+    top: var(--space-sm);
+    left: calc(268px + var(--space-sm) * 3);
+    right: calc(268px + var(--space-sm) * 3);
+    bottom: calc(44px + var(--space-sm) * 3);
+    z-index: 90;
+    pointer-events: none;
+    transform-origin: top center;
+    overflow: visible;
+}
+
+#module-canvas .dock-module.is-floating {
+    position: absolute;
+    z-index: 1;
     margin: 0;
     flex-shrink: 0;
     width: var(--dock-width, 268px);
-    max-height: calc(100vh - var(--space-sm) * 2);
+    max-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    pointer-events: auto;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
 }
 
-body.has-selection-footer .dock-module.is-floating {
-    max-height: calc(100vh - 44px - var(--space-sm) * 4);
-}
-
-.dock-module.is-floating .dock-module-panel {
+#module-canvas .dock-module.is-floating .dock-module-panel {
     flex: 1 1 auto;
     min-height: 0;
     overflow-x: auto;
     overflow-y: auto;
+    max-height: min(520px, 72vh);
 }
 
 .dock-module--fretboard .dock-module-panel,
@@ -930,18 +964,15 @@ body.has-selection-footer .dock-module.is-floating {
     max-height: min(280px, 50vh);
 }
 
-.dock-module--fretboard.is-floating .dock-module-panel {
-    max-height: none;
-}
-
 .dock-module--content .dock-module-panel {
     max-height: min(320px, 42vh);
 }
 
-.dock-module--content.is-floating .dock-module-panel,
-.dock-module--chords.is-floating .dock-module-panel,
-.dock-module--tools.is-floating .dock-module-panel {
-    max-height: none;
+#module-canvas .dock-module--fretboard .dock-module-panel,
+#module-canvas .dock-module--content .dock-module-panel,
+#module-canvas .dock-module--chords .dock-module-panel,
+#module-canvas .dock-module--tools .dock-module-panel {
+    max-height: min(520px, 72vh);
 }
 
 .dock-module-bar {
@@ -1707,6 +1738,11 @@ body.has-selection-footer .dock-module.is-floating {
     .content-dock {
         width: min(240px, 78vw);
         --dock-width: min(240px, 78vw);
+    }
+
+    #module-canvas {
+        left: var(--space-sm);
+        right: var(--space-sm);
     }
 }
 

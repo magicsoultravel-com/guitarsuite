@@ -27,12 +27,13 @@ export function isRestoring() {
 }
 
 /** Call after the user changes layout (expand, drag, collapse all, etc.). */
-export function touchSession(modules) {
+export function touchSession(modules, zoom = null) {
   if (restoring) return;
   sessionActive = true;
   writeSession({
     initialized: true,
     modules,
+    zoom,
     savedAt: Date.now(),
   });
 }
@@ -44,15 +45,15 @@ export function restoreSession(applyModules) {
   sessionActive = true;
   restoring = true;
   try {
-    applyModules(data.modules);
+    applyModules(data.modules, data.zoom ?? 1);
   } finally {
     restoring = false;
   }
 }
 
-export function initSessionPersistence(collectModules) {
+export function initSessionPersistence(collectModules, getZoom = () => 1) {
   window.addEventListener('beforeunload', () => {
     if (!sessionActive && !isSessionInitialized()) return;
-    touchSession(collectModules());
+    touchSession(collectModules(), getZoom());
   });
 }

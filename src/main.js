@@ -15,6 +15,7 @@ import { renderSelectionFooter } from './sections/selectionFooter.js';
 import { createFretboardHub } from './fretboardHub.js';
 import { applyModulesState, collectModulesState } from './dockModule.js';
 import { initSessionPersistence, restoreSession } from './sessionState.js';
+import { getUserZoom, initWorkspace } from './workspaceLayout.js';
 import {
   initFretboardInteractive,
   wireChordNoteTables,
@@ -106,6 +107,7 @@ try {
 
   renderSelectionFooter(hub, selectionContext, footerEl);
 
+  initWorkspace();
   mountChordsAndNotes(currentSong);
 
   initFretboardInteractive(hub, notes, chords);
@@ -116,7 +118,7 @@ try {
   wireGenreTheory(hub, scales, genres, document.getElementById('genre-theory-section'));
 
   restoreSession(applyModulesState);
-  initSessionPersistence(collectModulesState);
+  initSessionPersistence(collectModulesState, getUserZoom);
 } catch (err) {
   document.getElementById('app').innerHTML = `<div class="section"><h2>Error</h2><p>${err.message}</p></div>`;
   console.error(err);

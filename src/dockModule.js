@@ -1,11 +1,31 @@
 import { isRestoring, touchSession } from './sessionState.js';
-
-const GRID = 8;
-const DOCK_GAP = 8;
+import {
+  DOCK_GAP,
+  ensureModuleCanvas,
+  getCanvasScale,
+  getUserZoom,
+  layoutFloatingModules,
+  pointerToCanvasLocal,
+  resetUserZoom,
+  setUserZoom,
+  snap,
+  updateWorkspaceZoom,
+} from './workspaceLayout.js';
 
 export const DEFAULT_ORDER = ['root', 'chords', 'fretboard', 'now-playing', 'tools'];
 
 const expandHandlers = new Map();
+const moduleHomes = new Map();
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function floatingBottomInset() {
+  return document.body.classList.contains('has-selection-footer')
+    ? 44 + DOCK_GAP * 3
+    : DOCK_GAP;
+}
 
 export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
   const panel = el.querySelector('.dock-module-panel');
@@ -14,19 +34,25 @@ export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
 
   const id = moduleId || el.dataset.dockId;
 
-  function setExpanded(open, { silent = false } = {}) {
+  function setExpanded(open, { silent = false, skipLayout = false } = {}) {
     panel.hidden = !open;
     el.classList.toggle('is-expanded', open);
     if (bodyClass) document.body.classList.toggle(bodyClass, open);
     chevron.textContent = open ? '▼' : '▲';
     chevron.setAttribute('aria-expanded', String(open));
-    if (!silent) notifySessionChange();
-    if (el.classList.contains('is-floating')) {
-      requestAnimationFrame(() => clampFloatingToViewport(el));
+
+    if (!el.classList.contains('is-floating') && !open) {
+      panel.hidden = true;
     }
+
+    if (!skipLayout && el.classList.contains('is-floating')) {
+      requestAnimationFrame(() => layoutFloatingModules());
+    }
+
+    if (!silent) notifySessionChange();
   }
 
-  setExpanded(false, { silent: true });
+  setExpanded(false, { silent: true, skipLayout: true });
 
   if (id) expandHandlers.set(id, setExpanded);
 
@@ -35,33 +61,21 @@ export function wireDockExpand(el, { bodyClass, moduleId = null } = {}) {
 
 function notifySessionChange() {
   if (isRestoring()) return;
-  touchSession(collectModulesState());
+  touchSession(collectModulesState(), getUserZoom());
 }
 
-export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
-  const bar = el.querySelector('.dock-module-bar');
-  if (!bar) return;
-
-  bar.addEventListener('click', (e) => {
-    if (e.target.closest('.dock-drag-handle, .dock-module-dock, .dock-module-chevron')) return;
-    if (ignoreSelector && e.target.closest(ignoreSelector)) return;
-    const panel = el.querySelector('.dock-module-panel');
-    if (panel) setExpanded(panel.hidden);
-  });
-
-  el.querySelector('.dock-module-chevron')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const panel = el.querySelector('.dock-module-panel');
-    if (panel) setExpanded(panel.hidden);
-  });
+export function registerModuleHome(mod, dockEl) {
+  if (mod?.dataset?.dockId && dockEl) {
+    moduleHomes.set(mod.dataset.dockId, dockEl);
+  }
 }
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function snap(value) {
-  return Math.round(value / GRID) * GRID;
+function findOriginDock(mod) {
+  const id = mod.dataset.dockId;
+  if (id && moduleHomes.has(id)) return moduleHomes.get(id);
+  const dockId = mod.dataset.originDock;
+  if (dockId) return document.getElementById(dockId);
+  return document.getElementById('tool-dock') || document.getElementById('content-dock');
 }
 
 function orderModules(dockEl) {
@@ -72,53 +86,91 @@ function orderModules(dockEl) {
   }
 }
 
-function findOriginDock(mod) {
-  const dockId = mod.dataset.originDock;
-  if (dockId) return document.getElementById(dockId);
-  return document.getElementById('tool-dock') || document.getElementById('content-dock');
+function floatModule(mod, dockEl) {
+  if (mod.classList.contains('is-floating')) return;
+
+  const canvas = ensureModuleCanvas();
+  mod.dataset.originDock = dockEl?.id || mod.parentElement?.id || 'tool-dock';
+  mod.classList.add('is-floating');
+  mod.style.width = `${mod.offsetWidth}px`;
+  mod.style.left = '0px';
+  mod.style.top = '0px';
+  canvas.appendChild(mod);
+  mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
 }
 
 function redock(mod, dockEl) {
+  const setExpanded = expandHandlers.get(mod.dataset.dockId);
+  setExpanded?.(false, { silent: true, skipLayout: true });
+
   mod.classList.remove('is-floating');
   mod.style.left = '';
   mod.style.top = '';
   mod.style.width = '';
   mod.style.zIndex = '';
   delete mod.dataset.originDock;
+
+  const panel = mod.querySelector('.dock-module-panel');
+  if (panel) panel.hidden = true;
+
   mod.querySelector('.dock-module-dock')?.setAttribute('hidden', '');
   dockEl.appendChild(mod);
   orderModules(dockEl);
+}
+
+export function openFloatingModule(mod) {
+  const dockEl = findOriginDock(mod);
+  if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
+
+  const setExpanded = expandHandlers.get(mod.dataset.dockId);
+  setExpanded?.(true, { silent: true, skipLayout: true });
+
+  mod.style.zIndex = String(1000 + expandedFloatingCount());
+
+  layoutFloatingModules();
   notifySessionChange();
 }
 
-function floatModule(mod) {
-  if (mod.classList.contains('is-floating')) return;
-  const rect = mod.getBoundingClientRect();
-  mod.dataset.originDock = mod.parentElement?.id || 'tool-dock';
-  mod.classList.add('is-floating');
-  mod.style.width = `${rect.width}px`;
-  mod.style.left = `${snap(rect.left)}px`;
-  mod.style.top = `${snap(rect.top)}px`;
-  document.body.appendChild(mod);
-  mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
-  requestAnimationFrame(() => clampFloatingToViewport(mod));
+export function closeFloatingModule(mod) {
+  const dockEl = findOriginDock(mod);
+  if (mod.classList.contains('is-floating') && dockEl) {
+    redock(mod, dockEl);
+  } else {
+    const setExpanded = expandHandlers.get(mod.dataset.dockId);
+    setExpanded?.(false, { silent: true, skipLayout: true });
+  }
+
+  layoutFloatingModules();
+  notifySessionChange();
 }
 
-function floatingBottomInset() {
-  return document.body.classList.contains('has-selection-footer')
-    ? 44 + DOCK_GAP * 3
-    : DOCK_GAP;
+function expandedFloatingCount() {
+  const canvas = document.getElementById('module-canvas');
+  if (!canvas) return 0;
+  return canvas.querySelectorAll('.dock-module.is-floating.is-expanded').length;
 }
 
-function clampFloatingToViewport(mod) {
-  if (!mod?.classList.contains('is-floating')) return;
-  const bottomInset = floatingBottomInset();
-  const maxLeft = Math.max(DOCK_GAP, window.innerWidth - mod.offsetWidth - DOCK_GAP);
-  const maxTop = Math.max(DOCK_GAP, window.innerHeight - mod.offsetHeight - bottomInset);
-  const left = clamp(parseInt(mod.style.left, 10) || DOCK_GAP, DOCK_GAP, maxLeft);
-  const top = clamp(parseInt(mod.style.top, 10) || DOCK_GAP, DOCK_GAP, maxTop);
-  mod.style.left = `${snap(left)}px`;
-  mod.style.top = `${snap(top)}px`;
+export function wireDockBarToggle(el, setExpanded, ignoreSelector) {
+  const bar = el.querySelector('.dock-module-bar');
+  if (!bar) return;
+
+  const toggle = () => {
+    const panel = el.querySelector('.dock-module-panel');
+    const isOpen = panel && !panel.hidden;
+    if (isOpen) closeFloatingModule(el);
+    else openFloatingModule(el);
+  };
+
+  bar.addEventListener('click', (e) => {
+    if (e.target.closest('.dock-drag-handle, .dock-module-dock, .dock-module-chevron')) return;
+    if (ignoreSelector && e.target.closest(ignoreSelector)) return;
+    toggle();
+  });
+
+  el.querySelector('.dock-module-chevron')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggle();
+  });
 }
 
 function wireDrag(mod, dockEl) {
@@ -146,24 +198,34 @@ function wireDrag(mod, dockEl) {
   handle.addEventListener('pointermove', (e) => {
     if (!armed && !dragging) return;
 
+    const canvas = ensureModuleCanvas();
+
     if (!dragging) {
       const dx = Math.abs(e.clientX - startX);
       const dy = Math.abs(e.clientY - startY);
       if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
 
-      floatModule(mod);
+      if (!mod.classList.contains('is-floating')) {
+        floatModule(mod, dockEl);
+        const setExpanded = expandHandlers.get(mod.dataset.dockId);
+        setExpanded?.(true, { silent: true, skipLayout: true });
+      }
+
       dragging = true;
       handle.classList.add('is-dragging');
-      const rect = mod.getBoundingClientRect();
-      offsetX = e.clientX - rect.left;
-      offsetY = e.clientY - rect.top;
-      mod.style.zIndex = String(1000 + document.querySelectorAll('.dock-module.is-floating').length);
+      const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
+      offsetX = local.x - (parseInt(mod.style.left, 10) || 0);
+      offsetY = local.y - (parseInt(mod.style.top, 10) || 0);
+      mod.style.zIndex = String(1000 + expandedFloatingCount() + 1);
     }
 
-    const maxLeft = window.innerWidth - mod.offsetWidth - DOCK_GAP;
-    const maxTop = window.innerHeight - mod.offsetHeight - floatingBottomInset();
-    mod.style.left = `${snap(clamp(e.clientX - offsetX, DOCK_GAP, maxLeft))}px`;
-    mod.style.top = `${snap(clamp(e.clientY - offsetY, DOCK_GAP, maxTop))}px`;
+    const local = pointerToCanvasLocal(canvas, e.clientX, e.clientY);
+    const canvasW = canvas.clientWidth;
+    const canvasH = canvas.clientHeight;
+    const maxLeft = Math.max(0, canvasW - mod.offsetWidth);
+    const maxTop = Math.max(0, canvasH - mod.offsetHeight);
+    mod.style.left = `${snap(clamp(local.x - offsetX, 0, maxLeft))}px`;
+    mod.style.top = `${snap(clamp(local.y - offsetY, 0, maxTop))}px`;
   });
 
   const endDrag = (e) => {
@@ -175,7 +237,7 @@ function wireDrag(mod, dockEl) {
 
     if (!dragging) return;
     dragging = false;
-    clampFloatingToViewport(mod);
+    updateWorkspaceZoom();
     notifySessionChange();
   };
 
@@ -184,24 +246,16 @@ function wireDrag(mod, dockEl) {
 
   mod.querySelector('.dock-module-dock')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    redock(mod, dockEl);
+    closeFloatingModule(mod);
   });
 }
 
-let resizeListenerAdded = false;
-
 export function initDockModules(dockEl) {
   dockEl.querySelectorAll('.dock-module').forEach((mod) => {
+    registerModuleHome(mod, dockEl);
     wireDrag(mod, dockEl);
   });
   orderModules(dockEl);
-
-  if (!resizeListenerAdded) {
-    resizeListenerAdded = true;
-    window.addEventListener('resize', () => {
-      document.querySelectorAll('.dock-module.is-floating').forEach(clampFloatingToViewport);
-    });
-  }
 }
 
 export function collectModulesState() {
@@ -211,10 +265,11 @@ export function collectModulesState() {
     if (!id) return;
     const panel = mod.querySelector('.dock-module-panel');
     const floating = mod.classList.contains('is-floating');
+    const expanded = Boolean(panel && !panel.hidden);
     modules[id] = {
-      expanded: Boolean(panel && !panel.hidden),
-      floating,
-      dockId: floating ? (mod.dataset.originDock || 'tool-dock') : (mod.parentElement?.id || 'tool-dock'),
+      expanded: floating && expanded,
+      floating: floating && expanded,
+      dockId: mod.dataset.originDock || moduleHomes.get(id)?.id || 'tool-dock',
       left: floating ? parseInt(mod.style.left, 10) || 0 : null,
       top: floating ? parseInt(mod.style.top, 10) || 0 : null,
       width: floating ? mod.offsetWidth : null,
@@ -224,48 +279,52 @@ export function collectModulesState() {
   return modules;
 }
 
-export function applyModulesState(modules = {}) {
+export function applyModulesState(modules = {}, zoom = 1) {
+  if (zoom != null) setUserZoom(zoom);
+
   for (const [id, state] of Object.entries(modules)) {
     const mod = document.querySelector(`[data-dock-id="${id}"]`);
     if (!mod) continue;
 
-    const setExpanded = expandHandlers.get(id);
-    if (setExpanded) setExpanded(Boolean(state.expanded), { silent: true });
-
-    if (state.floating) {
+    if (state.floating && state.expanded) {
       const dockEl = document.getElementById(state.dockId) || findOriginDock(mod);
-      if (!mod.classList.contains('is-floating')) {
-        mod.dataset.originDock = state.dockId || dockEl?.id || 'tool-dock';
-        mod.classList.add('is-floating');
-        mod.querySelector('.dock-module-dock')?.removeAttribute('hidden');
-        document.body.appendChild(mod);
-      }
+      if (!mod.classList.contains('is-floating')) floatModule(mod, dockEl);
+      const setExpanded = expandHandlers.get(id);
+      setExpanded?.(true, { silent: true, skipLayout: true });
       if (state.width) mod.style.width = `${state.width}px`;
       if (state.left != null) mod.style.left = `${state.left}px`;
       if (state.top != null) mod.style.top = `${state.top}px`;
       if (state.zIndex != null) mod.style.zIndex = String(state.zIndex);
     } else {
-      if (mod.classList.contains('is-floating')) {
-        const dockEl = document.getElementById(state.dockId) || findOriginDock(mod);
-        if (dockEl) redock(mod, dockEl);
-      } else {
-        const dockEl = document.getElementById(state.dockId);
-        if (dockEl && mod.parentElement !== dockEl) {
-          dockEl.appendChild(mod);
-          orderModules(dockEl);
-        }
+      const dockEl = document.getElementById(state.dockId) || findOriginDock(mod);
+      if (mod.classList.contains('is-floating') && dockEl) {
+        redock(mod, dockEl);
+      } else if (dockEl && mod.parentElement !== dockEl) {
+        dockEl.appendChild(mod);
+        orderModules(dockEl);
       }
+      const setExpanded = expandHandlers.get(id);
+      setExpanded?.(false, { silent: true, skipLayout: true });
     }
   }
 
-  for (const mod of document.querySelectorAll('.dock-module.is-floating')) {
-    clampFloatingToViewport(mod);
-  }
+  layoutFloatingModules();
 }
 
 export function collapseAllModules() {
-  expandHandlers.forEach((setExpanded) => setExpanded(false, { silent: true }));
-  touchSession(collectModulesState());
+  [...document.querySelectorAll('.dock-module.is-floating.is-expanded')].forEach((mod) => {
+    closeFloatingModule(mod);
+  });
+}
+
+export function resetBlockPositions() {
+  [...document.querySelectorAll('.dock-module.is-floating')].forEach((mod) => {
+    const dockEl = findOriginDock(mod);
+    if (dockEl) redock(mod, dockEl);
+  });
+  resetUserZoom();
+  layoutFloatingModules();
+  notifySessionChange();
 }
 
 export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
@@ -289,8 +348,8 @@ export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
     const dockBtn = document.createElement('button');
     dockBtn.type = 'button';
     dockBtn.className = 'dock-module-dock';
-    dockBtn.title = 'Return to dock';
-    dockBtn.setAttribute('aria-label', 'Return to dock');
+    dockBtn.title = 'Close and return to sidebar';
+    dockBtn.setAttribute('aria-label', 'Close panel');
     dockBtn.textContent = '⌂';
     dockBtn.hidden = true;
     bar.append(dockBtn);
@@ -307,6 +366,10 @@ export function ensureDockChrome(el, id, label, { expandable = true } = {}) {
   if (!expandable) {
     bar.querySelector('.dock-module-chevron')?.remove();
   }
+}
+
+export function persistModuleSession() {
+  notifySessionChange();
 }
 
 export function syncChipLayers(hub, container = document) {

@@ -1,5 +1,5 @@
 import { escapeHtml } from '../utils.js';
-import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers } from '../dockModule.js';
+import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers, openFloatingModule, closeFloatingModule } from '../dockModule.js';
 import { appendChordChips, getChordContext } from '../chordChip.js';
 
 function renderChords(chipGrid, chordsList, hub, chordsJson, notesJson, chordsTheory) {
@@ -66,7 +66,8 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
 
     toggle?.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (panel) setExpanded(panel.hidden);
+      if (drawer.classList.contains('is-expanded')) closeFloatingModule(drawer);
+      else openFloatingModule(drawer);
     });
 
     prevBtn?.addEventListener('click', (e) => {
@@ -99,7 +100,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
     drawer.innerHTML = buildBar(songs[currentIndex]);
     ensureDockChrome(drawer, 'now-playing', 'Now playing', { expandable: !!songs[currentIndex] });
     const { setExpanded } = wireBar();
-    if (wasExpanded && songs[currentIndex]) setExpanded(true);
+    if (wasExpanded && songs[currentIndex]) openFloatingModule(drawer);
   }
 
   return { drawer, updateSong, getSongIndex: () => currentIndex };

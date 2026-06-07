@@ -138,10 +138,10 @@ export function pointerToCanvasLocal(canvas, clientX, clientY) {
 
 export const DEFAULT_FLOAT_W = 280;
 export const DEFAULT_FLOAT_H = 200;
+export const MIN_FLOAT_W = 200;
+export const MIN_FLOAT_H = 140;
 
 const BAR_H = 44;
-const MIN_FLOAT_W = 200;
-const MIN_FLOAT_H = 140;
 const MAX_FLOAT_W = 720;
 const MAX_FLOAT_H = () => Math.min(window.innerHeight * 0.95, 900);
 
@@ -192,6 +192,17 @@ export function applyModuleSize(mod, width, height) {
 export function applyModuleSizeUser(mod, width, height) {
   const w = snap(Math.max(MIN_FLOAT_W, width));
   const h = snap(Math.max(MIN_FLOAT_H, height));
+  mod.style.width = `${w}px`;
+  mod.style.height = `${h}px`;
+  mod.dataset.userWidth = String(w);
+  mod.dataset.userHeight = String(h);
+  return { width: w, height: h };
+}
+
+/** Live resize during pointer drag — soft mins for smooth expand from compact bar. */
+export function applyModuleSizeLive(mod, width, height, { minWidth = 120, minHeight = BAR_H } = {}) {
+  const w = snap(Math.max(minWidth, width));
+  const h = snap(Math.max(minHeight, height));
   mod.style.width = `${w}px`;
   mod.style.height = `${h}px`;
   mod.dataset.userWidth = String(w);

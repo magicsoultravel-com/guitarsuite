@@ -3,6 +3,7 @@ import {
   MODULE_ORDER,
   applyModuleSize,
   applyModuleSizeUser,
+  applyModuleSizeLive,
   commitModulePosition,
   DEFAULT_FLOAT_H,
   DEFAULT_FLOAT_W,
@@ -13,6 +14,8 @@ import {
   getEffectiveZoom,
   getUserZoom,
   measureModuleFullSize,
+  MIN_FLOAT_H,
+  MIN_FLOAT_W,
   pointerToCanvasLocal,
   resetUserZoom,
   resizeCanvasToContent,
@@ -271,6 +274,21 @@ export function wireDockBarToggle(el, setExpanded) {
   });
 }
 
+function beginResizeExpand(mod) {
+  const setExpanded = expandHandlers.get(mod.dataset.dockId);
+  setExpanded?.(true, { silent: true });
+  mod.classList.remove('is-float-preview');
+
+  const barH = mod.querySelector('.dock-module-bar')?.offsetHeight || 44;
+  const w = mod.offsetWidth || parseInt(mod.style.width, 10) || DEFAULT_FLOAT_W;
+  mod.style.minHeight = '';
+  mod.style.width = `${w}px`;
+  mod.style.height = `${barH}px`;
+  mod.dataset.userWidth = String(w);
+  mod.dataset.userHeight = String(barH);
+  return { width: w, height: barH };
+}
+
 function wireResizeEdge(mod, position, { horizontal, vertical }) {
   const el = document.createElement('div');
   el.className = `dock-resize-edge dock-resize-edge--${position}`;
@@ -278,6 +296,7 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
   mod.appendChild(el);
 
   let active = false;
+  let fromCompact = false;
   let startX = 0;
   let startY = 0;
   let startW = 0;
@@ -286,14 +305,19 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!mod.classList.contains('is-expanded')) {
-      expandFloatingModule(mod, { keepPosition: true, skipResizeHandles: true });
+    fromCompact = !mod.classList.contains('is-expanded');
+    if (fromCompact) {
+      const size = beginResizeExpand(mod);
+      startW = size.width;
+      startH = size.height;
+    } else {
+      startW = mod.offsetWidth;
+      startH = mod.offsetHeight;
     }
     active = true;
     startX = e.clientX;
     startY = e.clientY;
-    startW = mod.offsetWidth;
-    startH = mod.offsetHeight;
+    mod.classList.add('is-resizing');
     document.getElementById('viewport-root')?.classList.add('is-ui-dragging');
     el.setPointerCapture(e.pointerId);
   });
@@ -303,20 +327,43 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
     const scale = getEffectiveZoom() || 1;
     const dx = (e.clientX - startX) / scale;
     const dy = (e.clientY - startY) / scale;
-    applyModuleSizeUser(
-      mod,
-      horizontal ? startW + dx : startW,
-      vertical ? startH + dy : startH,
-    );
-    mod.classList.add('is-resizing');
+    const nextW = horizontal ? startW + dx : startW;
+    const nextH = vertical ? startH + dy : startH;
+
+    if (fromCompact) {
+      applyModuleSizeLive(mod, nextW, nextH, {
+        minWidth: Math.min(120, startW),
+        minHeight: startH,
+      });
+    } else {
+      applyModuleSizeUser(mod, nextW, nextH);
+    }
   });
 
   const end = (e) => {
     if (!active) return;
+    const compact = fromCompact;
+    const barStartH = startH;
     active = false;
+    fromCompact = false;
     mod.classList.remove('is-resizing');
     document.getElementById('viewport-root')?.classList.remove('is-ui-dragging');
     try { el.releasePointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+    const w = mod.offsetWidth;
+    const h = mod.offsetHeight;
+    const grewVertical = h > barStartH + 4;
+    if (compact && !grewVertical) {
+      applyModuleSizeLive(mod, w, barStartH, {
+        minWidth: Math.min(MIN_FLOAT_W, startW),
+        minHeight: barStartH,
+      });
+      if (w < MIN_FLOAT_W) {
+        mod.style.width = `${MIN_FLOAT_W}px`;
+        mod.dataset.userWidth = String(MIN_FLOAT_W);
+      }
+    } else {
+      applyModuleSizeUser(mod, w, h);
+    }
     ensureFloatingResize(mod);
     commitModulePosition(mod);
     notifySessionChange();

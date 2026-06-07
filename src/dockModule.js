@@ -166,6 +166,13 @@ async function settleModulePosition(mod) {
   resizeCanvasToContent();
 }
 
+async function settleDropPosition(mod) {
+  await settleModulePosition(mod);
+  if (mod.classList.contains('is-floating') && mod.classList.contains('is-expanded')) {
+    displaceOverlappingModules(mod);
+  }
+}
+
 function setDockDropTarget(dockEl, active) {
   dockEl?.classList.toggle('is-drop-target', active);
 }
@@ -284,7 +291,6 @@ function expandFloatingModule(mod, {
     findInitialPosition(mod);
     commitModulePosition(mod);
   }
-  displaceOverlappingModules(mod);
   syncModuleChrome(mod);
   notifySessionChange();
 }
@@ -578,7 +584,6 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
     }
     resizeCanvasToContent();
     autoScrollWorkspace(e.clientX, e.clientY);
-    displaceOverlappingModules(mod);
   });
 
   const end = (e) => {
@@ -737,9 +742,6 @@ function wireModuleDrag(mod, dockEl) {
 
     if (mode === 'float') {
       placeAtPointer(e.clientX, e.clientY);
-      if (mod.classList.contains('is-expanded')) {
-        displaceOverlappingModules(mod);
-      }
     }
   }
 
@@ -822,14 +824,14 @@ function wireModuleDrag(mod, dockEl) {
           notifySessionChange();
         } else {
           finalizeBarFloat(mod);
-          await settleModulePosition(mod);
+          await settleDropPosition(mod);
         }
       } else if (mod.classList.contains('is-floating') && overDock) {
         await animateRedock(mod, dockEl, e.clientY);
         updateWorkspaceZoom();
         notifySessionChange();
       } else {
-        await settleModulePosition(mod);
+        await settleDropPosition(mod);
         notifySessionChange();
       }
     } else if (wasReorder) {

@@ -1027,6 +1027,11 @@ body.has-selection-footer .module-dock {
     transition: none;
 }
 
+#module-canvas .dock-module.is-floating.is-resizing .dock-module-panel {
+    overflow: hidden;
+    pointer-events: none;
+}
+
 #module-canvas .dock-module.is-floating .dock-module-panel {
     flex: 1 1 auto;
     min-height: 0;
@@ -1113,15 +1118,15 @@ body.has-selection-footer .module-dock {
 .dock-resize-edge--e {
     top: 0;
     right: 0;
+    bottom: 14px;
     width: 6px;
-    height: 100%;
     cursor: ew-resize;
 }
 
 .dock-resize-edge--s {
     left: 0;
+    right: 14px;
     bottom: 0;
-    width: 100%;
     height: 6px;
     cursor: ns-resize;
 }
@@ -1129,9 +1134,10 @@ body.has-selection-footer .module-dock {
 .dock-resize-edge--se {
     right: 0;
     bottom: 0;
-    width: 10px;
-    height: 10px;
+    width: 14px;
+    height: 14px;
     cursor: nwse-resize;
+    z-index: 6;
 }
 
 #module-canvas .dock-module.is-floating:hover .dock-resize-edge--e,

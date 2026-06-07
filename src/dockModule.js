@@ -183,12 +183,8 @@ function ensureFloatingResize(mod) {
   removeFloatingResize(mod);
   const expanded = mod.classList.contains('is-expanded');
   wireResizeEdge(mod, 'e', { horizontal: true, vertical: false });
-  if (expanded) {
-    wireResizeEdge(mod, 's', { horizontal: false, vertical: true });
-    wireResizeEdge(mod, 'se', { horizontal: true, vertical: true });
-  } else {
-    wireResizeEdge(mod, 'se', { horizontal: true, vertical: false });
-  }
+  wireResizeEdge(mod, 's', { horizontal: false, vertical: true });
+  wireResizeEdge(mod, 'se', { horizontal: true, vertical: true });
 }
 
 function clearFloatStyles(mod) {
@@ -289,6 +285,25 @@ function beginResizeExpand(mod) {
   return { width: w, height: barH };
 }
 
+function autoScrollWorkspace(clientX, clientY) {
+  const scroll = document.getElementById('workspace-scroll');
+  if (!scroll) return;
+  const rect = scroll.getBoundingClientRect();
+  const pad = 48;
+  const maxStep = 20;
+
+  if (clientX > rect.right - pad) {
+    scroll.scrollLeft += Math.min(maxStep, Math.ceil((clientX - (rect.right - pad)) / 3));
+  } else if (clientX < rect.left + pad) {
+    scroll.scrollLeft -= Math.min(maxStep, Math.ceil((rect.left + pad - clientX) / 3));
+  }
+  if (clientY > rect.bottom - pad) {
+    scroll.scrollTop += Math.min(maxStep, Math.ceil((clientY - (rect.bottom - pad)) / 3));
+  } else if (clientY < rect.top + pad) {
+    scroll.scrollTop -= Math.min(maxStep, Math.ceil((rect.top + pad - clientY) / 3));
+  }
+}
+
 function wireResizeEdge(mod, position, { horizontal, vertical }) {
   const el = document.createElement('div');
   el.className = `dock-resize-edge dock-resize-edge--${position}`;
@@ -336,8 +351,13 @@ function wireResizeEdge(mod, position, { horizontal, vertical }) {
         minHeight: startH,
       });
     } else {
-      applyModuleSizeUser(mod, nextW, nextH);
+      applyModuleSizeLive(mod, nextW, nextH, {
+        minWidth: MIN_FLOAT_W,
+        minHeight: MIN_FLOAT_H,
+      });
     }
+    resizeCanvasToContent();
+    autoScrollWorkspace(e.clientX, e.clientY);
   });
 
   const end = (e) => {

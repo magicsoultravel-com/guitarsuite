@@ -199,10 +199,10 @@ export function applyModuleSizeUser(mod, width, height) {
   return { width: w, height: h };
 }
 
-/** Live resize during pointer drag — soft mins for smooth expand from compact bar. */
+/** Live resize during pointer drag — soft mins, no grid snap for smooth motion. */
 export function applyModuleSizeLive(mod, width, height, { minWidth = 120, minHeight = BAR_H } = {}) {
-  const w = snap(Math.max(minWidth, width));
-  const h = snap(Math.max(minHeight, height));
+  const w = Math.max(minWidth, Math.round(width));
+  const h = Math.max(minHeight, Math.round(height));
   mod.style.width = `${w}px`;
   mod.style.height = `${h}px`;
   mod.dataset.userWidth = String(w);

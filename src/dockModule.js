@@ -203,14 +203,35 @@ function clearFloatStyles(mod) {
   removeFloatingResize(mod);
 }
 
-function redock(mod, dockEl) {
+function insertModuleInDockAtY(mod, dockEl, clientY) {
+  const siblings = [...dockEl.querySelectorAll('.dock-module:not(.is-floating)')].filter((s) => s !== mod);
+  for (const sib of siblings) {
+    const rect = sib.getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) {
+      dockEl.insertBefore(mod, sib);
+      return;
+    }
+  }
+  dockEl.appendChild(mod);
+}
+
+function isPointerOverDock(clientX, dockEl) {
+  const dockRect = dockEl.getBoundingClientRect();
+  return clientX <= dockRect.right + 12;
+}
+
+function redock(mod, dockEl, { clientY = null } = {}) {
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
   setExpanded?.(false, { silent: true });
   clearFloatStyles(mod);
   const panel = mod.querySelector('.dock-module-panel');
   if (panel) panel.hidden = true;
-  dockEl.appendChild(mod);
-  orderModules(dockEl);
+  if (clientY != null) {
+    insertModuleInDockAtY(mod, dockEl, clientY);
+  } else {
+    dockEl.appendChild(mod);
+    orderModules(dockEl);
+  }
 }
 
 export function openFloatingModule(mod, barClientRect) {
@@ -410,10 +431,9 @@ function wireModuleDrag(mod, dockEl) {
       bar.dataset.dragMoved = '1';
 
       const dockRect = dockEl.getBoundingClientRect();
-      const inDockColumn = e.clientX < dockRect.right + 4;
+      const inDockColumn = e.clientX < dockRect.right + 12;
       const horizontalIntent = Math.abs(dx) >= Math.abs(dy);
-      const verticalReorder = !dragFromHandle
-        && !mod.classList.contains('is-floating')
+      const verticalReorder = !mod.classList.contains('is-floating')
         && inDockColumn
         && !horizontalIntent
         && Math.abs(dy) > DRAG_THRESHOLD;
@@ -462,17 +482,26 @@ function wireModuleDrag(mod, dockEl) {
     dragFromHandle = false;
 
     if (wasFloat) {
+      const overDock = isPointerOverDock(e.clientX, dockEl);
+
       if (mod.classList.contains('is-float-preview')) {
-        const dockRect = dockEl.getBoundingClientRect();
-        if (e.clientX > dockRect.right + 8) {
-          finalizeBarFloat(mod);
+        if (overDock) {
+          redock(mod, dockEl, { clientY: e.clientY });
+          updateWorkspaceZoom();
+          notifySessionChange();
         } else {
-          redock(mod, dockEl);
+          finalizeBarFloat(mod);
         }
+      } else if (mod.classList.contains('is-floating') && overDock) {
+        redock(mod, dockEl, { clientY: e.clientY });
+        updateWorkspaceZoom();
+        notifySessionChange();
       } else {
         commitModulePosition(mod);
         notifySessionChange();
       }
+    } else if (mode === 'reorder') {
+      notifySessionChange();
     }
     mode = null;
     setTimeout(() => { bar.dataset.dragMoved = '0'; }, 0);
@@ -516,16 +545,7 @@ function finalizeBarFloat(mod) {
 }
 
 function reorderInDock(mod, dockEl, clientY) {
-  const siblings = [...dockEl.querySelectorAll('.dock-module:not(.is-floating)')].filter((s) => s !== mod);
-  for (const sib of siblings) {
-    const rect = sib.getBoundingClientRect();
-    if (clientY < rect.top + rect.height / 2) {
-      dockEl.insertBefore(mod, sib);
-      notifySessionChange();
-      return;
-    }
-  }
-  dockEl.appendChild(mod);
+  insertModuleInDockAtY(mod, dockEl, clientY);
   notifySessionChange();
 }
 

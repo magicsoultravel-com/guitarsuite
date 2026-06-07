@@ -1,6 +1,6 @@
 import { escapeHtml } from '../utils.js';
 import { formatRootsDisplay } from '../displayRoot.js';
-import { resetBlockPositions, persistModuleSession } from '../dockModule.js';
+import { resetBlockPositions, persistModuleSession, autoArrangeModules } from '../dockModule.js';
 import { zoomIn, zoomOut } from '../workspaceLayout.js';
 import {
   initPlayback,
@@ -25,6 +25,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
       <div class="footer-layout-actions" aria-label="Layout controls">
         <button type="button" class="dock-nav-btn footer-zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
         <button type="button" class="dock-nav-btn footer-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+        <button type="button" class="dock-nav-btn footer-auto-arrange" title="Auto-arrange open modules" aria-label="Auto-arrange open modules">▦</button>
         <button type="button" class="dock-nav-btn footer-layout-reset" title="Reset module positions" aria-label="Reset module positions">⌂</button>
       </div>
       <div class="footer-selection-actions">
@@ -75,6 +76,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
     zoomIn();
     persistModuleSession();
   });
+  bar.querySelector('.footer-auto-arrange')?.addEventListener('click', () => autoArrangeModules());
   bar.querySelector('.footer-layout-reset')?.addEventListener('click', () => resetBlockPositions());
   bar.querySelector('.footer-reset')?.addEventListener('click', () => hub.reset());
   rootEl.addEventListener('click', () => {

@@ -1051,8 +1051,9 @@ body.has-selection-footer .module-dock {
     transition: none;
     z-index: 1500;
     box-shadow: 0 14px 42px rgba(0, 0, 0, 0.62);
-    opacity: 0.97;
+    opacity: 0.98;
     will-change: left, top;
+    transform: translateZ(0);
 }
 
 #module-canvas .dock-module.is-floating.is-settling {
@@ -1072,12 +1073,28 @@ body.has-selection-footer .module-dock {
         height 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.module-dock .dock-module:not(.is-floating) {
-    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 .module-dock {
     pointer-events: auto;
+    transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.module-dock.is-drop-target {
+    box-shadow: inset 0 0 0 1px var(--layer-color-1);
+    background-color: rgba(228, 184, 74, 0.06);
+}
+
+.module-dock .dock-module:not(.is-floating) {
+    transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+}
+
+.module-dock .dock-module.is-dock-settling {
+    z-index: 2;
+}
+
+.module-dock .dock-module.is-dock-reordering {
+    position: relative;
+    z-index: 12;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.48);
 }
 
 #module-canvas .dock-module.is-floating.is-resizing {
@@ -1106,13 +1123,17 @@ body.has-selection-footer .module-dock {
     overflow: visible;
 }
 
-/* Bar actions: chevron/dock on hover; drag handle always visible */
-.dock-module--expandable .dock-module-dock,
+/* Pin = sidebar↔canvas; chevron = tile↔expanded (canvas only); drag handle always visible */
+.dock-module--expandable .dock-module-pin,
 .dock-module--expandable .dock-module-chevron {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.12s ease, visibility 0.12s;
+}
+
+.dock-module--expandable:not(.is-floating) .dock-module-chevron {
+    display: none;
 }
 
 .dock-module--expandable .dock-drag-handle,
@@ -1123,28 +1144,21 @@ body.has-selection-footer .module-dock {
     transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
 
-.dock-module--expandable:not(.is-floating) .dock-module-dock {
-    display: none;
-}
-
-.dock-module--expandable .dock-module-bar:hover .dock-module-chevron,
-.dock-module--expandable .dock-module-bar:focus-within .dock-module-chevron,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar:hover .dock-module-dock,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar:focus-within .dock-module-dock,
-.dock-module--expandable .dock-module-bar.is-dragging .dock-module-chevron,
-.dock-module--expandable.is-floating.is-expanded .dock-module-bar.is-dragging .dock-module-dock,
+.dock-module--expandable .dock-module-bar:hover .dock-module-pin,
+.dock-module--expandable .dock-module-bar:focus-within .dock-module-pin,
+.dock-module--expandable.is-floating .dock-module-bar:hover .dock-module-chevron,
+.dock-module--expandable.is-floating .dock-module-bar:focus-within .dock-module-chevron,
+.dock-module--expandable .dock-module-bar.is-dragging .dock-module-pin,
+.dock-module--expandable.is-floating .dock-module-bar.is-dragging .dock-module-chevron,
 .dock-drag-handle.is-dragging {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
 }
 
-.dock-module--expandable.is-floating.is-expanded .dock-module-dock {
+.dock-module--expandable.is-floating .dock-module-pin,
+.dock-module--expandable.is-floating .dock-module-chevron {
     display: inline-flex;
-}
-
-.dock-module--expandable.is-floating:not(.is-expanded) .dock-module-dock {
-    display: none;
 }
 
 #module-canvas .dock-module.is-floating:not(.is-expanded) {
@@ -1340,7 +1354,7 @@ body.has-selection-footer .module-dock {
 }
 
 .dock-module-chevron,
-.dock-module-dock {
+.dock-module-pin {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
@@ -1356,13 +1370,11 @@ body.has-selection-footer .module-dock {
     cursor: pointer;
 }
 
-.dock-module-dock {
-    font-size: 0.9em;
-    font-weight: 600;
-    line-height: 1;
+.dock-module-pin {
+    font-size: 0.75em;
 }
 
-.dock-module-dock:hover,
+.dock-module-pin:hover,
 .dock-module-chevron:hover {
     color: var(--color-accent);
 }

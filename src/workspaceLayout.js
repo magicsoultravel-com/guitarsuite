@@ -126,6 +126,40 @@ function floatingModules() {
   return canvas ? [...canvas.querySelectorAll('.dock-module.is-floating')] : [];
 }
 
+export function autoArrangeFloatingModules() {
+  const mods = floatingModules();
+  if (!mods.length) return;
+
+  mods.sort((a, b) => {
+    const ai = MODULE_ORDER.indexOf(a.dataset.dockId);
+    const bi = MODULE_ORDER.indexOf(b.dataset.dockId);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+
+  const scroll = ensureWorkspaceScroll();
+  const maxW = scroll.clientWidth;
+  let x = 0;
+  let y = 0;
+  let rowH = 0;
+
+  for (const mod of mods) {
+    const w = mod.offsetWidth;
+    const h = mod.offsetHeight;
+    if (x > 0 && x + w > maxW) {
+      x = 0;
+      y += snap(rowH + DOCK_GAP);
+      rowH = 0;
+    }
+    mod.classList.add('is-settling');
+    mod.style.left = `${snap(x)}px`;
+    mod.style.top = `${snap(y)}px`;
+    x += snap(w + DOCK_GAP);
+    rowH = Math.max(rowH, h);
+    setTimeout(() => mod.classList.remove('is-settling'), MODULE_SETTLE_MS + 20);
+  }
+  resizeCanvasToContent();
+}
+
 export function expandedFloatingModules() {
   return floatingModules().filter((mod) => mod.classList.contains('is-expanded'));
 }

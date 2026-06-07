@@ -34,6 +34,7 @@
     --btn-sm: 22px;
     --btn-md: 28px;
     --content-inset-x: calc(var(--dock-width) + var(--space-sm) * 2);
+    --workspace-grid: 32px;
 }
 
 *,
@@ -1010,6 +1011,12 @@ body.has-selection-footer .module-dock {
     min-width: 100%;
     min-height: 100%;
     pointer-events: none;
+    background-color: transparent;
+    background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: var(--workspace-grid) var(--workspace-grid);
+    background-position: 0 0;
 }
 
 .dock-module {
@@ -1037,6 +1044,36 @@ body.has-selection-footer .module-dock {
     overflow: hidden;
     pointer-events: auto;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+    will-change: auto;
+}
+
+#module-canvas .dock-module.is-floating.is-dragging-float {
+    transition: none;
+    z-index: 1500;
+    box-shadow: 0 14px 42px rgba(0, 0, 0, 0.62);
+    opacity: 0.97;
+    will-change: left, top;
+}
+
+#module-canvas .dock-module.is-floating.is-settling {
+    transition:
+        left 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+        top 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.24s ease-out;
+}
+
+#module-canvas .dock-module.is-floating.is-redocking {
+    opacity: 0.72;
+}
+
+#module-canvas .dock-module.is-floating.is-expanding {
+    transition:
+        width 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.module-dock .dock-module:not(.is-floating) {
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .module-dock {

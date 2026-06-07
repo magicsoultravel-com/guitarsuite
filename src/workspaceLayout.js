@@ -1,9 +1,12 @@
 const GRID = 8;
+export const WORKSPACE_GRID = GRID * 4;
 export const DOCK_GAP = 8;
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.05;
 export const ZOOM_TRANSITION_MS = 220;
+export const MODULE_SETTLE_MS = 240;
+export const MODULE_EXPAND_MS = 260;
 
 export const MODULE_ORDER = [
   'root',
@@ -108,6 +111,7 @@ export function resetUserZoom() {
 export function initWorkspace() {
   ensureViewportRoot();
   ensureModuleCanvas();
+  document.documentElement.style.setProperty('--workspace-grid', `${WORKSPACE_GRID}px`);
   window.addEventListener('resize', () => {
     updateWorkspaceZoom();
   });

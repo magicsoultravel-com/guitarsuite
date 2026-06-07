@@ -16,6 +16,8 @@ import {
   measureModuleFullSize,
   MIN_FLOAT_H,
   MIN_FLOAT_W,
+  MODULE_EXPAND_MS,
+  MODULE_SETTLE_MS,
   pointerToCanvasLocal,
   resetUserZoom,
   resizeCanvasToContent,
@@ -127,7 +129,58 @@ function floatModule(mod, dockEl) {
   canvas.appendChild(mod);
 }
 
-function expandFloatingModule(mod, { keepPosition = false, skipResizeHandles = false } = {}) {
+function waitModuleTransition(mod, ms = MODULE_SETTLE_MS) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      mod.removeEventListener('transitionend', onEnd);
+      resolve();
+    };
+    const onEnd = (e) => {
+      if (e.target === mod) finish();
+    };
+    mod.addEventListener('transitionend', onEnd);
+    setTimeout(finish, ms);
+  });
+}
+
+async function settleModulePosition(mod) {
+  const targetLeft = snap(Math.max(0, parseInt(mod.style.left, 10) || 0));
+  const targetTop = snap(Math.max(0, parseInt(mod.style.top, 10) || 0));
+  const curLeft = parseInt(mod.style.left, 10) || 0;
+  const curTop = parseInt(mod.style.top, 10) || 0;
+  if (curLeft === targetLeft && curTop === targetTop) {
+    resizeCanvasToContent();
+    return;
+  }
+  mod.classList.add('is-settling');
+  mod.style.left = `${targetLeft}px`;
+  mod.style.top = `${targetTop}px`;
+  await waitModuleTransition(mod);
+  mod.classList.remove('is-settling');
+  resizeCanvasToContent();
+}
+
+async function animateRedock(mod, dockEl, clientY) {
+  const dockRect = dockEl.getBoundingClientRect();
+  const canvas = ensureModuleCanvas();
+  const anchorY = clientY;
+  const anchorX = dockRect.right - 12;
+  const local = pointerToCanvasLocal(canvas, anchorX, anchorY);
+  const targetLeft = snap(Math.max(0, local.x - mod.offsetWidth));
+  const targetTop = snap(Math.max(0, local.y - Math.round(mod.offsetHeight / 2)));
+
+  mod.classList.add('is-settling', 'is-redocking');
+  mod.style.left = `${targetLeft}px`;
+  mod.style.top = `${targetTop}px`;
+  await waitModuleTransition(mod);
+  mod.classList.remove('is-settling', 'is-redocking');
+  redock(mod, dockEl, { clientY });
+}
+
+function expandFloatingModule(mod, { keepPosition = false, skipResizeHandles = false, animateOpen = true } = {}) {
   const setExpanded = expandHandlers.get(mod.dataset.dockId);
   setExpanded?.(true, { silent: true });
   mod.classList.remove('is-float-preview');
@@ -135,11 +188,28 @@ function expandFloatingModule(mod, { keepPosition = false, skipResizeHandles = f
   const prevTop = parseInt(mod.style.top, 10) || 0;
   const prevLeft = parseInt(mod.style.left, 10) || 0;
   const measured = measureModuleFullSize(mod);
-  const w = parseInt(mod.dataset.userWidth, 10)
-    || snap(Math.min(measured.width, DEFAULT_FLOAT_W));
-  const h = parseInt(mod.dataset.userHeight, 10)
-    || snap(Math.min(measured.height, DEFAULT_FLOAT_H));
-  applyModuleSizeUser(mod, w, h);
+  const targetW = measured.width;
+  const targetH = measured.height;
+  const barH = mod.querySelector('.dock-module-bar')?.offsetHeight || 44;
+  const startW = mod.offsetWidth || parseInt(mod.style.width, 10) || targetW;
+  const startH = mod.classList.contains('is-expanded') && mod.offsetHeight
+    ? mod.offsetHeight
+    : barH;
+
+  if (animateOpen && (startW !== targetW || startH !== targetH)) {
+    applyModuleSizeLive(mod, startW, startH, { minWidth: 120, minHeight: barH });
+    mod.classList.add('is-expanding');
+    requestAnimationFrame(() => {
+      applyModuleSizeUser(mod, targetW, targetH);
+    });
+    void waitModuleTransition(mod, MODULE_EXPAND_MS).then(() => {
+      mod.classList.remove('is-expanding');
+      resizeCanvasToContent();
+    });
+  } else {
+    applyModuleSizeUser(mod, targetW, targetH);
+  }
+
   if (!skipResizeHandles) ensureFloatingResize(mod);
   mod.style.zIndex = String(1000 + expandedFloatingModules().length);
 
@@ -444,8 +514,10 @@ function wireModuleDrag(mod, dockEl) {
   function placeAtPointer(clientX, clientY) {
     const canvas = ensureModuleCanvas();
     const local = pointerToCanvasLocal(canvas, clientX, clientY);
-    mod.style.left = `${snap(Math.max(0, local.x - offsetX))}px`;
-    mod.style.top = `${snap(Math.max(0, local.y - offsetY))}px`;
+    mod.style.left = `${Math.max(0, Math.round(local.x - offsetX))}px`;
+    mod.style.top = `${Math.max(0, Math.round(local.y - offsetY))}px`;
+    resizeCanvasToContent();
+    autoScrollWorkspace(clientX, clientY);
   }
 
   function isBlockedTarget(target) {
@@ -512,6 +584,7 @@ function wireModuleDrag(mod, dockEl) {
       }
 
       mode = 'float';
+      mod.classList.add('is-dragging-float');
       if (!mod.classList.contains('is-floating')) {
         const anchor = pointerToCanvasLocal(canvas, startX, startY);
         const grabX = Math.min((dockEl?.offsetWidth || 208) * 0.35, 48);
@@ -536,9 +609,10 @@ function wireModuleDrag(mod, dockEl) {
     }
   }
 
-  function onPointerUp(e) {
+  async function onPointerUp(e) {
     if (!active) return;
     const wasFloat = mode === 'float';
+    const wasReorder = mode === 'reorder';
     active = false;
     unbindDragListeners();
     setDragLock(false);
@@ -549,25 +623,27 @@ function wireModuleDrag(mod, dockEl) {
     dragFromHandle = false;
 
     if (wasFloat) {
+      mod.classList.remove('is-dragging-float');
       const overDock = isPointerOverDock(e.clientX, dockEl);
 
       if (mod.classList.contains('is-float-preview')) {
         if (overDock) {
-          redock(mod, dockEl, { clientY: e.clientY });
+          await animateRedock(mod, dockEl, e.clientY);
           updateWorkspaceZoom();
           notifySessionChange();
         } else {
           finalizeBarFloat(mod);
+          await settleModulePosition(mod);
         }
       } else if (mod.classList.contains('is-floating') && overDock) {
-        redock(mod, dockEl, { clientY: e.clientY });
+        await animateRedock(mod, dockEl, e.clientY);
         updateWorkspaceZoom();
         notifySessionChange();
       } else {
-        commitModulePosition(mod);
+        await settleModulePosition(mod);
         notifySessionChange();
       }
-    } else if (mode === 'reorder') {
+    } else if (wasReorder) {
       notifySessionChange();
     }
     mode = null;
@@ -664,11 +740,7 @@ export function applyModulesState(modules = {}, zoom = 1, dockOrders = {}) {
           applyModuleSizeUser(mod, state.width, state.height);
         } else {
           const measured = measureModuleFullSize(mod);
-          applyModuleSizeUser(
-            mod,
-            snap(Math.min(measured.width, DEFAULT_FLOAT_W)),
-            snap(Math.min(measured.height, DEFAULT_FLOAT_H)),
-          );
+          applyModuleSizeUser(mod, measured.width, measured.height);
         }
         ensureFloatingResize(mod);
       } else {

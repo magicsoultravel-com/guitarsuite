@@ -1003,7 +1003,7 @@ body.has-selection-footer .module-dock {
     overflow: auto;
     z-index: 90;
     scrollbar-width: thin;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 #module-canvas {

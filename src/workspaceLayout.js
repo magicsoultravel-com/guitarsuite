@@ -110,10 +110,26 @@ export function resetUserZoom() {
 
 export function initWorkspace() {
   ensureViewportRoot();
+  const scroll = ensureWorkspaceScroll();
   ensureModuleCanvas();
   document.documentElement.style.setProperty('--workspace-grid', `${WORKSPACE_GRID}px`);
   window.addEventListener('resize', () => {
     updateWorkspaceZoom();
+  });
+  wireWorkspaceClickThrough(scroll);
+}
+
+function wireWorkspaceClickThrough(scroll) {
+  scroll.addEventListener('click', (e) => {
+    if (e.target.closest('.dock-module')) return;
+    if (e.target !== scroll && e.target.id !== 'module-canvas') return;
+    const hit = document.elementsFromPoint(e.clientX, e.clientY).find((el) => (
+      el.closest('.about-hero a, .about-hero button, .about-hero [href]')
+    ));
+    if (hit) {
+      e.preventDefault();
+      hit.click();
+    }
   });
 }
 

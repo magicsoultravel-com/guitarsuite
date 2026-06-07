@@ -39,7 +39,6 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
 
   el.innerHTML = `
     <div class="dock-module-bar">
-      <span class="dock-module-sub tools-bar-summary">metronome · tuner</span>
       <span class="dock-module-chevron" aria-hidden="true">▲</span>
     </div>
     <div class="dock-module-panel tools-panel" hidden>
@@ -109,7 +108,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
 
   ensureDockChrome(el, 'tools', 'tools');
 
-  const summary = el.querySelector('.tools-bar-summary');
+  const barLabel = el.querySelector('.dock-module-label');
   const tempoInput = el.querySelector('#tempo');
   const timeSignatureSelect = el.querySelector('#time-signature');
   const metronomeStart = el.querySelector('#start-metronome');
@@ -138,7 +137,8 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   }
 
   function updateSummary() {
-    summary.textContent = `${tempoInput.value} BPM · ${timeSignatureSelect.value}`;
+    if (!barLabel) return;
+    barLabel.textContent = `tools · ${tempoInput.value} bpm · ${timeSignatureSelect.value}`;
   }
 
   function slotOptionsHtml(value) {
@@ -325,6 +325,7 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
 
   updateTimeSignature();
   rebuildLooperSlots();
+  updateSummary();
   return el;
 }
 

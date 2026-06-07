@@ -41,11 +41,6 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
           <span class="dock-section-label">In song</span>
           <div class="dock-chip-grid now-playing-chords"></div>
         </div>
-        <div class="dock-meta">
-          <a href="./songs-db.html">${songs.length} songs</a>
-          <span class="dock-meta-sep">·</span>
-          <a href="./chords-db.html">${Object.keys(chords).length} chords</a>
-        </div>
       </div>
     `;
   }

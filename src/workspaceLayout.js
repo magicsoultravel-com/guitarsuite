@@ -283,6 +283,49 @@ export function findInitialPosition(mod) {
   mod.style.top = '0px';
 }
 
+/** Push other expanded modules out of the way when source overlaps them. */
+export function displaceOverlappingModules(sourceMod) {
+  const others = expandedFloatingModules().filter((m) => m !== sourceMod);
+  if (!others.length) return false;
+
+  let changed = false;
+  for (let pass = 0; pass < 24; pass += 1) {
+    let movedThisPass = false;
+    const sourceBox = moduleBox(sourceMod);
+
+    for (const other of others) {
+      const box = moduleBox(other);
+      if (!boxesOverlap(sourceBox, box)) continue;
+
+      let newLeft = box.left;
+      let newTop = box.top;
+      const tryLeft = snap(sourceBox.right + DOCK_GAP);
+      const pushedRight = boxAt(tryLeft, box.top, box.width, box.height);
+
+      if (!boxesOverlap(sourceBox, pushedRight)
+        && !others.filter((o) => o !== other).some((o) => boxesOverlap(pushedRight, moduleBox(o)))) {
+        newLeft = tryLeft;
+      } else {
+        newTop = snap(sourceBox.bottom + DOCK_GAP);
+      }
+
+      if (newLeft !== box.left || newTop !== box.top) {
+        other.classList.add('is-settling');
+        other.style.left = `${Math.max(0, newLeft)}px`;
+        other.style.top = `${Math.max(0, newTop)}px`;
+        movedThisPass = true;
+        changed = true;
+        setTimeout(() => other.classList.remove('is-settling'), MODULE_SETTLE_MS + 20);
+      }
+    }
+
+    if (!movedThisPass) break;
+  }
+
+  if (changed) resizeCanvasToContent();
+  return changed;
+}
+
 /** Nudge only this module if it overlaps — never move other tiles. */
 export function resolveOverlapForModule(mod) {
   const others = expandedFloatingModules().filter((m) => m !== mod);

@@ -2112,6 +2112,27 @@ body.has-selection-footer .module-dock {
     letter-spacing: 0.02em;
 }
 
+.mb-midi-status {
+    font-size: 0.52em;
+    color: var(--color-muted);
+    margin-left: 8px;
+    letter-spacing: 0.02em;
+    max-width: 14em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-midi-status[data-kind="ready"] {
+    color: var(--color-text, inherit);
+    opacity: 0.85;
+}
+
+.mb-midi-status[data-kind="denied"],
+.mb-midi-status[data-kind="unsupported"] {
+    opacity: 0.65;
+}
+
 .mb-pc-hint {
     position: absolute;
     top: 2px;

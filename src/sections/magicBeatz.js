@@ -273,10 +273,12 @@ export function renderMagicBeatzDock({
     return !!(panel && !panel.hidden);
   }
 
-  function pressNote(pitch, octave, holdId) {
+  function pressNote(pitch, octave, holdId, velocity) {
     if (heldKeys.has(holdId)) return;
     const btn = findPianoBtn(pitch, octave);
     const inst = keysInst.value || 'piano';
+    const playVel = velocity != null ? clamp01(velocity) : 0.85;
+    const captureVel = velocity != null ? clamp01(velocity) : DEFAULT_VELOCITY;
     btn?.classList.add('is-down');
     if (recording) {
       recordBuffer.push({
@@ -284,15 +286,37 @@ export function renderMagicBeatzDock({
         octave,
         instrumentId: inst,
         t: getAudioContext().currentTime,
-        velocity: DEFAULT_VELOCITY,
+        velocity: captureVel,
       });
     }
     if (SUSTAIN_INSTRUMENTS.has(inst)) {
-      const sk = startPitchedSustain(inst, pitch, octave, 0.85);
+      const sk = startPitchedSustain(inst, pitch, octave, playVel);
       heldKeys.set(holdId, sk || null);
     } else {
-      playPitchedInstrument(inst, pitch, octave, undefined, 0.85);
+      playPitchedInstrument(inst, pitch, octave, undefined, playVel);
       if (btn) window.setTimeout(() => btn.classList.remove('is-down'), 120);
+    }
+  }
+
+  function clearHoldHighlight(holdId) {
+    if (holdId instanceof Element) {
+      holdId.classList.remove('is-down');
+      return;
+    }
+    if (typeof holdId !== 'string') return;
+    if (holdId.startsWith('pc:')) {
+      const body = holdId.slice(3);
+      const pipe = body.lastIndexOf('|');
+      const pitch = body.slice(0, pipe);
+      const octave = parseInt(body.slice(pipe + 1), 10);
+      findPianoBtn(pitch, octave)?.classList.remove('is-down');
+      return;
+    }
+    if (holdId.startsWith('midi:')) {
+      const midi = parseInt(holdId.slice(5), 10);
+      if (Number.isNaN(midi)) return;
+      const { pitch, octave } = pitchOctFromMidi(midi);
+      findPianoBtn(pitch, octave)?.classList.remove('is-down');
     }
   }
 
@@ -301,17 +325,7 @@ export function renderMagicBeatzDock({
     const sk = heldKeys.get(holdId);
     if (sk) stopPitchedSustain(sk);
     heldKeys.delete(holdId);
-    if (holdId instanceof Element) {
-      holdId.classList.remove('is-down');
-      return;
-    }
-    if (typeof holdId === 'string' && holdId.startsWith('pc:')) {
-      const body = holdId.slice(3);
-      const pipe = body.lastIndexOf('|');
-      const pitch = body.slice(0, pipe);
-      const octave = parseInt(body.slice(pipe + 1), 10);
-      findPianoBtn(pitch, octave)?.classList.remove('is-down');
-    }
+    clearHoldHighlight(holdId);
   }
 
   function releaseHeldKey(btn) {
@@ -367,6 +381,36 @@ export function renderMagicBeatzDock({
 
   window.addEventListener('keydown', onPcKeyDown);
   window.addEventListener('keyup', onPcKeyUp);
+
+  function updateMidiStatus(status) {
+    if (!midiStatusEl) return;
+    const labels = {
+      unsupported: 'MIDI n/a',
+      denied: 'MIDI denied',
+      none: 'MIDI: none',
+      ready: status.deviceName ? `MIDI: ${status.deviceName}` : 'MIDI: ready',
+    };
+    const text = labels[status.kind] || 'MIDI…';
+    midiStatusEl.textContent = text;
+    midiStatusEl.title = text;
+    midiStatusEl.dataset.kind = status.kind;
+  }
+
+  function onMidiNoteOn(midiNote, velocity) {
+    if (!keyboardArmed()) return;
+    const { pitch, octave } = pitchOctFromMidi(midiNote);
+    pressNote(pitch, octave, `midi:${midiNote}`, velocity);
+  }
+
+  function onMidiNoteOff(midiNote) {
+    releaseNote(`midi:${midiNote}`);
+  }
+
+  connectMidiInput({
+    onNoteOn: onMidiNoteOn,
+    onNoteOff: onMidiNoteOff,
+    onStatus: updateMidiStatus,
+  });
 
   function syncOctLabel() {
     const oct = clampOctave(parseInt(keysOct.value, 10) || 3);
@@ -1328,10 +1372,14 @@ export function renderMagicBeatzDock({
     });
   }
 
-  const { setExpanded } = wireDockExpand(el, {
+  const { setExpanded: setExpandedRaw } = wireDockExpand(el, {
     bodyClass: 'magic-beatz-expanded',
     moduleId: 'magic-beatz',
   });
+  function setExpanded(open, opts) {
+    setExpandedRaw(open, opts);
+    if (!open) releaseAllHeldKeys();
+  }
   wireDockBarToggle(el, setExpanded);
 
   rebuildAll();

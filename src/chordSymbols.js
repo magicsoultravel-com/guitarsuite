@@ -2,6 +2,9 @@ import { getTheoryNotes, normalizePitch } from './music.js';
 
 /** Map chord suffix → chords-theory.json key (longest suffixes first for parsing). */
 const SUFFIX_TO_THEORY = [
+  ['mmaj9', 'Minor Major 9th'],
+  ['maj9', 'Major 9th'],
+  ['mmaj7', 'Minor Major 7th'],
   ['madd9', 'Minor Add 9th'],
   ['maj7', 'Major 7th'],
   ['m7b5', 'Half-Diminished 7th'],
@@ -14,6 +17,8 @@ const SUFFIX_TO_THEORY = [
   ['m6', 'Minor 6th'],
   ['dim', 'Diminished'],
   ['aug', 'Augmented'],
+  ['13', '13th'],
+  ['11', '11th'],
   ['m', 'Minor'],
   ['7', 'Dominant 7th'],
   ['6', '6th'],

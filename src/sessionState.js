@@ -1,7 +1,11 @@
 const SESSION_KEY = 'guitarsuite-session';
+/** Bump when session shape changes; v1 had no version / no musical block. */
+export const SESSION_VERSION = 2;
 
 let sessionActive = false;
 let restoring = false;
+/** @type {() => object} */
+let musicalCollector = () => ({});
 
 function readRaw() {
   try {
@@ -26,21 +30,32 @@ export function isRestoring() {
   return restoring;
 }
 
+/** Register collector for musical session fields (roots, song, manual notes). */
+export function setMusicalCollector(fn) {
+  musicalCollector = typeof fn === 'function' ? fn : () => ({});
+}
+
 /** Call after the user changes layout (expand, drag, collapse all, etc.). */
 export function touchSession(modules, zoom = null, dockOrders = null) {
   if (restoring) return;
   sessionActive = true;
   const payload = {
+    version: SESSION_VERSION,
     initialized: true,
     modules,
     zoom,
+    musical: musicalCollector(),
     savedAt: Date.now(),
   };
   if (dockOrders) payload.dockOrders = dockOrders;
   writeSession(payload);
 }
 
-export function restoreSession(applyModules) {
+/**
+ * @param {(modules: object, zoom: number, dockOrders: object) => void} applyModules
+ * @param {(musical: object) => void} [applyMusical]
+ */
+export function restoreSession(applyModules, applyMusical) {
   const data = readRaw();
   if (!data?.initialized || !data.modules) return;
 
@@ -48,6 +63,9 @@ export function restoreSession(applyModules) {
   restoring = true;
   try {
     applyModules(data.modules, data.zoom ?? 1, data.dockOrders ?? {});
+    if (typeof applyMusical === 'function' && data.musical && typeof data.musical === 'object') {
+      applyMusical(data.musical);
+    }
   } finally {
     restoring = false;
   }

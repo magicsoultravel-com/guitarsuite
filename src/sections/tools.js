@@ -1,7 +1,8 @@
 import { CHROMATIC, musicalSort } from '../music.js';
-import { playTick, playPitch, playStandardString, STANDARD_TUNING } from '../audio.js';
+import { getAudioContext, playPitch, playStandardString, STANDARD_TUNING } from '../audio.js';
+import { playMetronomeClick } from '../instruments.js';
 import { playNote, playChordByName, GUITAR_OCTAVE } from '../playback.js';
-import { createBeatScheduler } from '../beatScheduler.js';
+import { createTransport } from '../beatScheduler.js';
 import { ensureDockChrome, wireDockBarToggle, wireDockExpand } from '../dockModule.js';
 
 const MAX_TRACKS = 4;
@@ -121,15 +122,17 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
 
   let beatsPerMeasure = 4;
   let looperMode = 'chord';
+  /** @type {'metronome'|'looper'|null} */
+  let activeMode = null;
 
   function clampBpm(val) {
     return Math.min(250, Math.max(30, val));
   }
 
-  function getIntervalMs() {
+  function getBpm() {
     const tempo = parseInt(tempoInput.value, 10);
     if (isNaN(tempo) || tempo <= 0) return 0;
-    return (60 / tempo) * 1000;
+    return clampBpm(tempo);
   }
 
   function getBeatsPerMeasure() {
@@ -162,10 +165,18 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
     return state;
   }
 
-  function playSlotValue(value) {
+  function playSlotValue(value, when) {
     if (!value) return;
-    if (looperMode === 'note') playNote(value, LOOPER_NOTE_OCTAVE);
-    else playChordByName(value, chordsJson, notesJson);
+    if (looperMode === 'note') playNote(value, LOOPER_NOTE_OCTAVE, when);
+    else playChordByName(value, chordsJson, notesJson, when);
+  }
+
+  function scheduleUiHighlight(beat, when) {
+    const delayMs = Math.max(0, (when - getAudioContext().currentTime) * 1000 - 8);
+    window.setTimeout(() => {
+      if (!transport.isRunning()) return;
+      highlightBeat(beat);
+    }, delayMs);
   }
 
   function highlightBeat(beat) {
@@ -217,36 +228,35 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   }
 
   function setPlayerUi(mode) {
+    activeMode = mode;
     metronomeStart.disabled = mode === 'metronome';
     metronomeStop.disabled = mode !== 'metronome';
     looperStart.disabled = mode === 'looper';
     looperStop.disabled = mode !== 'looper';
   }
 
-  const metronomeScheduler = createBeatScheduler({
-    getIntervalMs,
+  /** One shared transport; mode switches what onBeat does. */
+  const transport = createTransport({
+    getBpm,
     getBeatsPerMeasure,
-    onBeat(beat) {
-      playTick(beat === 1);
-    },
-  });
-
-  const looperScheduler = createBeatScheduler({
-    getIntervalMs,
-    getBeatsPerMeasure,
-    onBeat(beat) {
-      highlightBeat(beat);
-      const trackCount = getTrackCount();
-      const saved = readSlotState();
-      for (let t = 0; t < trackCount; t += 1) {
-        playSlotValue(saved[t]?.[beat - 1]);
+    onBeat(beat, _beats, when) {
+      if (activeMode === 'metronome') {
+        playMetronomeClick(beat === 1, when);
+        return;
+      }
+      if (activeMode === 'looper') {
+        scheduleUiHighlight(beat, when);
+        const trackCount = getTrackCount();
+        const saved = readSlotState();
+        for (let t = 0; t < trackCount; t += 1) {
+          playSlotValue(saved[t]?.[beat - 1], when);
+        }
       }
     },
   });
 
   function stopAll() {
-    metronomeScheduler.stop();
-    looperScheduler.stop();
+    transport.stop();
     clearBeatHighlight();
     setPlayerUi(null);
   }
@@ -254,13 +264,15 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   function startMetronome() {
     stopAll();
     updateTimeSignature();
-    if (metronomeScheduler.start()) setPlayerUi('metronome');
+    setPlayerUi('metronome');
+    if (!transport.start()) setPlayerUi(null);
   }
 
   function startLooper() {
     stopAll();
     updateTimeSignature();
-    if (looperScheduler.start()) setPlayerUi('looper');
+    setPlayerUi('looper');
+    if (!transport.start()) setPlayerUi(null);
   }
 
   el.querySelectorAll('.bpm-step').forEach((btn) => {
@@ -327,12 +339,4 @@ export function renderToolsDock({ chordsJson = {}, notesJson = {}, curatedKeys =
   rebuildLooperSlots();
   updateSummary();
   return el;
-}
-
-/** @deprecated use renderToolsDock via bottom dock */
-export function renderTools() {
-  const wrap = document.createElement('div');
-  wrap.className = 'section';
-  wrap.innerHTML = '<h2>tools</h2><p>Moved to the bottom dock.</p>';
-  return wrap;
 }

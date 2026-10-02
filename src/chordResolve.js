@@ -5,7 +5,7 @@ import {
   theoryNotesForSymbol,
 } from './chordSymbols.js';
 import { buildVoicing } from './chordVoicings.js';
-import { getChordNotes, getTheoryNotes, normalizePitch } from './music.js';
+import { getChordNotes, getTheoryNotes, normalizePitch, noteAtFret } from './music.js';
 import { getDisplayRoot } from './displayRoot.js';
 
 /** @typedef {{ label: string, chordRef: string|null, variant: object|null, notes: string[], source: 'database'|'theory'|'triad', via?: string }} ResolvedChord */
@@ -36,7 +36,7 @@ export function getVoicedChord(variant, notesJson) {
     const fretVal = variant[key];
     if (fretVal === 'x' || fretVal === '' || fretVal == null) continue;
     const fret = parseInt(fretVal, 10) || 0;
-    const pitch = normalizePitch(notesJson[string]?.[String(fret)] ?? '');
+    const pitch = normalizePitch(noteAtFret(notesJson[string], fret));
     if (!pitch) continue;
     voiced.push({ string, fret, pitch });
   }

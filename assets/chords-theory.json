@@ -66,5 +66,25 @@
   "Minor 9th": {
     "short": "Cm9",
     "intervals": "0 3 7 10 14"
+  },
+  "Major 9th": {
+    "short": "Cmaj9",
+    "intervals": "0 4 7 11 14"
+  },
+  "Minor Major 7th": {
+    "short": "Cmmaj7",
+    "intervals": "0 3 7 11"
+  },
+  "Minor Major 9th": {
+    "short": "Cmmaj9",
+    "intervals": "0 3 7 11 14"
+  },
+  "11th": {
+    "short": "C11",
+    "intervals": "0 4 7 10 14 17"
+  },
+  "13th": {
+    "short": "C13",
+    "intervals": "0 4 7 10 14 21"
   }
 }

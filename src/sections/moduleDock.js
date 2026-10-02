@@ -3,12 +3,13 @@ import { renderChordPicker } from './chordPicker.js';
 import { renderFretboardDrawer } from './fretboardDrawer.js';
 import { createNowPlayingDrawer } from './songBook.js';
 import { renderToolsDock } from './tools.js';
+import { renderMagicBeatzDock } from './magicBeatz.js';
 import { wrapAsDockModule } from '../dockSection.js';
 import { initDockModules } from '../dockModule.js';
 import { MODULE_ORDER } from '../workspaceLayout.js';
 import { renderChordsAndNotes } from './songChordsNotes.js';
 
-const TOOL_IDS = new Set(['root', 'chords', 'fretboard', 'now-playing', 'tools']);
+const TOOL_IDS = new Set(['root', 'chords', 'fretboard', 'now-playing', 'tools', 'magic-beatz']);
 
 export function renderModuleDock(hub, songs, chords, notes, songIndex, contentModules = {}, theoryContext = {}) {
   const dock = document.createElement('div');
@@ -54,6 +55,13 @@ export function renderModuleDock(hub, songs, chords, notes, songIndex, contentMo
     notesJson: notes,
     curatedKeys: theoryContext.curatedKeys,
   }));
+  dock.appendChild(renderMagicBeatzDock({
+    hub,
+    chordsJson: chords,
+    notesJson: notes,
+    scalesJson: theoryContext.scales || {},
+    curatedKeys: theoryContext.curatedKeys,
+  }));
 
   for (const id of MODULE_ORDER) {
     if (TOOL_IDS.has(id)) continue;
@@ -87,6 +95,7 @@ export function renderModuleDock(hub, songs, chords, notes, songIndex, contentMo
     currentSong: songs[currentIndex] ?? null,
     updateChordsNotes,
     setSongIndex: (index) => setSongIndex(index, theoryContext.onSongChange),
+    getSongIndex: () => nowPlaying.getSongIndex(),
   };
 }
 

@@ -113,6 +113,7 @@ export function orderModules(dockEl) {
 
 export function applyDockOrders(orders = {}) {
   const merged = { ...orders };
+  // One-time migrate from pre-module-dock session keys.
   if (!merged[DOCK_ID] && (merged['tool-dock'] || merged['content-dock'])) {
     merged[DOCK_ID] = [
       ...(merged['tool-dock'] || []),
@@ -633,7 +634,8 @@ function wirePlacementButton(mod) {
 
 function wireModuleDrag(mod, dockEl) {
   const bar = mod.querySelector('.dock-module-bar');
-  if (!bar) return;
+  if (!bar || bar.dataset.dragWired === '1') return;
+  bar.dataset.dragWired = '1';
 
   const DRAG_THRESHOLD = 6;
   let active = false;
@@ -898,12 +900,19 @@ function reorderInDock(mod, dockEl, clientY, { animate = true, persist = false }
 
 export function initDockModules(dockEl) {
   dockEl.querySelectorAll('.dock-module').forEach((mod) => {
-    registerModuleHome(mod, dockEl);
-    wireModuleDrag(mod, dockEl);
-    syncModuleChrome(mod);
+    rewireDockModule(mod, dockEl);
   });
   orderModules(dockEl);
   document.querySelectorAll('#module-canvas .dock-module').forEach(syncModuleChrome);
+}
+
+/** Re-attach drag/chrome after a module rebuilds its bar via innerHTML. */
+export function rewireDockModule(mod, dockEl = null) {
+  if (!mod) return;
+  const home = dockEl || findOriginDock(mod) || document.getElementById(DOCK_ID);
+  if (home) registerModuleHome(mod, home);
+  wireModuleDrag(mod, home);
+  syncModuleChrome(mod);
 }
 
 export function collectModulesState() {

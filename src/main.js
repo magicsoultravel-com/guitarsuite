@@ -1,3 +1,9 @@
+/**
+ * Shell strategy (pre-evolution): thin adapter over hub.
+ * Keep fretboardHub + music domain as the stable core; treat the module-dock
+ * chrome as temporary. Hygienize session/wiring here; do not expand MODULE_ORDER
+ * or build a plugin registry until a new chrome lands.
+ */
 import { enrichChordsJson } from './chordVoicings.js';
 import { fetchJson } from './utils.js';
 import { asset } from './paths.js';
@@ -12,7 +18,13 @@ import { renderGallery } from './sections/gallery.js';
 import { renderSelectionFooter } from './sections/selectionFooter.js';
 import { createFretboardHub } from './fretboardHub.js';
 import { applyModulesState, collectDockOrders, collectModulesState } from './dockModule.js';
-import { initSessionPersistence, restoreSession } from './sessionState.js';
+import {
+  initSessionPersistence,
+  restoreSession,
+  setMusicalCollector,
+  touchSession,
+  isRestoring,
+} from './sessionState.js';
 import { getUserZoom, initWorkspace } from './workspaceLayout.js';
 import { APP_VERSION } from './version.js';
 import {
@@ -27,8 +39,10 @@ import {
 const footerEl = document.getElementById('site-footer');
 
 const params = new URLSearchParams(location.search);
+const hasSongParam = params.has('songIndex');
+const hasRootParam = params.has('root');
 let songIndex = parseInt(params.get('songIndex') || '0', 10);
-const rootParam = params.has('root') ? (params.get('root') || '') : '';
+const rootParam = hasRootParam ? (params.get('root') || '') : '';
 const initialRoots = rootParam.split(',').map((r) => r.trim()).filter(Boolean);
 
 try {
@@ -86,13 +100,25 @@ try {
     onSongChange: (index) => {
       songIndex = index;
       mountChordsAndNotes(songs[index] ?? null);
+      if (!isRestoring()) {
+        touchSession(collectModulesState(), getUserZoom(), collectDockOrders());
+      }
     },
   });
 
+  let unwireChordsNotes = () => {};
+
   function mountChordsAndNotes(song) {
+    unwireChordsNotes();
     moduleDock.updateChordsNotes(song, chords, notes);
-    wireChordNoteTables(hub, chords, notes, chordsTheory);
+    unwireChordsNotes = wireChordNoteTables(hub, chords, notes, chordsTheory) || (() => {});
   }
+
+  setMusicalCollector(() => ({
+    roots: hub.getRoots(),
+    songIndex: moduleDock.getSongIndex(),
+    manualNotes: hub.getManualNotes(),
+  }));
 
   renderSelectionFooter(hub, {
     chordsJson: chords,
@@ -119,8 +145,25 @@ try {
   wireScaleProgressions(hub, scales, document.getElementById('scale-progressions-section'));
   wireGenreTheory(hub, scales, genres, document.getElementById('genre-theory-section'));
 
-  restoreSession(applyModulesState);
+  restoreSession(applyModulesState, (musical) => {
+    if (!hasRootParam && Array.isArray(musical.roots)) {
+      hub.setRoots(musical.roots);
+    }
+    if (!hasSongParam && Number.isInteger(musical.songIndex) && musical.songIndex >= 0) {
+      songIndex = musical.songIndex;
+      moduleDock.setSongIndex(musical.songIndex);
+    }
+    if (Array.isArray(musical.manualNotes) && musical.manualNotes.length) {
+      hub.setManualNotes(musical.manualNotes);
+    }
+  });
   initSessionPersistence(collectModulesState, getUserZoom, collectDockOrders);
+
+  hub.subscribe(() => {
+    if (!isRestoring()) {
+      touchSession(collectModulesState(), getUserZoom(), collectDockOrders());
+    }
+  });
 } catch (err) {
   document.getElementById('app').innerHTML = `<div class="section"><h2>Error</h2><p>${err.message}</p></div>`;
   console.error(err);

@@ -1,5 +1,5 @@
 import { escapeHtml } from '../utils.js';
-import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers, openFloatingModule } from '../dockModule.js';
+import { ensureDockChrome, wireDockBarToggle, wireDockExpand, syncChipLayers, openFloatingModule, rewireDockModule } from '../dockModule.js';
 import { appendChordChips, getChordContext } from '../chordChip.js';
 
 function renderChords(chipGrid, chordsList, hub, chordsJson, notesJson, chordsTheory) {
@@ -83,6 +83,7 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
   drawer.innerHTML = buildBar(songs[currentIndex]);
   ensureDockChrome(drawer, 'now-playing', 'now playing', { expandable: !!songs[currentIndex] });
   wireBar();
+  rewireDockModule(drawer);
   hub?.subscribe(() => syncChipLayers(hub, drawer));
 
   function updateSong(index) {
@@ -91,16 +92,9 @@ export function createNowPlayingDrawer(hub, songs, chords, notesJson, songIndex,
     drawer.innerHTML = buildBar(songs[currentIndex]);
     ensureDockChrome(drawer, 'now-playing', 'now playing', { expandable: !!songs[currentIndex] });
     wireBar();
+    rewireDockModule(drawer);
     if (wasExpanded && songs[currentIndex]) openFloatingModule(drawer);
   }
 
   return { drawer, updateSong, getSongIndex: () => currentIndex };
-}
-
-/** @deprecated use createNowPlayingDrawer via renderBottomDock */
-export function renderNowPlaying(songs, chords, songIndex) {
-  const { drawer, updateSong } = createNowPlayingDrawer(null, songs, chords, {}, songIndex);
-  document.body.appendChild(drawer);
-  document.body.classList.add('has-now-playing');
-  return { drawer, currentSong: songs[songIndex] ?? null, updateSong };
 }

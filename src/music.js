@@ -8,14 +8,25 @@ export const MUSICAL_ORDER = [
 export const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 const FLAT_TO_SHARP = { Db: 'C#', Eb: 'D#', Gb: 'F#', Ab: 'G#', Bb: 'A#' };
+/** Enharmonic spellings that are not simple letter+b flats. */
+const ENHARMONIC_TO_SHARP = {
+  Cb: 'B',
+  Fb: 'E',
+  'E#': 'F',
+  'B#': 'C',
+  ...FLAT_TO_SHARP,
+};
 
 export function normalizePitch(note) {
   if (!note || note === 'N/A') return '';
   const trimmed = String(note).trim();
-  if (FLAT_TO_SHARP[trimmed]) return FLAT_TO_SHARP[trimmed];
+  if (ENHARMONIC_TO_SHARP[trimmed]) return ENHARMONIC_TO_SHARP[trimmed];
   const letter = trimmed.charAt(0).toUpperCase();
   const acc = trimmed.slice(1);
+  const key = letter + acc;
+  if (ENHARMONIC_TO_SHARP[key]) return ENHARMONIC_TO_SHARP[key];
   if (acc === 'b' && FLAT_TO_SHARP[letter + 'b']) return FLAT_TO_SHARP[letter + 'b'];
+  if (acc === '#' && (letter === 'E' || letter === 'B')) return ENHARMONIC_TO_SHARP[letter + '#'];
   return letter + acc;
 }
 
@@ -42,23 +53,37 @@ export function sortNotesByMusicalOrder(notes) {
   });
 }
 
+/**
+ * Notes JSON is keyed 0–12; frets above 12 wrap the same pitch-class pattern.
+ * Shared by fretboard display, theory lookup, and voiced playback.
+ */
+export function noteAtFret(stringData, fret) {
+  if (!stringData) return '';
+  const n = typeof fret === 'number' ? fret : parseInt(fret, 10);
+  if (Number.isNaN(n) || n < 0) return '';
+  if (n === 0) return stringData['0'] ?? '';
+  const noteIndex = ((n - 1) % 12) + 1;
+  return stringData[String(noteIndex)] ?? '';
+}
+
+const SHAPE_STRING_KEYS = [
+  ['E1', 'E'],
+  ['A', 'A'],
+  ['D', 'D'],
+  ['G', 'G'],
+  ['B', 'B'],
+  ['E2', 'e'],
+];
+
 export function getChordNotes(chordShape, notesJson) {
-  const frets = {
-    E1: chordShape.E1 ?? 'x',
-    A: chordShape.A ?? 'x',
-    D: chordShape.D ?? 'x',
-    G: chordShape.G ?? 'x',
-    B: chordShape.B ?? 'x',
-    E2: chordShape.E2 ?? 'x',
-  };
+  if (!chordShape || !notesJson) return [];
 
   const notes = [];
-  for (const [stringKey, fretValue] of Object.entries(frets)) {
-    const stringBase = stringKey.replace(/[12]/, '').toUpperCase();
-    if (fretValue !== 'x' && fretValue !== '') {
-      const note = notesJson[stringBase]?.[fretValue];
-      if (note) notes.push(normalizePitch(note));
-    }
+  for (const [shapeKey, notesKey] of SHAPE_STRING_KEYS) {
+    const fretValue = chordShape[shapeKey] ?? 'x';
+    if (fretValue === 'x' || fretValue === '') continue;
+    const note = noteAtFret(notesJson[notesKey] ?? notesJson[notesKey.toUpperCase()], fretValue);
+    if (note) notes.push(normalizePitch(note));
   }
   return [...new Set(notes)];
 }
@@ -84,16 +109,21 @@ export function getScaleSemitones(steps) {
   return semitones;
 }
 
+/** Pitch classes for each scale degree (closing octave excluded). */
 export function getScaleNotes(root, steps) {
   const rootIdx = pitchToIndex(root);
   if (rootIdx < 0 || !steps?.length) return [];
-  return getScaleSemitones(steps).map((s) => CHROMATIC[(rootIdx + s) % 12]);
+  const semis = getScaleSemitones(steps);
+  const degreeSemis = semis[semis.length - 1] === 12 ? semis.slice(0, -1) : semis;
+  return degreeSemis.map((s) => CHROMATIC[(rootIdx + s) % 12]);
 }
 
 /** Ascending scale degrees with octaves that rise when the pitch wraps (capped for guitar range). */
 export function getScaleNotesWithOctaves(root, steps, startOctave = 3, maxOctave = 4) {
-  const pitches = getScaleNotes(root, steps);
-  if (!pitches.length) return [];
+  const degrees = getScaleNotes(root, steps);
+  if (!degrees.length) return [];
+  // Include tonic at the top of the run for complete ascending playback.
+  const pitches = [...degrees, degrees[0]];
   let octave = startOctave;
   let lastIdx = pitchToIndex(pitches[0]);
   return pitches.map((pitch, i) => {
@@ -128,7 +158,7 @@ function romanNumeral(degree, quality) {
   return roman;
 }
 
-/** Diatonic triad on each scale degree. */
+/** Diatonic triad on each scale degree (7 degrees; octave not counted). */
 export function getDiatonicTriads(root, steps) {
   const notes = getScaleNotes(root, steps);
   if (!notes.length) return [];
@@ -158,13 +188,34 @@ export function findTriadByRoman(triads, numeral) {
   return triads.find((t) => t.roman === numeral) || null;
 }
 
+/** Chromatic major triad on scale degree flattened by `flatSemitones` (bVII=10, bVI=8). */
+function flatDegreeMajorTriad(scaleRoot, flatSemitones, roman) {
+  const rootIdx = pitchToIndex(scaleRoot);
+  if (rootIdx < 0) return null;
+  const chordRoot = CHROMATIC[(rootIdx + flatSemitones) % 12];
+  const third = CHROMATIC[(rootIdx + flatSemitones + 4) % 12];
+  const fifth = CHROMATIC[(rootIdx + flatSemitones + 7) % 12];
+  return {
+    degree: -1,
+    root: chordRoot,
+    notes: [chordRoot, third, fifth],
+    quality: 'maj',
+    symbol: chordRoot,
+    roman,
+  };
+}
+
 export function resolveProgressionChords(root, steps, pattern, options = {}) {
   const triads = getDiatonicTriads(root, steps);
   const { quality } = options;
   return pattern
     .split(/\s+/)
     .filter(Boolean)
-    .map((numeral) => findTriadByRoman(triads, numeral))
+    .map((numeral) => {
+      if (/^bVII$/i.test(numeral)) return flatDegreeMajorTriad(root, 10, 'bVII');
+      if (/^bVI$/i.test(numeral)) return flatDegreeMajorTriad(root, 8, 'bVI');
+      return findTriadByRoman(triads, numeral);
+    })
     .filter(Boolean)
     .map((triad) => {
       if (!quality) return triad;
@@ -186,8 +237,8 @@ export function numeralsToPattern(numerals) {
     .map((s) => s.trim())
     .filter(Boolean)
     .map((token) => {
-      if (/^b?VII$/i.test(token) || token === 'bVII') return 'VII';
-      if (/^b?VI$/i.test(token) || token === 'bVI') return 'VI';
+      if (/^bVII/i.test(token)) return 'bVII';
+      if (/^bVI(?!I)/i.test(token)) return 'bVI';
       return token.replace(/7.*$/i, '').replace(/ø.*/i, '°').replace(/alt.*/i, '');
     })
     .join(' ');

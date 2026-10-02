@@ -14,6 +14,7 @@ export const MODULE_ORDER = [
   'fretboard',
   'now-playing',
   'tools',
+  'magic-beatz',
   'chords-notes',
   'chords-theory',
   'scales-modes',

@@ -1,4 +1,5 @@
 import { playPitch } from './audio.js';
+import { playGuitarNote, playScheduledStrum } from './instruments.js';
 import { getVoicedChord } from './chordResolve.js';
 import { DEFAULT_DISPLAY_ROOT } from './displayRoot.js';
 import {
@@ -134,12 +135,14 @@ export function initPlayback() {
   document.body.classList.toggle('focus-modules', focusModules);
 }
 
-export function playNote(pitch, octave = GUITAR_OCTAVE) {
+export function playNote(pitch, octave = GUITAR_OCTAVE, when) {
   if (!soundEnabled) return;
-  sequenceId += 1;
+  if (when == null) sequenceId += 1;
   const p = normalizePitch(pitch);
   if (!p) return;
-  playPitch(p, clampGuitarOctave(octave));
+  const oct = clampGuitarOctave(octave);
+  if (when != null) playGuitarNote(p, oct, when);
+  else playPitch(p, oct);
 }
 
 export function playFretNote(stringName, fret, pitch) {
@@ -171,23 +174,41 @@ async function runPitchOctaveSequence(entries, gapMs) {
   }
 }
 
-export function playChord(notes) {
+export function playChord(notes, when) {
   const unique = sortNotesByMusicalOrder([...new Set(notes.map(normalizePitch).filter(Boolean))]);
-  runPitchOctaveSequence(spreadNotesInRange(unique), 150);
+  const entries = spreadNotesInRange(unique);
+  if (when != null) {
+    if (!soundEnabled || !entries.length) return;
+    playScheduledStrum(entries.map((e) => ({
+      pitch: e.pitch,
+      octave: clampGuitarOctave(e.octave),
+    })), when, 0.05);
+    return;
+  }
+  runPitchOctaveSequence(entries, 150);
 }
 
 /** Strum a database chord shape low → high in a consistent mid register. */
-export function playVoicedChord(variant, notesJson) {
+export function playVoicedChord(variant, notesJson, when) {
   if (!soundEnabled || !variant || !notesJson) return;
   const voiced = getVoicedChord(variant, notesJson);
-  const entries = normalizeVoicedForPlayback(voiced);
+  const entries = normalizeVoicedForPlayback(voiced).map((e) => ({
+    pitch: normalizePitch(e.pitch),
+    octave: clampGuitarOctave(e.octave),
+  }));
   if (!entries.length) return;
+
+  if (when != null) {
+    playScheduledStrum(entries, when, 0.045);
+    return;
+  }
+
   sequenceId += 1;
   const id = sequenceId;
   (async () => {
     for (const { pitch, octave } of entries) {
       if (id !== sequenceId) return;
-      playPitch(normalizePitch(pitch), clampGuitarOctave(octave));
+      playPitch(pitch, octave);
       await sleep(120);
     }
   })();
@@ -245,10 +266,10 @@ function resolveChordForPlayback(root, theoryType, chordsTheory, chordsJson, not
   return null;
 }
 
-export function playChordByName(name, chordsJson, notesJson) {
+export function playChordByName(name, chordsJson, notesJson, when) {
   const variant = chordsJson[name]?.variant1;
   if (!variant) return;
-  playVoicedChord(variant, notesJson);
+  playVoicedChord(variant, notesJson, when);
 }
 
 export function playScaleByName(name, root, scalesJson) {

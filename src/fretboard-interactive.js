@@ -176,6 +176,8 @@ export function updateActiveMarkers(hub) {
 export function wireChordNoteTables(hub, chordsJson, notesJson, chordsTheory = {}) {
   const ctx = chordCtxFromHub(hub, chordsJson, notesJson, chordsTheory);
   const section = document.getElementById('chords-notes-section');
+  const abort = new AbortController();
+  const { signal } = abort;
 
   function mountHeaders() {
     if (!section) return;
@@ -189,13 +191,18 @@ export function wireChordNoteTables(hub, chordsJson, notesJson, chordsTheory = {
     if (!pitch) return;
     td.classList.add('fb-note-cell');
     td.title = `Play ${pitch}`;
-    td.addEventListener('click', () => playNote(pitch));
+    td.addEventListener('click', () => playNote(pitch), { signal });
   });
 
-  hub.subscribe(() => {
+  const unsubscribe = hub.subscribe(() => {
     updateActiveMarkers(hub);
     mountHeaders();
   });
+
+  return () => {
+    unsubscribe();
+    abort.abort();
+  };
 }
 
 export function wireChordsTheory(hub, chordsTheory, intervals, sectionEl) {
@@ -417,7 +424,7 @@ export function wireGenreTheory(hub, scales, genres, sectionEl) {
     if (/\bi\b/i.test(pattern) || pattern.includes(' i')) {
       return candidates.find((s) => /aeolian|dorian|minor/i.test(s)) || 'Aeolian';
     }
-    if (/\bVII\b/.test(pattern) || /bVII/i.test(prog.numerals || '')) {
+    if (/bVII/i.test(pattern) || /bVII/i.test(prog.numerals || '') || /\bVII\b/.test(pattern)) {
       return candidates.find((s) => s === 'Mixolydian') || 'Mixolydian';
     }
     return candidates.find((s) => scales[s]) || 'Ionian';

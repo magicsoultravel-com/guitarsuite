@@ -281,6 +281,40 @@ export function createFretboardHub(initialRoot = '') {
       lastChordLabel = null;
       notify();
     },
+
+    /** Replace root span (session restore). */
+    setRoots(nextRoots) {
+      const normalized = [...new Set(
+        (nextRoots || []).map(normalizePitch).filter((r) => rootIndex(r) >= 0),
+      )];
+      const indices = normalized.map(rootIndex);
+      if (!normalized.length) {
+        roots = [];
+      } else if (normalized.length <= MAX_ROOTS && isConsecutiveSpan(indices)) {
+        roots = indicesToRoots(indices);
+      } else {
+        roots = [normalized[normalized.length - 1]];
+      }
+      notify();
+    },
+
+    getManualNotes() {
+      const manual = layers.find((l) => l?.kind === 'manual');
+      return manual ? [...manual.notes] : [];
+    },
+
+    setManualNotes(notes) {
+      const pitches = [...new Set((notes || []).map(normalizePitch).filter(Boolean))];
+      const existingIdx = layers.findIndex((l) => l?.kind === 'manual');
+      if (!pitches.length) {
+        if (existingIdx >= 0) layers[existingIdx] = null;
+        notify();
+        return;
+      }
+      const idx = existingIdx >= 0 ? existingIdx : allocateSlot();
+      layers[idx] = { label: 'manual', kind: 'manual', family: 'manual', notes: pitches };
+      notify();
+    },
   };
 }
 

@@ -101,6 +101,7 @@ export function renderModuleDock(hub, songs, chords, notes, songIndex, contentMo
 
 function moduleLabel(id) {
   const labels = {
+    welcome: 'welcome',
     'chords-notes': 'chords & notes',
     'chords-theory': 'chords theory',
     'scales-modes': 'scales & modes',
@@ -114,10 +115,11 @@ function moduleLabel(id) {
 
 export function buildContentSections({
   songs, songIndex, chords, notes,
-  theorySection, scalesSection, progressionsSection, genreSection,
+  welcomeSection, theorySection, scalesSection, progressionsSection, genreSection,
   usefulLinksSection, gallerySection,
 }) {
   return {
+    welcome: welcomeSection,
     'chords-notes': renderChordsAndNotes(songs[songIndex] ?? null, chords, notes),
     'chords-theory': theorySection,
     'scales-modes': scalesSection,

@@ -35,6 +35,9 @@ import {
   wireScaleProgressions,
   wireGenreTheory,
 } from './fretboard-interactive.js';
+import { initTheme } from './theme.js';
+
+initTheme();
 
 const footerEl = document.getElementById('site-footer');
 
@@ -77,14 +80,12 @@ try {
   }
   hub.setChordContext({ chordsJson: chords, notesJson: notes, chordsTheory });
 
-  const app = document.getElementById('app');
-  app.appendChild(renderAbout(about));
-
   const contentSections = buildContentSections({
     songs,
     songIndex,
     chords,
     notes,
+    welcomeSection: renderAbout(about),
     theorySection: renderChordsTheory(),
     scalesSection: renderScalesTheory(scales),
     progressionsSection: renderScaleProgressions(scales),

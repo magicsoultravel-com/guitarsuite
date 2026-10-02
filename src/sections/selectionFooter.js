@@ -12,6 +12,7 @@ import {
   setSoundEnabled,
   subscribeSound,
 } from '../playback.js';
+import { openBlockSettings } from './blockSettings.js';
 
 export function renderSelectionFooter(hub, context = {}, footerEl) {
   initPlayback();
@@ -27,6 +28,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
         <button type="button" class="dock-nav-btn footer-zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
         <button type="button" class="dock-nav-btn footer-auto-arrange" title="Auto-arrange open modules" aria-label="Auto-arrange open modules">▦</button>
         <button type="button" class="dock-nav-btn footer-layout-reset" title="Reset module positions" aria-label="Reset module positions">⌂</button>
+        <button type="button" class="dock-nav-btn footer-settings" title="Block settings" aria-label="Block settings">⚙</button>
       </div>
       <div class="footer-selection-actions">
         <button type="button" class="dock-nav-btn footer-sound" title="Sound on" aria-label="Toggle sound" aria-pressed="true">◉</button>
@@ -78,6 +80,7 @@ export function renderSelectionFooter(hub, context = {}, footerEl) {
   });
   bar.querySelector('.footer-auto-arrange')?.addEventListener('click', () => autoArrangeModules());
   bar.querySelector('.footer-layout-reset')?.addEventListener('click', () => resetBlockPositions());
+  bar.querySelector('.footer-settings')?.addEventListener('click', () => openBlockSettings());
   bar.querySelector('.footer-reset')?.addEventListener('click', () => hub.reset());
   rootEl.addEventListener('click', () => {
     const root = hub.getRoot();

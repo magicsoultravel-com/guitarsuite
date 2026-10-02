@@ -15,6 +15,7 @@ export const MODULE_ORDER = [
   'now-playing',
   'tools',
   'magic-beatz',
+  'welcome',
   'chords-notes',
   'chords-theory',
   'scales-modes',

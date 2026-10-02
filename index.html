@@ -8,6 +8,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./assets/style.css">
+  <script>
+    try {
+      var t = localStorage.getItem('guitarsuite-theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <header class="site-brand">
@@ -26,6 +32,7 @@
   <script>
     window.addEventListener('load', function () {
       setTimeout(function () {
+        if (document.getElementById('module-dock')) return;
         var app = document.getElementById('app');
         if (app && !app.children.length && !app.textContent.trim()) {
           app.innerHTML = '<div class="section"><h2>Could not load app</h2><p>JavaScript failed to load. Try a hard refresh (Ctrl+Shift+R).</p></div>';

@@ -317,11 +317,13 @@ body.focus-modules .site-footer-stack {
     padding: 0;
 }
 
-.fretboard-vertical-wrap {
+.fretboard-vertical-wrap,
+.fretboard-horizontal-wrap {
     margin-bottom: var(--space-sm);
 }
 
-.fretboard-vertical {
+.fretboard-vertical,
+.fretboard-horizontal {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.58rem;
@@ -329,7 +331,9 @@ body.focus-modules .site-footer-stack {
 }
 
 .fretboard-vertical .fret-head,
-.fretboard-vertical .string-head {
+.fretboard-vertical .string-head,
+.fretboard-horizontal .fret-head,
+.fretboard-horizontal .string-head {
     font-size: 0.58rem;
     font-weight: 600;
     padding: 1px 2px;
@@ -337,18 +341,29 @@ body.focus-modules .site-footer-stack {
     color: var(--color-muted);
     border: 1px solid var(--color-border);
     line-height: 1.1;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .fretboard-vertical .fret-head {
     width: 1.5em;
-    text-align: right;
 }
 
 .fretboard-vertical .string-head {
     width: 1.35em;
 }
 
-.fretboard-vertical td.fb-cell {
+.fretboard-horizontal .string-head {
+    width: 1.5em;
+}
+
+.fretboard-horizontal .fret-head {
+    width: 1.35em;
+    min-width: 1.2em;
+}
+
+.fretboard-vertical td.fb-cell,
+.fretboard-horizontal td.fb-cell {
     text-align: center;
     vertical-align: middle;
     padding: 0 1px;
@@ -362,17 +377,13 @@ body.focus-modules .site-footer-stack {
     min-height: 1.85em;
 }
 
-.fretboard-vertical .fret-head,
-.fretboard-vertical .string-head {
-    text-align: center;
-    vertical-align: middle;
-}
-
-.fretboard-vertical tr[data-fret="0"] td.fb-cell {
+.fretboard-vertical tr[data-fret="0"] td.fb-cell,
+.fretboard-horizontal td.fb-cell[data-fret="0"] {
     background: rgba(255, 255, 255, 0.04);
 }
 
-.fretboard-drawer-board .fretboard-vertical-wrap {
+.fretboard-drawer-board .fretboard-vertical-wrap,
+.fretboard-drawer-board .fretboard-horizontal-wrap {
     margin-bottom: var(--space-xs);
 }
 
@@ -1283,16 +1294,18 @@ body.has-selection-footer .module-dock {
     overflow: visible;
 }
 
-/* Pin = sidebar↔canvas; chevron = tile↔expanded (canvas only); drag handle always visible */
+/* Pin = sidebar↔canvas; chevron = tile↔expanded (canvas only); orient = fretboard flip; drag handle always visible */
 .dock-module--expandable .dock-module-pin,
-.dock-module--expandable .dock-module-chevron {
+.dock-module--expandable .dock-module-chevron,
+.dock-module--expandable .dock-module-orient {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.12s ease, visibility 0.12s;
 }
 
-.dock-module--expandable:not(.is-floating) .dock-module-chevron {
+.dock-module--expandable:not(.is-floating) .dock-module-chevron,
+.dock-module--expandable:not(.is-floating) .dock-module-orient {
     display: none;
 }
 
@@ -1308,8 +1321,11 @@ body.has-selection-footer .module-dock {
 .dock-module--expandable .dock-module-bar:focus-within .dock-module-pin,
 .dock-module--expandable.is-floating .dock-module-bar:hover .dock-module-chevron,
 .dock-module--expandable.is-floating .dock-module-bar:focus-within .dock-module-chevron,
+.dock-module--expandable.is-floating .dock-module-bar:hover .dock-module-orient,
+.dock-module--expandable.is-floating .dock-module-bar:focus-within .dock-module-orient,
 .dock-module--expandable .dock-module-bar.is-dragging .dock-module-pin,
 .dock-module--expandable.is-floating .dock-module-bar.is-dragging .dock-module-chevron,
+.dock-module--expandable.is-floating .dock-module-bar.is-dragging .dock-module-orient,
 .dock-drag-handle.is-dragging {
     opacity: 1;
     visibility: visible;
@@ -1317,7 +1333,8 @@ body.has-selection-footer .module-dock {
 }
 
 .dock-module--expandable.is-floating .dock-module-pin,
-.dock-module--expandable.is-floating .dock-module-chevron {
+.dock-module--expandable.is-floating .dock-module-chevron,
+.dock-module--expandable.is-floating .dock-module-orient {
     display: inline-flex;
 }
 
@@ -1514,7 +1531,8 @@ body.has-selection-footer .module-dock {
 }
 
 .dock-module-chevron,
-.dock-module-pin {
+.dock-module-pin,
+.dock-module-orient {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
@@ -1534,8 +1552,13 @@ body.has-selection-footer .module-dock {
     font-size: 0.75em;
 }
 
+.dock-module-orient {
+    font-size: 0.85em;
+}
+
 .dock-module-pin:hover,
-.dock-module-chevron:hover {
+.dock-module-chevron:hover,
+.dock-module-orient:hover {
     color: var(--color-accent);
 }
 
@@ -1551,7 +1574,8 @@ body.has-selection-footer .module-dock {
     overflow-y: visible;
 }
 
-.fretboard-drawer-board .fretboard-vertical-wrap {
+.fretboard-drawer-board .fretboard-vertical-wrap,
+.fretboard-drawer-board .fretboard-horizontal-wrap {
     margin-bottom: 0;
 }
 

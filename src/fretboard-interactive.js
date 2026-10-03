@@ -127,6 +127,7 @@ export function initFretboardInteractive(hub, notesJson, chordsJson) {
   }
 
   hub.subscribe(updateFretboardDisplay);
+  fretboardTable.addEventListener('fretboard:repaint', updateFretboardDisplay);
 
   fretboardTable.addEventListener('click', (event) => {
     const cell = event.target.closest('td.fb-cell');

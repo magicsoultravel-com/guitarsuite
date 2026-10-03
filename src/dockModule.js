@@ -700,7 +700,7 @@ function wireModuleDrag(mod, dockEl) {
 
   function isBlockedTarget(target) {
     if (target.closest('.dock-drag-handle')) return false;
-    return !!target.closest('.dock-module-pin, .dock-module-chevron, .dock-resize-edge, .dock-chip, .root-chip, input, select, textarea, a');
+    return !!target.closest('.dock-module-pin, .dock-module-chevron, .dock-module-orient, .dock-resize-edge, .dock-chip, .root-chip, input, select, textarea, a');
   }
 
   function processPointerMove(e) {
